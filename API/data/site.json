@@ -1,0 +1,9 @@
+{
+  "key": "site",
+  "authPanel": {
+    "publicId": "gamenow/site/auth-panel",
+    "resourceType": "image",
+    "local": "/images/auth-panel.webp",
+    "hosted": true
+  }
+}

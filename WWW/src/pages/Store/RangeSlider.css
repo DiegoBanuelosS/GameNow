@@ -1,0 +1,81 @@
+.range {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.range-copy {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  color: var(--color-fg-muted);
+  font: var(--body-small);
+}
+
+.range-track {
+  position: relative;
+  height: 44px;
+  margin: 0 22px;
+  cursor: pointer;
+}
+
+.range-track::before {
+  content: "";
+  position: absolute;
+  right: 0;
+  left: 0;
+  top: 50%;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--color-border-subtle);
+  transform: translateY(-50%);
+}
+
+.range-fill {
+  position: absolute;
+  top: 50%;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--color-accent-primary);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.range-thumb {
+  position: absolute;
+  top: 50%;
+  z-index: 1;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  transform: translate(-50%, -50%);
+  cursor: grab;
+}
+
+.range-thumb::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--color-accent-primary);
+  border-radius: 50%;
+  background: var(--color-fg-default);
+  transform: translate(-50%, -50%);
+  transition: transform var(--duration) var(--ease-out);
+}
+
+.range-thumb:hover::after,
+.range-thumb:focus-visible::after {
+  transform: translate(-50%, -50%) scale(1.15);
+}
+
+.range-thumb:active {
+  cursor: grabbing;
+}
+
+.range-thumb:active::after {
+  transform: translate(-50%, -50%) scale(1.05);
+}

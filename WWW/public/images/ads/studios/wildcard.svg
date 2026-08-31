@@ -1,0 +1,27 @@
+<svg xmlns="http://w3.org" viewBox="0 0 800 500" width="100%" height="100%">
+  <!-- Background for visibility (Optional) -->
+  <rect width="100%" height="100%" fill="#111111"/>
+  
+  <g transform="translate(0, 20)">
+    <!-- Iconic 3-Claw / Slash Mark -->
+    <g fill="#EAEAEA">
+      <!-- Left Claw Claw/Slash -->
+      <path d="M 340,70 C 340,70 325,120 310,160 C 300,185 295,210 320,195 C 345,180 365,140 375,110 C 380,95 375,75 340,70 Z" />
+      <!-- Center Main Claw/Slash -->
+      <path d="M 400,40 C 400,40 380,110 365,160 C 355,195 350,230 385,210 C 420,190 440,130 450,90 C 455,70 440,45 400,40 Z" />
+      <!-- Right Claw Claw/Slash -->
+      <path d="M 460,80 C 460,80 445,125 435,155 C 425,180 420,200 440,185 C 460,170 475,140 485,115 C 490,100 485,85 460,80 Z" />
+    </g>
+    
+    <!-- Typography -->
+    <g text-anchor="middle" fill="#FFFFFF" font-family="'Montserrat', 'Arial Black', sans-serif">
+      <!-- STUDIO Text -->
+      <text x="400" y="300" font-size="42" font-weight="900" letter-spacing="18" fill="#A0A0A0">STUDIO</text>
+      <!-- WILDCARD Text -->
+      <text x="400" y="390" font-size="84" font-weight="900" letter-spacing="6">WILDCARD</text>
+    </g>
+    
+    <!-- Accent Line -->
+    <line x1="250" y1="430" x2="550" y2="430" stroke="#EAEAEA" stroke-width="4" opacity="0.8" />
+  </g>
+</svg>

@@ -1,0 +1,31 @@
+name: gamenow_setup
+description: Instalador de GameNow para Windows.
+publish_to: "none"
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.13.2
+
+dependencies:
+  archive: ^4.0.7
+  flutter:
+    sdk: flutter
+  path: ^1.9.1
+
+dev_dependencies:
+  flutter_lints: ^6.0.0
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/vortex-256.png
+    - assets/payload.zip
+  fonts:
+    - family: Sora
+      fonts:
+        - asset: fonts/Sora-Regular.ttf
+          weight: 400
+        - asset: fonts/Sora-SemiBold.ttf
+          weight: 600

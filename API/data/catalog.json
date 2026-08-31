@@ -1,0 +1,359 @@
+[
+  {
+    "slug": "ace-combat-8",
+    "name": "ACE COMBAT 8: WINGS OF THEVE",
+    "studio": "Bandai Namco Aces",
+    "alt": "Anuncio de Ace Combat 8.",
+    "price": 1299.99,
+    "currency": "MXN",
+    "sections": {
+      "ad": 0,
+      "event": null,
+      "offer": null
+    },
+    "cover": {
+      "publicId": "gamenow/covers/acecombat8",
+      "resourceType": "image",
+      "local": "/images/ads/acecombat8.webp",
+      "hosted": true
+    },
+    "studioLogo": {
+      "publicId": "gamenow/logos/bandai-namco",
+      "resourceType": "image",
+      "local": "/images/ads/studios/bandai-namco.svg",
+      "hosted": true
+    },
+    "trailer": {
+      "publicId": "gamenow/trailers/ace8",
+      "resourceType": "video",
+      "local": "/videos/ace8.webm",
+      "hosted": true
+    },
+    "details": {
+      "release": "2 de octubre de 2026",
+      "platforms": "PlayStation 5, Xbox Series X|S, PC (Steam) y GameNow",
+      "description": "Eres un piloto de combate a la deriva hasta que el portaaviones Endurance te recoge. En julio de 2029, la Federación de Usea Central cae ante la invasión de la República de Sotoa. Te dan el nombre «Wings of Theve», un as legendario que resultó ser una historia de moral. Con tres compañeros, vuelves al cielo para recuperar tu país.\n\nCampaña arcade con combates aéreos, nubes en capas y escenas en primera persona. El modo en línea incluye vestíbulo, base aérea con avatar, cooperativo y juego cruzado. Desarrollado por PROJECT ACES / Bandai Namco Aces Inc.",
+      "requirementsNote": "Mínimos publicados por Bandai Namco Entertainment Europe. Los máximos siguen como TBD en esa ficha. Rendimiento estimado en mínimos: 1080p (escalado) / 30 fps en bajo; puede bajar en escenas pesadas. Hace falta SSD, GPU con trazado de rayos por hardware y DirectX 12 con Shader Model 6.6 o superior.",
+      "requirements": [
+        { "label": "SO", "min": "Windows 11 (64 bits)", "max": "Por confirmar" },
+        { "label": "Procesador", "min": "Intel Core i7-10700K / AMD Ryzen 5 3600X", "max": "Por confirmar" },
+        { "label": "Memoria", "min": "16 GB RAM", "max": "Por confirmar" },
+        { "label": "Gráficos", "min": "NVIDIA GeForce RTX 2060 (6 GB) / AMD Radeon RX 6600 XT (8 GB)", "max": "Por confirmar" },
+        { "label": "DirectX", "min": "Versión 12", "max": "Por confirmar" },
+        { "label": "Almacenamiento", "min": "125 GB", "max": "Por confirmar" }
+      ]
+    }
+  },
+  {
+    "slug": "gta-vi",
+    "name": "Grand Theft Auto VI",
+    "studio": "Rockstar Games",
+    "alt": "Anuncio de Grand Theft Auto VI.",
+    "price": 1599.99,
+    "currency": "MXN",
+    "sections": {
+      "ad": 1,
+      "event": null,
+      "offer": null
+    },
+    "cover": {
+      "publicId": "gamenow/covers/gtavi",
+      "resourceType": "image",
+      "local": "/images/ads/GTAVI.webp",
+      "hosted": true
+    },
+    "studioLogo": {
+      "publicId": "gamenow/logos/rockstar",
+      "resourceType": "image",
+      "local": "/images/ads/studios/rockstar.svg",
+      "hosted": true
+    },
+    "trailer": {
+      "publicId": "gamenow/trailers/gtavi",
+      "resourceType": "video",
+      "local": "/videos/GTAVI.webm",
+      "hosted": true
+    },
+    "details": {
+      "platforms": "PlayStation 5, Xbox Series X|S y GameNow",
+      "description": "Jason y Lucia siempre han sabido que el mazo está marcado. Cuando un golpe fácil sale mal, quedan en el lado más oscuro del lugar más soleado de Estados Unidos, en medio de una conspiración criminal que recorre el estado de Leonida. Tendrán que confiar el uno en el otro más que nunca si quieren salir con vida.\n\nEn la web oficial de Rockstar el juego se presenta para PlayStation 5 y Xbox Series X|S; no hay ficha de PC.",
+      "requirementsNote": "Rockstar Games no ha publicado requisitos de PC. La comparación queda vacía a propósito: no hay mínimos ni máximos oficiales.",
+      "requirements": [
+        { "label": "SO", "min": "No publicado", "max": "No publicado" },
+        { "label": "Procesador", "min": "No publicado", "max": "No publicado" },
+        { "label": "Memoria", "min": "No publicado", "max": "No publicado" },
+        { "label": "Gráficos", "min": "No publicado", "max": "No publicado" },
+        { "label": "Almacenamiento", "min": "No publicado", "max": "No publicado" }
+      ]
+    }
+  },
+  {
+    "slug": "ark-2",
+    "name": "ARK 2",
+    "studio": "Studio Wildcard",
+    "alt": "Anuncio de ARK 2.",
+    "price": 999.99,
+    "currency": "MXN",
+    "sections": {
+      "ad": 2,
+      "event": null,
+      "offer": null
+    },
+    "cover": {
+      "publicId": "gamenow/covers/ark2",
+      "resourceType": "image",
+      "local": "/images/ads/ark2.webp",
+      "hosted": true
+    },
+    "studioLogo": {
+      "publicId": "gamenow/logos/wildcard",
+      "resourceType": "image",
+      "local": "/images/ads/studios/wildcard.webp",
+      "hosted": true
+    },
+    "trailer": {
+      "publicId": "gamenow/trailers/ark2",
+      "resourceType": "video",
+      "local": "/videos/ark2.webm",
+      "hosted": true
+    },
+    "details": {
+      "release": "Por confirmar",
+      "platforms": "Xbox Series X|S, PC (Steam, fecha por confirmar) y GameNow",
+      "description": "ARK II mete a los supervivientes en un mundo brutal de supervivencia primitiva contra bestias y humanos: dinosaurios inteligentes, fauna alienígena agresiva y entornos de un planeta extraño. La historia de ARK sobre la evolución humana sigue en esta experiencia de supervivencia sandbox de nueva generación.\n\nSteam lista el título como To be announced. Studio Wildcard no ha publicado requisitos de PC.",
+      "requirementsNote": "No hay mínimos ni máximos oficiales. No usamos cifras de ARK: Survival Ascended ni estimaciones de terceros.",
+      "requirements": [
+        { "label": "SO", "min": "No publicado", "max": "No publicado" },
+        { "label": "Procesador", "min": "No publicado", "max": "No publicado" },
+        { "label": "Memoria", "min": "No publicado", "max": "No publicado" },
+        { "label": "Gráficos", "min": "No publicado", "max": "No publicado" },
+        { "label": "Almacenamiento", "min": "No publicado", "max": "No publicado" }
+      ]
+    }
+  },
+  {
+    "slug": "f1-2025-2026-season-pack",
+    "name": "F1 2025 - 2026 Season pack",
+    "studio": "EA Sports",
+    "alt": "F1 2025 - 2026 Season pack.",
+    "price": 750.99,
+    "currency": "MXN",
+    "sections": {
+      "ad": null,
+      "event": 0,
+      "offer": null
+    },
+    "cover": {
+      "publicId": "gamenow/covers/f126",
+      "resourceType": "image",
+      "local": "/images/events/f126.webp",
+      "hosted": true
+    },
+    "trailer": {
+      "publicId": "gamenow/trailers/f126",
+      "resourceType": "video",
+      "local": "/videos/F126.webm",
+      "hosted": true
+    }
+  },
+  {
+    "slug": "nba-2k27",
+    "name": "NBA 2K27",
+    "studio": "2K",
+    "alt": "NBA 2K27.",
+    "price": 1009.99,
+    "currency": "MXN",
+    "sections": {
+      "ad": null,
+      "event": 1,
+      "offer": null
+    },
+    "cover": {
+      "publicId": "gamenow/covers/nba",
+      "resourceType": "image",
+      "local": "/images/events/nba.webp",
+      "hosted": true
+    },
+    "trailer": {
+      "publicId": "gamenow/trailers/nba",
+      "resourceType": "video",
+      "local": "/videos/NBA.webm",
+      "hosted": true
+    }
+  },
+  {
+    "slug": "forza-horizon-6",
+    "name": "Forza Horizon 6",
+    "studio": "Playground Games",
+    "alt": "Forza Horizon 6.",
+    "price": 999.99,
+    "currency": "MXN",
+    "sections": {
+      "ad": null,
+      "event": 2,
+      "offer": null
+    },
+    "cover": {
+      "publicId": "gamenow/covers/fh6",
+      "resourceType": "image",
+      "local": "/images/events/fh6.webp",
+      "hosted": true
+    },
+    "trailer": {
+      "publicId": "gamenow/trailers/fh6",
+      "resourceType": "video",
+      "local": "/videos/FH6.webm",
+      "hosted": true
+    }
+  },
+  {
+    "slug": "how-to-fish",
+    "name": "How to fish",
+    "studio": "",
+    "alt": "How to fish.",
+    "price": 79.99,
+    "compareAtPrice": 150.99,
+    "currency": "MXN",
+    "sections": {
+      "ad": null,
+      "event": null,
+      "offer": 0
+    },
+    "cover": {
+      "publicId": "gamenow/covers/htf",
+      "resourceType": "image",
+      "local": "/images/events/htf.webp",
+      "hosted": true
+    },
+    "trailer": {
+      "publicId": "gamenow/trailers/htf",
+      "resourceType": "video",
+      "local": "/videos/HTF.webm",
+      "hosted": true
+    }
+  },
+  {
+    "slug": "the-last-of-us-2-remastered",
+    "name": "The Last of Us 2 Remastered",
+    "studio": "Naughty Dog",
+    "alt": "The Last of Us 2 Remastered.",
+    "price": 644.99,
+    "compareAtPrice": 1289.99,
+    "currency": "MXN",
+    "sections": {
+      "ad": null,
+      "event": null,
+      "offer": 1
+    },
+    "cover": {
+      "publicId": "gamenow/covers/lst",
+      "resourceType": "image",
+      "local": "/images/events/lst.webp",
+      "hosted": true
+    },
+    "trailer": {
+      "publicId": "gamenow/trailers/lst",
+      "resourceType": "video",
+      "local": "/videos/lst.webm",
+      "hosted": true
+    }
+  },
+  {
+    "slug": "cyberpunk-2077",
+    "name": "Cyberpunk 2077",
+    "studio": "CD PROJEKT RED",
+    "alt": "Cyberpunk 2077.",
+    "price": 224.99,
+    "compareAtPrice": 1209.99,
+    "currency": "MXN",
+    "sections": {
+      "ad": null,
+      "event": null,
+      "offer": 2
+    },
+    "cover": {
+      "publicId": "gamenow/covers/cp",
+      "resourceType": "image",
+      "local": "/images/events/cp.webp",
+      "hosted": true
+    },
+    "trailer": {
+      "publicId": "gamenow/trailers/cp",
+      "resourceType": "video",
+      "local": "/videos/cp.webm",
+      "hosted": true
+    }
+  },
+  {
+    "slug": "call-of-duty-modern-warfare-4",
+    "name": "Call of Duty: Modern Warfare 4",
+    "studio": "Activision",
+    "alt": "Call of Duty: Modern Warfare 4.",
+    "price": 1000.99,
+    "compareAtPrice": 1299.99,
+    "currency": "MXN",
+    "sections": {
+      "ad": null,
+      "event": null,
+      "offer": 3
+    },
+    "cover": {
+      "publicId": "gamenow/covers/mw",
+      "resourceType": "image",
+      "local": "/images/events/mw.webp",
+      "hosted": true
+    },
+    "trailer": {
+      "publicId": "gamenow/trailers/mw",
+      "resourceType": "video",
+      "local": "/videos/mw.webm",
+      "hosted": true
+    }
+  },
+  {
+    "slug": "arc-raiders",
+    "name": "Arc Raiders",
+    "studio": "Embark Studios",
+    "alt": "Arc Raiders.",
+    "price": 350.99,
+    "compareAtPrice": 950.22,
+    "currency": "MXN",
+    "sections": {
+      "ad": null,
+      "event": null,
+      "offer": 4
+    },
+    "cover": {
+      "publicId": "gamenow/covers/arc",
+      "resourceType": "image",
+      "local": "/images/events/arc.webp",
+      "hosted": true
+    }
+  },
+  {
+    "slug": "007-first-light",
+    "name": "007 First Light",
+    "studio": "IO Interactive",
+    "alt": "007 First Light.",
+    "price": 799.99,
+    "compareAtPrice": 1599.99,
+    "currency": "MXN",
+    "sections": {
+      "ad": null,
+      "event": null,
+      "offer": 5
+    },
+    "cover": {
+      "publicId": "gamenow/covers/007",
+      "resourceType": "image",
+      "local": "/images/events/007.webp",
+      "hosted": true
+    },
+    "trailer": {
+      "publicId": "gamenow/trailers/007",
+      "resourceType": "video",
+      "local": "/videos/007.webm",
+      "hosted": true
+    }
+  }
+]

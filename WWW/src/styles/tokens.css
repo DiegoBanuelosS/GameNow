@@ -1,0 +1,37 @@
+:root {
+  --color-bg-canvas: #000000;
+  --color-bg-surface: #1a1815;
+  --color-bg-subtle: #221f1b;
+  --color-fg-default: #ece7de;
+  --color-fg-muted: #9c9588;
+  --color-accent-primary: #f2622e;
+  --color-accent-on-primary: #1a120e;
+  --color-border-subtle: #2e2b26;
+  --color-border-strong: #4a453d;
+  --color-border-critical: #d97a74;
+  --color-fg-critical: #f0b4af;
+  --color-focus-ring: #f2622e;
+
+  --font-sans: "Sora", "Segoe UI", sans-serif;
+  --heading-xl: 600 28px/1.2 var(--font-sans);
+  --heading-m: 600 22px/1.25 var(--font-sans);
+  --body: 400 16px/1.5 var(--font-sans);
+  --body-small: 400 14px/1.45 var(--font-sans);
+  --caption: 500 13px/1.4 var(--font-sans);
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 40px;
+  --space-8: 56px;
+
+  --radius-control: 8px;
+  --radius-button: 12px;
+  --radius-panel: 30px;
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --duration: 220ms;
+}

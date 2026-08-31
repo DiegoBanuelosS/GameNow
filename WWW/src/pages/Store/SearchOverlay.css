@@ -1,0 +1,114 @@
+.search-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: start center;
+  padding: 18vh var(--space-6) var(--space-6);
+}
+
+.search-overlay-backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgb(0 0 0 / 36%);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.search-overlay-panel {
+  position: relative;
+  z-index: 1;
+  width: min(760px, 100%);
+}
+
+.search-overlay-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 56px;
+  padding: 0 var(--space-4);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-panel);
+  background: var(--color-bg-surface);
+  color: var(--color-fg-muted);
+}
+
+.search-overlay-bar input {
+  flex: 1;
+  min-width: 0;
+  height: 48px;
+  border: 0;
+  background: transparent;
+  color: var(--color-fg-default);
+  font: var(--body);
+  outline: none;
+}
+
+.search-overlay-bar input::-webkit-search-cancel-button,
+.search-overlay-bar input::-webkit-search-decoration,
+.search-overlay-bar input::-ms-clear {
+  display: none;
+}
+
+.search-overlay-list {
+  margin: var(--space-4) 0 0;
+  padding: 0;
+  list-style: none;
+  background: transparent;
+}
+
+.search-overlay-empty {
+  padding: var(--space-3) 0;
+  color: var(--color-fg-muted);
+  font: var(--body-small);
+}
+
+.search-overlay-hit {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--color-border-subtle);
+  border-radius: 0;
+  text-decoration: none;
+}
+
+.search-overlay-hit:hover,
+.search-overlay-hit:focus-visible {
+  background: transparent;
+}
+
+.search-overlay-hit:hover strong,
+.search-overlay-hit:focus-visible strong {
+  color: var(--color-accent-primary);
+}
+
+.search-overlay-cover {
+  width: 160px;
+  height: 76px;
+  object-fit: cover;
+  border-radius: var(--radius-button);
+}
+
+.search-overlay-hit strong {
+  display: block;
+  margin-bottom: var(--space-1);
+  color: var(--color-fg-default);
+  font: var(--body);
+}
+
+.search-overlay-hit .star-rating {
+  display: flex;
+  margin: var(--space-1) 0;
+}
+
+.search-overlay-price {
+  color: var(--color-fg-muted);
+  font: var(--caption);
+}
+
+.search-overlay-hit s {
+  margin-right: var(--space-2);
+}
+
