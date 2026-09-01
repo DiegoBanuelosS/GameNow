@@ -65,8 +65,7 @@ class _StoreWebViewPageState extends State<StoreWebViewPage> {
     if (!up) {
       if (!mounted) return;
       setState(() {
-        _error =
-            'No pudimos abrir la tienda en $url. Arranca WWW (puerto 5173) y la API, o define GAMENOW_STORE_URL.';
+        _error = 'No se pudo abrir la tienda. Revisa tu conexión e inténtalo de nuevo.';
       });
       return;
     }
@@ -80,14 +79,16 @@ class _StoreWebViewPageState extends State<StoreWebViewPage> {
       await _controller.loadUrl(url);
       if (!mounted) return;
       setState(() => _ready = true);
-    } on PlatformException catch (error) {
+    } on PlatformException catch (_) {
       if (!mounted) return;
       setState(() {
-        _error = error.message ?? 'WebView2 no está disponible en este equipo.';
+        _error = 'No se pudo abrir la tienda. Revisa tu conexión e inténtalo de nuevo.';
       });
-    } catch (error) {
+    } catch (_) {
       if (!mounted) return;
-      setState(() => _error = error.toString());
+      setState(() {
+        _error = 'Hubo un problema. Inténtalo de nuevo.';
+      });
     }
   }
 

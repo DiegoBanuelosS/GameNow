@@ -51,7 +51,7 @@ class _SetupPageState extends State<SetupPage> {
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _error = 'No pudimos copiar GameNow. Cierra otras ventanas de la app e inténtalo de nuevo.';
+        _error = 'Hubo un problema. Cierra GameNow si está abierto e inténtalo de nuevo.';
         _step = SetupStep.error;
       });
     }
@@ -61,22 +61,16 @@ class _SetupPageState extends State<SetupPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: GameNowColors.canvas,
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          const _Ember(),
-          SafeArea(
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 560),
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 40),
-                  child: _body(),
-                ),
-              ),
+      body: SafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 560),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 40),
+              child: _body(),
             ),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -107,28 +101,6 @@ class _SetupPageState extends State<SetupPage> {
           onQuit: () => exit(0),
         );
     }
-  }
-}
-
-class _Ember extends StatelessWidget {
-  const _Ember();
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: RadialGradient(
-          center: const Alignment(0, -0.35),
-          radius: 0.85,
-          colors: [
-            GameNowColors.accent.withValues(alpha: 0.16),
-            GameNowColors.surface.withValues(alpha: 0.45),
-            GameNowColors.canvas,
-          ],
-          stops: const [0, 0.38, 1],
-        ),
-      ),
-    );
   }
 }
 
