@@ -7,8 +7,7 @@ import {
   videoSources,
   type CloudAsset,
 } from "./media.js";
-import { Product } from "./models/Product.js";
-import { Setting } from "./models/Setting.js";
+import { config } from "./config.js";
 import { formatMxn, toMxn } from "./money.js";
 import { type RequirementRow } from "./requirements.js";
 
@@ -28,6 +27,14 @@ export type ProductDoc = {
   cover: CloudAsset;
   studioLogo?: CloudAsset;
   trailer?: CloudAsset;
+  /** Steam screenshot URLs injected by the add_game_details script */
+  screenshots?: string[];
+  /** Extra YouTube video IDs to append to the gallery */
+  youtubeTrailers?: string[];
+  /** Metacritic / internal score (0–100) */
+  metacritic?: number;
+  /** Human-readable Steam rating string, e.g. "Muy positivas" */
+  steamRating?: string;
   details?: {
     release?: string;
     platforms?: string;
@@ -72,6 +79,11 @@ async function toPublic(product: ProductDoc) {
     studioLogoSrcSet: logo.srcSet,
     trailer: deliverVideo(product.trailer),
     tag: product.sections.event != null ? "Evento" : undefined,
+    description: product.details?.description || "",
+    release: product.details?.release || "",
+    platforms: product.details?.platforms || "",
+    metacritic: product.metacritic,
+    steamRating: product.steamRating,
     sections: product.sections,
   };
 }
@@ -91,20 +103,23 @@ export async function loadProducts(): Promise<ProductDoc[]> {
   const snapshot = await fromSnapshot();
   const detailsBySlug = new Map(snapshot.map((product) => [product.slug, product.details]));
 
-  try {
-    const rows = await Product.find().lean();
-    if (rows.length) {
-      return cacheSet(
-        "products",
-        (rows as ProductDoc[]).map((row) => ({
-          ...row,
-          details: row.details ?? detailsBySlug.get(row.slug),
-        })),
-        30_000,
-      );
+  if (config.mongoUri) {
+    try {
+      const { Product } = await import("./models/Product.js");
+      const rows = await Product.find().lean();
+      if (rows.length) {
+        return cacheSet(
+          "products",
+          (rows as ProductDoc[]).map((row) => ({
+            ...row,
+            details: row.details ?? detailsBySlug.get(row.slug),
+          })),
+          30_000,
+        );
+      }
+    } catch {
+      /* snapshot fallback */
     }
-  } catch {
-    /* snapshot fallback */
   }
   return cacheSet("products", snapshot, 30_000);
 }
@@ -118,6 +133,19 @@ export async function loadProduct(slug: string) {
   const cover = deliverImage(match.cover, "hero");
   const base = await toPublic(match);
   const sources = videoSources(match.trailer);
+  const screenshotItems = (match.screenshots ?? []).map((url, i) => ({
+    type: "image" as const,
+    src: url,
+    srcSet: undefined,
+    sizes: "(min-width: 900px) 56vw, 92vw",
+    alt: `${match.name} – captura ${i + 1}`,
+  }));
+  const youtubeItems = (match.youtubeTrailers ?? []).map((ytId, i) => ({
+    type: "youtube" as const,
+    src: `https://www.youtube.com/embed/${ytId}?autoplay=0&rel=0`,
+    youtubeId: ytId,
+    alt: `Tráiler ${i + 2} de ${match.name}`,
+  }));
   const gallery = [
     {
       type: "image" as const,
@@ -133,10 +161,12 @@ export async function loadProduct(slug: string) {
             src: sources[0].src,
             sources,
             poster: cover.src,
-            alt: `Tráiler de ${match.name}`,
+            alt: `Tráiler oficial de ${match.name}`,
           },
         ]
       : []),
+    ...youtubeItems,
+    ...screenshotItems,
   ];
   const details = match.details;
   return {
@@ -147,6 +177,8 @@ export async function loadProduct(slug: string) {
     description: details?.description || "",
     release: details?.release || "",
     platforms: details?.platforms || "",
+    metacritic: match.metacritic,
+    steamRating: match.steamRating,
     requirementsNote: details?.requirementsNote || "",
     requirementsTable: details?.requirements || [],
     gallery,
@@ -174,15 +206,18 @@ export async function loadStore() {
 
   let authPanel = "";
   let authPanelSrcSet = "";
-  try {
-    const site = await Setting.findOne({ key: "site" }).lean();
-    if (site?.authPanel) {
-      const image = deliverImage(site.authPanel as CloudAsset, "auth");
-      authPanel = image.src;
-      authPanelSrcSet = image.srcSet;
+  if (config.mongoUri) {
+    try {
+      const { Setting } = await import("./models/Setting.js");
+      const site = await Setting.findOne({ key: "site" }).lean();
+      if (site?.authPanel) {
+        const image = deliverImage(site.authPanel as CloudAsset, "auth");
+        authPanel = image.src;
+        authPanelSrcSet = image.srcSet;
+      }
+    } catch {
+      /* ignore */
     }
-  } catch {
-    /* ignore */
   }
 
   if (!authPanel) {

@@ -5,8 +5,9 @@ import { loadGame, loadGames } from "./games.js";
 import { config } from "./config.js";
 import { connectDb } from "./db.js";
 import { fitPc } from "./pcFit.js";
-import { windowsPackagePath } from "./download.js";
+import { windowsInstallerPath, windowsAppZipPath, windowsPackagePath } from "./download.js";
 import { cachedVideoPath, videoContentType } from "./videoCache.js";
+import { getReviews, addReview, markHelpful } from "./reviews.js";
 
 const app = express();
 app.use(
@@ -97,11 +98,23 @@ app.post("/api/pc-fit", async (req, res) => {
   }
 });
 
-app.get("/api/download/windows", async (_req, res) => {
-  const file = await windowsPackagePath();
+app.get(["/api/download/windows", "/api/download/installer"], async (req, res) => {
+  if (req.query.target === "app") {
+    const appZip = await windowsAppZipPath();
+    if (appZip) {
+      res.set({
+        "Cache-Control": "no-store",
+        "Content-Type": "application/zip",
+        "Content-Disposition": 'attachment; filename="GameNow-Windows.zip"',
+      });
+      return res.sendFile(appZip);
+    }
+  }
+
+  const file = (await windowsInstallerPath()) || (await windowsPackagePath());
   if (!file) {
     res.status(404).json({
-      error: "El paquete de Windows no está listo. Empaqueta la app y vuelve a intentar.",
+      error: "El instalador de Windows no está listo. Empaqueta la app y vuelve a intentar.",
     });
     return;
   }
@@ -112,6 +125,22 @@ app.get("/api/download/windows", async (_req, res) => {
     "Content-Disposition": installer
       ? 'attachment; filename="GameNow-Setup.exe"'
       : 'attachment; filename="GameNow-Windows.zip"',
+  });
+  res.sendFile(file);
+});
+
+app.get(["/api/download/app", "/api/download/payload"], async (_req, res) => {
+  const file = await windowsAppZipPath();
+  if (!file) {
+    res.status(404).json({
+      error: "El paquete de la aplicación GameNow no está disponible.",
+    });
+    return;
+  }
+  res.set({
+    "Cache-Control": "no-store",
+    "Content-Type": "application/zip",
+    "Content-Disposition": 'attachment; filename="GameNow-Windows.zip"',
   });
   res.sendFile(file);
 });
@@ -131,8 +160,61 @@ app.get("/api/media/video", async (req, res) => {
   }
 });
 
-const connected = await connectDb();
+// ── REVIEWS ──────────────────────────────────────────────────────────────────
+
+app.get("/api/reviews/:slug", async (req, res) => {
+  try {
+    const reviews = await getReviews(req.params.slug);
+    res.set("Cache-Control", "no-store");
+    res.json(reviews);
+  } catch (error) {
+    res.status(500).json({ error: "No se pudieron cargar las reseñas." });
+    console.error(error);
+  }
+});
+
+app.post("/api/reviews/:slug", async (req, res) => {
+  try {
+    const { author, rating, text } = req.body ?? {};
+    if (!text || !rating) {
+      res.status(400).json({ error: "Faltan campos obligatorios: rating y text." });
+      return;
+    }
+    const review = await addReview(
+      req.params.slug,
+      String(author || ""),
+      Number(rating),
+      String(text),
+    );
+    res.status(201).json(review);
+  } catch (error) {
+    res.status(500).json({ error: "No se pudo guardar la reseña." });
+    console.error(error);
+  }
+});
+
+app.patch("/api/reviews/:slug/:id/helpful", async (req, res) => {
+  try {
+    const ok = await markHelpful(req.params.slug, req.params.id);
+    if (!ok) {
+      res.status(404).json({ error: "Reseña no encontrada." });
+      return;
+    }
+    res.json({ ok: true });
+  } catch (error) {
+    res.status(500).json({ error: "Error al marcar como útil." });
+    console.error(error);
+  }
+});
+
+
 app.listen(config.port, "127.0.0.1", () => {
   console.log(`GameNow API http://127.0.0.1:${config.port}`);
-  console.log(connected ? "MongoDB Atlas pool listo" : "Usando snapshot local hasta configurar MONGODB_URI");
+  connectDb()
+    .then((connected) => {
+      console.log(connected ? "MongoDB Atlas pool listo" : "Usando snapshot local hasta configurar MONGODB_URI");
+    })
+    .catch((err) => {
+      console.warn("Aviso: MongoDB no disponible, usando snapshot local.", err?.message || err);
+    });
 });

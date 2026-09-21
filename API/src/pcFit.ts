@@ -56,27 +56,95 @@ function gpuScore(name?: string) {
   if (!name || unpublished(name)) {
     return null;
   }
+  const n = name.toLowerCase();
+
+  // RTX 40xx series  (90-100)
+  if (/rtx\s*4090/.test(n)) return 100;
+  if (/rtx\s*4080/.test(n)) return 96;
+  if (/rtx\s*4070\s*ti/.test(n)) return 94;
+  if (/rtx\s*4070/.test(n)) return 90;
+  if (/rtx\s*4060\s*ti/.test(n)) return 86;
+  if (/rtx\s*4060/.test(n)) return 82;
+  if (/rtx\s*4050/.test(n)) return 76;
+
+  // RTX 30xx series  (74-88)
+  if (/rtx\s*3090/.test(n)) return 95;
+  if (/rtx\s*3080\s*ti/.test(n)) return 91;
+  if (/rtx\s*3080/.test(n)) return 88;
+  if (/rtx\s*3070\s*ti/.test(n)) return 82;
+  if (/rtx\s*3070/.test(n)) return 79;
+  if (/rtx\s*3060\s*ti/.test(n)) return 77;
+  if (/rtx\s*3060/.test(n)) return 74;
+  if (/rtx\s*3050/.test(n)) return 66;
+
+  // RTX 20xx series  (60-78)
+  if (/rtx\s*2080\s*ti/.test(n)) return 83;
+  if (/rtx\s*2080/.test(n)) return 78;
+  if (/rtx\s*2070/.test(n)) return 74;
+  if (/rtx\s*2060/.test(n)) return 68;
+
+  // GTX 16xx / 10xx series  (35-60)
+  if (/gtx\s*1080\s*ti/.test(n)) return 70;
+  if (/gtx\s*1080/.test(n)) return 64;
+  if (/gtx\s*1070\s*ti/.test(n)) return 61;
+  if (/gtx\s*1070/.test(n)) return 58;
+  if (/gtx\s*1660\s*super/.test(n)) return 56;
+  if (/gtx\s*1660\s*ti/.test(n)) return 55;
+  if (/gtx\s*1660/.test(n)) return 52;
+  if (/gtx\s*1650\s*super/.test(n)) return 48;
+  if (/gtx\s*1650/.test(n)) return 44;
+  if (/gtx\s*1060/.test(n)) return 45;
+  if (/gtx\s*1050\s*ti/.test(n)) return 36;
+  if (/gtx\s*1050/.test(n)) return 32;
+
+  // AMD RDNA3 RX 7xxx  (80-98)
+  if (/rx\s*7900\s*xtx/.test(n)) return 98;
+  if (/rx\s*7900\s*xt/.test(n)) return 93;
+  if (/rx\s*7800\s*xt/.test(n)) return 82;
+  if (/rx\s*7700\s*xt/.test(n)) return 76;
+  if (/rx\s*7600/.test(n)) return 68;
+
+  // AMD RDNA2 RX 6xxx  (58-88)
+  if (/rx\s*6950\s*xt/.test(n)) return 92;
+  if (/rx\s*6900\s*xt/.test(n)) return 88;
+  if (/rx\s*6800\s*xt/.test(n)) return 84;
+  if (/rx\s*6800/.test(n)) return 80;
+  if (/rx\s*6750\s*xt/.test(n)) return 76;
+  if (/rx\s*6700\s*xt/.test(n)) return 74;
+  if (/rx\s*6700/.test(n)) return 70;
+  if (/rx\s*6650\s*xt/.test(n)) return 68;
+  if (/rx\s*6600\s*xt/.test(n)) return 66;
+  if (/rx\s*6600/.test(n)) return 65;
+  if (/rx\s*6500\s*xt/.test(n)) return 50;
+
+  // AMD RX 5xxx (RDNA1)
+  if (/rx\s*5700\s*xt/.test(n)) return 70;
+  if (/rx\s*5700/.test(n)) return 67;
+  if (/rx\s*5600\s*xt/.test(n)) return 62;
+  if (/rx\s*5500\s*xt/.test(n)) return 54;
+
+  // AMD older (Vega / Polaris)
+  if (/vega\s*64/.test(n)) return 60;
+  if (/vega\s*56/.test(n)) return 56;
+  if (/rx\s*590/.test(n)) return 46;
+  if (/rx\s*580/.test(n)) return 44;
+  if (/rx\s*570/.test(n)) return 40;
+  if (/rx\s*480/.test(n)) return 43;
+
+  // Generic RTX/GTX/RX fallback (won't usually reach here with specific matches above)
   const rtx = name.match(/rtx\s*(\d)(\d{3})/i);
   if (rtx) {
     const gen = Number(rtx[1]);
-    const skus: Record<string, number> = { "050": 0, "060": 1, "070": 2, "080": 3, "090": 4, "0 ti": 3 };
-    const sku = skus[rtx[2]] ?? Number(rtx[2]) / 100;
-    return 20 + gen * 5 + sku;
+    const sku = Number(rtx[2]);
+    return 60 + gen * 6 + Math.floor(sku / 100) * 2;
   }
   const gtx = name.match(/gtx\s*(\d{4})/i);
   if (gtx) {
-    return Number(gtx[1]) / 200;
+    return 30 + Math.floor(Number(gtx[1]) / 100);
   }
   const rx = name.match(/rx\s*(\d{4})/i);
   if (rx) {
-    const code = Number(rx[1]);
-    const gen = Math.floor(code / 1000);
-    const sku = Math.floor((code % 1000) / 100);
-    return 18 + gen * 5 + sku;
-  }
-  const rxOld = name.match(/rx\s*(\d{3})/i);
-  if (rxOld) {
-    return Number(rxOld[1]) / 100;
+    return 50 + Math.floor((Number(rx[1]) % 1000) / 100) * 3;
   }
   return null;
 }

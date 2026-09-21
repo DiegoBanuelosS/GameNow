@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 import { cacheGet, cacheSet } from "./cache.js";
 import { loadProducts, type ProductDoc } from "./catalog.js";
 import { deliverImage, steamCover } from "./media.js";
-import { formatMxn, toMxn } from "./money.js";
+import { formatMxn, toMxn, usdMxnRate } from "./money.js";
 import { requirementTable } from "./requirements.js";
 import { loadSteamExtras } from "./steam.js";
 
@@ -21,13 +21,13 @@ export type CatalogGame = {
   source: string;
 };
 
-async function toPublic(game: CatalogGame) {
+export function toPublicWithRate(game: CatalogGame, rate: number) {
   const cover = steamCover(game.steamAppId);
   const onSale = Boolean(game.compareAtPrice && game.compareAtPrice > game.price);
   const table =
     game.metacritic >= 90 ? "rated" : onSale ? "deals" : "catalog";
-  const priceValue = await toMxn(game.price, "USD");
-  const compare = game.compareAtPrice ? await toMxn(game.compareAtPrice, "USD") : undefined;
+  const priceValue = Math.round(game.price * rate * 100) / 100;
+  const compare = game.compareAtPrice ? Math.round(game.compareAtPrice * rate * 100) / 100 : undefined;
   return {
     slug: game.slug,
     steamAppId: game.steamAppId,
@@ -45,6 +45,11 @@ async function toPublic(game: CatalogGame) {
     coverFallback: cover.fallback,
     table,
   };
+}
+
+async function toPublic(game: CatalogGame) {
+  const rate = await usdMxnRate();
+  return toPublicWithRate(game, rate);
 }
 
 async function fromFeatured(product: ProductDoc) {
@@ -94,7 +99,9 @@ export async function loadGames() {
   if (cached) {
     return cached;
   }
-  const snapshot = await Promise.all((await fromSnapshot()).map(toPublic));
+  const rate = await usdMxnRate();
+  const rawSnapshot = await fromSnapshot();
+  const snapshot = rawSnapshot.map((game) => toPublicWithRate(game, rate));
   const featured = await Promise.all(
     (await loadProducts())
       .filter((product) => FEATURED_SLUGS.includes(product.slug))

@@ -1,4 +1,3 @@
-import mongoose from "mongoose";
 import { config } from "./config.js";
 
 export async function connectDb() {
@@ -6,11 +5,14 @@ export async function connectDb() {
     return false;
   }
 
-  if (mongoose.connection.readyState === 1) {
+  const mongoose = await import("mongoose");
+  const connection = mongoose.default?.connection ?? mongoose.connection;
+  if (connection.readyState === 1) {
     return true;
   }
 
-  await mongoose.connect(config.mongoUri, {
+  const connect = mongoose.default?.connect ?? mongoose.connect;
+  await connect(config.mongoUri, {
     dbName: config.mongoDb,
     maxPoolSize: 10,
     minPoolSize: 2,
@@ -20,3 +22,4 @@ export async function connectDb() {
   });
   return true;
 }
+

@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GameNow - Instalador</title>
+    <!-- Google Fonts: Sora -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="installer-window">
+      <!-- Aura ambiental sutil de fondo -->
+      <div class="ambient-aura"></div>
+
+      <!-- Logo centrado hasta arriba -->
+      <header class="installer-topbar">
+        <img
+          src="assets/logo.svg"
+          alt="GameNow"
+          class="installer-logo"
+          id="installer-logo"
+        />
+      </header>
+
+      <!-- Imagen superior con degradado inferior a negro -->
+      <section class="hero-banner">
+        <img
+          src="assets/header.webp"
+          alt="GameNow Artwork"
+          class="hero-image"
+          id="hero-img"
+        />
+        <div class="hero-top-shade"></div>
+        <div class="hero-vignette"></div>
+        <div class="hero-fade"></div>
+      </section>
+
+      <!-- Contenedor principal para el contenido del instalador -->
+      <main class="installer-content" id="installer-main">
+        <!-- Paso 1: Bienvenida -->
+        <section class="installer-step active animate-in" id="step-welcome">
+          <h1 class="installer-title">Todos Tus Juegos En Un Solo Lugar</h1>
+          <button type="button" class="btn-primary" id="btn-continue">
+            Continuar
+          </button>
+        </section>
+
+        <!-- Paso 2: Selección de ruta de instalación -->
+        <section class="installer-step" id="step-location" style="display: none;" aria-hidden="true">
+          <span class="installer-badge">INSTALACIÓN</span>
+          <h2 class="installer-title">¿Dónde quieres instalar GameNow?</h2>
+
+          <div class="input-group-location">
+            <div class="input-wrapper">
+              <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+              </svg>
+              <input
+                type="text"
+                class="path-input"
+                id="install-path"
+                value="C:\Users\Diego\AppData\Local\GameNow"
+                placeholder="Ruta de instalación"
+                autocomplete="off"
+                spellcheck="false"
+              />
+            </div>
+            <button type="button" class="btn-browse" id="btn-browse" title="Buscar carpeta">
+              Examinar
+            </button>
+          </div>
+
+          <div class="step-actions">
+            <button type="button" class="btn-secondary" id="btn-back">
+              Atrás
+            </button>
+            <button type="button" class="btn-primary" id="btn-install">
+              Continuar
+            </button>
+          </div>
+        </section>
+
+        <!-- Paso 3: Barra de progreso de la instalación -->
+        <section class="installer-step" id="step-progress" style="display: none;" aria-hidden="true">
+          <div class="checkmark-icon" id="progress-checkmark" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </div>
+          <h2 class="installer-title" id="progress-title">Instalando GameNow...</h2>
+
+          <div class="progress-box">
+            <div class="progress-track">
+              <div class="progress-bar" id="progress-bar" style="width: 0%;"></div>
+            </div>
+            <div class="progress-meta">
+              <span class="progress-status" id="progress-status">Iniciando instalación...</span>
+              <span class="progress-percent" id="progress-percent">0%</span>
+            </div>
+          </div>
+
+          <!-- Acciones al finalizar (se revelan al llegar al 100%) -->
+          <div class="step-actions progress-finished-actions" id="progress-actions" style="display: none;">
+            <button type="button" class="btn-primary" id="btn-finish">
+              Abrir GameNow
+            </button>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>

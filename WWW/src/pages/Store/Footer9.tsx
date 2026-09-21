@@ -1,5 +1,6 @@
 import { motion, useReducedMotion, type Variants } from "motion/react";
 import { Link } from "react-router-dom";
+import { useDesktopApp } from "../../data/useDesktopApp";
 import "./Footer9.css";
 
 const columns: {
@@ -55,6 +56,16 @@ const item: Variants = {
 
 export function Footer9() {
   const reduce = useReducedMotion();
+  const isApp = useDesktopApp();
+
+  const activeColumns = columns.map((col) => ({
+    ...col,
+    links: isApp
+      ? col.links.filter(
+          (l) => l.label !== "Descargar" && l.to !== "/#descargar-windows"
+        )
+      : col.links,
+  }));
 
   return (
     <footer className="footer-9">
@@ -67,7 +78,7 @@ export function Footer9() {
       >
         <div className="footer-9-top">
           <div className="footer-9-sitemap">
-            {columns.map((column) => (
+            {activeColumns.map((column) => (
               <motion.nav key={column.title} variants={item} aria-label={column.title}>
                 <h2 className="footer-9-capsule">{column.title}</h2>
                 <ul>

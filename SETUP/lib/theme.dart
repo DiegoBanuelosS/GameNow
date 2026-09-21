@@ -6,9 +6,12 @@ class GameNowColors {
   static const subtle = Color(0xFF221F1B);
   static const text = Color(0xFFECE7DE);
   static const muted = Color(0xFF9C9588);
-  static const accent = Color(0xFFF2622E);
-  static const onAccent = Color(0xFF1A120E);
+  // Acento blanco en vez de naranja/rojo
+  static const accent = Color(0xFFFFFFFF);
+  static const onAccent = Color(0xFF000000);
+  static const accentHover = Color(0xFFE5E5E5);
   static const border = Color(0xFF2E2B26);
+  static const borderStrong = Color(0xFF4A453D);
   static const critical = Color(0xFFF0B4AF);
 }
 

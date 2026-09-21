@@ -7,6 +7,7 @@ import { PageLoader } from "../Store/LogoLoader";
 import { SiteNav } from "../Store/SiteNav";
 import { StarRating } from "../Store/StarRating";
 import { PcFitCard } from "./PcFitCard";
+import { ReviewsSection } from "./ReviewsSection";
 import "./GamePage.css";
 
 export function GamePage() {
@@ -93,7 +94,16 @@ export function GamePage() {
             {current ? (
               <section className="game-media" aria-label="Medios">
                 <div className="game-hero">
-                  {current.type === "video" ? (
+                  {current.type === "youtube" ? (
+                    <iframe
+                      key={current.src}
+                      className="game-hero-yt"
+                      src={current.src}
+                      title={current.alt}
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
+                  ) : current.type === "video" ? (
                     <video
                       key={current.src}
                       ref={heroVideoRef}
@@ -131,7 +141,16 @@ export function GamePage() {
                           aria-label={item.alt}
                           onClick={() => setActive(index)}
                         >
-                          {item.type === "video" ? (
+                          {item.type === "youtube" ? (
+                            <div className="game-thumb-yt" aria-hidden>
+                              <img
+                                src={`https://img.youtube.com/vi/${(item as { youtubeId?: string }).youtubeId}/mqdefault.jpg`}
+                                alt=""
+                                className="game-thumb-yt-img"
+                              />
+                              <span className="game-thumb-yt-play">▶</span>
+                            </div>
+                          ) : item.type === "video" ? (
                             <video
                               className="game-thumb-preview"
                               src={item.src}
@@ -208,6 +227,7 @@ export function GamePage() {
                 </div>
               ) : null}
             </section>
+            <ReviewsSection slug={product.slug} />
           </div>
         ) : null}
       </main>

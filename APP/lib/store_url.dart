@@ -7,8 +7,9 @@ const _builtIn = String.fromEnvironment(
 
 String storeUrl() {
   final fromEnv = Platform.environment['GAMENOW_STORE_URL']?.trim();
-  if (fromEnv != null && fromEnv.isNotEmpty) {
-    return fromEnv;
-  }
-  return _builtIn;
+  final base = (fromEnv != null && fromEnv.isNotEmpty) ? fromEnv : _builtIn;
+  final uri = Uri.parse(base);
+  final newParams = Map<String, String>.from(uri.queryParameters);
+  newParams['app'] = '1';
+  return uri.replace(queryParameters: newParams).toString();
 }

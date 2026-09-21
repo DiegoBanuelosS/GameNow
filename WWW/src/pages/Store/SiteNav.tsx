@@ -1,11 +1,13 @@
-import { MagnifyingGlass, ShoppingCart } from "@phosphor-icons/react";
 import { useState } from "react";
+import { MagnifyingGlass, ShoppingCart } from "../../components/Icons";
 import { Link, NavLink } from "react-router-dom";
 import { SearchOverlay } from "./SearchOverlay";
+import { useDesktopApp } from "../../data/useDesktopApp";
 import "./SiteNav.css";
 
 export function SiteNav() {
   const [searchOpen, setSearchOpen] = useState(false);
+  const isApp = useDesktopApp();
 
   return (
     <header className="site-header">
@@ -24,6 +26,16 @@ export function SiteNav() {
           </NavLink>
           <NavLink to="/library">Mi biblioteca</NavLink>
           <NavLink to="/auth">Iniciar sesión</NavLink>
+          {!isApp && (
+            <a
+              href="/api/download/windows"
+              download="GameNow-Setup.exe"
+              className="site-nav-download"
+              title="Descargar instalador de GameNow para Windows"
+            >
+              Descargar
+            </a>
+          )}
         </nav>
         <div className="site-tools">
           <button

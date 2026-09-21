@@ -27,6 +27,30 @@ bool FlutterWindow::OnCreate() {
   RegisterPlugins(flutter_controller_->engine());
   SetChildContent(flutter_controller_->view()->GetNativeWindow());
 
+  // Setup window control method channel
+  window_channel_ =
+      std::make_unique<flutter::MethodChannel<flutter::EncodableValue>>(
+          flutter_controller_->engine()->messenger(), "gamenow/window",
+          &flutter::StandardMethodCodec::GetInstance());
+
+  window_channel_->SetMethodCallHandler(
+      [this](const flutter::MethodCall<flutter::EncodableValue>& call,
+             std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
+        if (call.method_name() == "minimize") {
+          ShowWindow(GetHandle(), SW_MINIMIZE);
+          result->Success();
+        } else if (call.method_name() == "close") {
+          PostMessage(GetHandle(), WM_CLOSE, 0, 0);
+          result->Success();
+        } else if (call.method_name() == "drag") {
+          ReleaseCapture();
+          SendMessage(GetHandle(), WM_NCLBUTTONDOWN, HTCAPTION, 0);
+          result->Success();
+        } else {
+          result->NotImplemented();
+        }
+      });
+
   flutter_controller_->engine()->SetNextFrameCallback([&]() {
     this->Show();
   });

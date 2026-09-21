@@ -1,4 +1,5 @@
 import { useCatalog } from "../../data/CatalogContext";
+import { useDesktopApp } from "../../data/useDesktopApp";
 import { AdStrip } from "./AdStrip";
 import { Download5 } from "./Download5";
 import { Footer9 } from "./Footer9";
@@ -13,6 +14,7 @@ export function StorePage() {
   const { status, games } = useCatalog();
   const ready = status !== "loading";
   const root = useStoreEnter(ready);
+  const isApp = useDesktopApp();
 
   return (
     <div className="store" ref={root}>
@@ -25,7 +27,7 @@ export function StorePage() {
             <AdStrip />
             <EventOffers />
             <GameCatalog games={games.games} total={games.total} />
-            <Download5 />
+            {!isApp && <Download5 />}
           </>
         )}
       </main>

@@ -91,7 +91,7 @@ const wchar_t* WindowClassRegistrar::GetWindowClass() {
     WNDCLASS window_class{};
     window_class.hCursor = LoadCursor(nullptr, IDC_ARROW);
     window_class.lpszClassName = kWindowClassName;
-    window_class.style = CS_HREDRAW | CS_VREDRAW;
+    window_class.style = CS_HREDRAW | CS_VREDRAW | CS_DROPSHADOW;
     window_class.cbClsExtra = 0;
     window_class.cbWndExtra = 0;
     window_class.hInstance = GetModuleHandle(nullptr);
@@ -134,8 +134,11 @@ bool Win32Window::Create(const std::wstring& title,
   UINT dpi = FlutterDesktopGetDpiForMonitor(monitor);
   double scale_factor = dpi / 96.0;
 
-  HWND window = CreateWindow(
-      window_class, title.c_str(), WS_OVERLAPPEDWINDOW,
+  // Custom frameless window (removes legacy Windows controls/titlebar)
+  HWND window = CreateWindowEx(
+      WS_EX_APPWINDOW,
+      window_class, title.c_str(),
+      WS_POPUP | WS_MINIMIZEBOX,
       Scale(origin.x, scale_factor), Scale(origin.y, scale_factor),
       Scale(size.width, scale_factor), Scale(size.height, scale_factor),
       nullptr, nullptr, GetModuleHandle(nullptr), this);
@@ -143,6 +146,10 @@ bool Win32Window::Create(const std::wstring& title,
   if (!window) {
     return false;
   }
+
+  // Extend frame to enable clean DWM window shadow
+  MARGINS margins = {1, 1, 1, 1};
+  DwmExtendFrameIntoClientArea(window, &margins);
 
   UpdateTheme(window);
 
@@ -195,6 +202,19 @@ Win32Window::MessageHandler(HWND hwnd,
       SetWindowPos(hwnd, nullptr, newRectSize->left, newRectSize->top, newWidth,
                    newHeight, SWP_NOZORDER | SWP_NOACTIVATE);
 
+      return 0;
+    }
+    case WM_GETMINMAXINFO: {
+      auto info = reinterpret_cast<MINMAXINFO*>(lparam);
+      HMONITOR monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+      UINT dpi = FlutterDesktopGetDpiForMonitor(monitor);
+      double scale_factor = dpi / 96.0;
+      LONG w = Scale(1085, scale_factor);
+      LONG h = Scale(710, scale_factor);
+      info->ptMinTrackSize.x = w;
+      info->ptMinTrackSize.y = h;
+      info->ptMaxTrackSize.x = w;
+      info->ptMaxTrackSize.y = h;
       return 0;
     }
     case WM_SIZE: {

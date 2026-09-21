@@ -53,12 +53,12 @@ export function Download5() {
           {windows ? (
             <motion.a
               id="descargar-windows"
-              href="/downloads/GameNow-Setup.exe"
+              href="/api/download/windows"
               download="GameNow-Setup.exe"
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={() => {
-                setNote("Descarga empezada. Abre GameNow-Setup.exe e instala la app.");
+                setNote("Descarga en curso. Abre GameNow-Setup.exe e instala la app.");
               }}
             >
               <WindowsMark />

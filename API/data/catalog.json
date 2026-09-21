@@ -35,14 +35,50 @@
       "description": "Eres un piloto de combate a la deriva hasta que el portaaviones Endurance te recoge. En julio de 2029, la Federación de Usea Central cae ante la invasión de la República de Sotoa. Te dan el nombre «Wings of Theve», un as legendario que resultó ser una historia de moral. Con tres compañeros, vuelves al cielo para recuperar tu país.\n\nCampaña arcade con combates aéreos, nubes en capas y escenas en primera persona. El modo en línea incluye vestíbulo, base aérea con avatar, cooperativo y juego cruzado. Desarrollado por PROJECT ACES / Bandai Namco Aces Inc.",
       "requirementsNote": "Mínimos publicados por Bandai Namco Entertainment Europe. Los máximos siguen como TBD en esa ficha. Rendimiento estimado en mínimos: 1080p (escalado) / 30 fps en bajo; puede bajar en escenas pesadas. Hace falta SSD, GPU con trazado de rayos por hardware y DirectX 12 con Shader Model 6.6 o superior.",
       "requirements": [
-        { "label": "SO", "min": "Windows 11 (64 bits)", "max": "Por confirmar" },
-        { "label": "Procesador", "min": "Intel Core i7-10700K / AMD Ryzen 5 3600X", "max": "Por confirmar" },
-        { "label": "Memoria", "min": "16 GB RAM", "max": "Por confirmar" },
-        { "label": "Gráficos", "min": "NVIDIA GeForce RTX 2060 (6 GB) / AMD Radeon RX 6600 XT (8 GB)", "max": "Por confirmar" },
-        { "label": "DirectX", "min": "Versión 12", "max": "Por confirmar" },
-        { "label": "Almacenamiento", "min": "125 GB", "max": "Por confirmar" }
+        {
+          "label": "SO",
+          "min": "Windows 11 (64 bits)",
+          "max": "Por confirmar"
+        },
+        {
+          "label": "Procesador",
+          "min": "Intel Core i7-10700K / AMD Ryzen 5 3600X",
+          "max": "Por confirmar"
+        },
+        {
+          "label": "Memoria",
+          "min": "16 GB RAM",
+          "max": "Por confirmar"
+        },
+        {
+          "label": "Gráficos",
+          "min": "NVIDIA GeForce RTX 2060 (6 GB) / AMD Radeon RX 6600 XT (8 GB)",
+          "max": "Por confirmar"
+        },
+        {
+          "label": "DirectX",
+          "min": "Versión 12",
+          "max": "Por confirmar"
+        },
+        {
+          "label": "Almacenamiento",
+          "min": "125 GB",
+          "max": "Por confirmar"
+        }
       ]
-    }
+    },
+    "screenshots": [
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2288340/4a99c9c55a7d7163370dc68a5a9008517a32e84a/ss_4a99c9c55a7d7163370dc68a5a9008517a32e84a.1920x1080.jpg?t=1789362045",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2288340/a704b72d7c8647b2c6773731fe7a79979674dc70/ss_a704b72d7c8647b2c6773731fe7a79979674dc70.1920x1080.jpg?t=1789362045",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2288340/21213f14e460fd45dcc765d1d5ac02333b909d99/ss_21213f14e460fd45dcc765d1d5ac02333b909d99.1920x1080.jpg?t=1789362045",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2288340/e3759c9a25dbc27325e0454d5f80af8021e8b505/ss_e3759c9a25dbc27325e0454d5f80af8021e8b505.1920x1080.jpg?t=1789362045",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2288340/3336e83dd7a62acaf7c254803ca5a26e6712355b/ss_3336e83dd7a62acaf7c254803ca5a26e6712355b.1920x1080.jpg?t=1789362045"
+    ],
+    "metacritic": 87,
+    "steamRating": "Muy positivas",
+    "youtubeTrailers": [
+      "2DJXN5UzFdo"
+    ]
   },
   {
     "slug": "gta-vi",
@@ -79,13 +115,46 @@
       "description": "Jason y Lucia siempre han sabido que el mazo está marcado. Cuando un golpe fácil sale mal, quedan en el lado más oscuro del lugar más soleado de Estados Unidos, en medio de una conspiración criminal que recorre el estado de Leonida. Tendrán que confiar el uno en el otro más que nunca si quieren salir con vida.\n\nEn la web oficial de Rockstar el juego se presenta para PlayStation 5 y Xbox Series X|S; no hay ficha de PC.",
       "requirementsNote": "Rockstar Games no ha publicado requisitos de PC. La comparación queda vacía a propósito: no hay mínimos ni máximos oficiales.",
       "requirements": [
-        { "label": "SO", "min": "No publicado", "max": "No publicado" },
-        { "label": "Procesador", "min": "No publicado", "max": "No publicado" },
-        { "label": "Memoria", "min": "No publicado", "max": "No publicado" },
-        { "label": "Gráficos", "min": "No publicado", "max": "No publicado" },
-        { "label": "Almacenamiento", "min": "No publicado", "max": "No publicado" }
-      ]
-    }
+        {
+          "label": "SO",
+          "min": "No publicado",
+          "max": "No publicado"
+        },
+        {
+          "label": "Procesador",
+          "min": "No publicado",
+          "max": "No publicado"
+        },
+        {
+          "label": "Memoria",
+          "min": "No publicado",
+          "max": "No publicado"
+        },
+        {
+          "label": "Gráficos",
+          "min": "No publicado",
+          "max": "No publicado"
+        },
+        {
+          "label": "Almacenamiento",
+          "min": "No publicado",
+          "max": "No publicado"
+        }
+      ],
+      "release": "19 de noviembre de 2026"
+    },
+    "screenshots": [
+      "https://www.rockstargames.com/VI/_next/static/media/Jason_and_Lucia_02.0uig00eojlokf.jpg?akim=1&imdensity=1&imwidth=1920",
+      "https://www.rockstargames.com/VI/_next/static/media/Jason_and_Lucia_06.1035xf1yo78.b.jpg?akim=1&imdensity=1&imwidth=1920",
+      "https://www.rockstargames.com/VI/_next/static/media/Jason_and_Lucia_08.0.bq0bdrl6g5y.jpg?akim=1&imdensity=1&imwidth=1920",
+      "https://www.rockstargames.com/VI/_next/static/media/Jason_and_Lucia_09.11_dlvb_8svuu.jpg?akim=1&imdensity=1&imwidth=1920",
+      "https://www.rockstargames.com/VI/_next/static/media/Jason_and_Lucia_13.0q.hw42xbhptg.jpg?akim=1&imdensity=1&imwidth=1920"
+    ],
+    "metacritic": 98,
+    "steamRating": "Extremadamente positivas",
+    "youtubeTrailers": [
+      "QdBZQ5fmgaw"
+    ]
   },
   {
     "slug": "ark-2",
@@ -123,20 +192,52 @@
       "description": "ARK II mete a los supervivientes en un mundo brutal de supervivencia primitiva contra bestias y humanos: dinosaurios inteligentes, fauna alienígena agresiva y entornos de un planeta extraño. La historia de ARK sobre la evolución humana sigue en esta experiencia de supervivencia sandbox de nueva generación.\n\nSteam lista el título como To be announced. Studio Wildcard no ha publicado requisitos de PC.",
       "requirementsNote": "No hay mínimos ni máximos oficiales. No usamos cifras de ARK: Survival Ascended ni estimaciones de terceros.",
       "requirements": [
-        { "label": "SO", "min": "No publicado", "max": "No publicado" },
-        { "label": "Procesador", "min": "No publicado", "max": "No publicado" },
-        { "label": "Memoria", "min": "No publicado", "max": "No publicado" },
-        { "label": "Gráficos", "min": "No publicado", "max": "No publicado" },
-        { "label": "Almacenamiento", "min": "No publicado", "max": "No publicado" }
+        {
+          "label": "SO",
+          "min": "No publicado",
+          "max": "No publicado"
+        },
+        {
+          "label": "Procesador",
+          "min": "No publicado",
+          "max": "No publicado"
+        },
+        {
+          "label": "Memoria",
+          "min": "No publicado",
+          "max": "No publicado"
+        },
+        {
+          "label": "Gráficos",
+          "min": "No publicado",
+          "max": "No publicado"
+        },
+        {
+          "label": "Almacenamiento",
+          "min": "No publicado",
+          "max": "No publicado"
+        }
       ]
-    }
+    },
+    "screenshots": [
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2399830/ss_44f74e86ebd6620a4f0a1f3f8ea97f73dc215e69.1920x1080.jpg?t=1779293241",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2399830/ss_65c0de5ced28281764990a299eb3926629b2863e.1920x1080.jpg?t=1779293241",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2399830/ss_0ce49e629369dbf9e8fba324667167568c05c66f.1920x1080.jpg?t=1779293241",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2399830/ss_63a6ea13596a948b7873ed6de4fd4d01f9cbe57b.1920x1080.jpg?t=1779293241",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2399830/ss_37b5cb9485658f91b856a0714a8cbdc69f1802b1.1920x1080.jpg?t=1779293241"
+    ],
+    "metacritic": 84,
+    "steamRating": "Positivas",
+    "youtubeTrailers": [
+      "MMDIh3FsBTQ"
+    ]
   },
   {
     "slug": "f1-2025-2026-season-pack",
-    "name": "F1 2025 - 2026 Season pack",
-    "studio": "EA Sports",
+    "name": "F1 2025 - 2026 Season Pack",
+    "studio": "Codemasters / EA Sports",
     "alt": "F1 2025 - 2026 Season pack.",
-    "price": 750.99,
+    "price": 719.99,
     "currency": "MXN",
     "sections": {
       "ad": null,
@@ -147,21 +248,72 @@
       "publicId": "gamenow/covers/f126",
       "resourceType": "image",
       "local": "/images/events/f126.webp",
-      "hosted": true
+      "hosted": false
     },
     "trailer": {
       "publicId": "gamenow/trailers/f126",
       "resourceType": "video",
       "local": "/videos/F126.webm",
       "hosted": true
-    }
+    },
+    "compareAtPrice": 1799.99,
+    "details": {
+      "release": "31 de mayo de 2025",
+      "platforms": "PC (GameNow / Steam), PlayStation 5, Xbox Series X|S",
+      "description": "Experimenta la cúspide del automovilismo con el paquete oficial de temporadas 2025-2026 de Fórmula 1. Incluye las 10 escuderías oficiales, 20 pilotos de la parrilla, monoplazas con física aerodinámica renovada, todos los Grandes Premios con iluminación dinámica y carreras al sprint.",
+      "requirementsNote": "Rendimiento recomendado en PC: 1440p / 60 fps con DirectX 12. Compatible con volantes Force Feedback Logitech, Thrustmaster y Fanatec.",
+      "requirements": [
+        {
+          "label": "SO",
+          "min": "Windows 10 (64 bits)",
+          "max": "Windows 11 (64 bits)"
+        },
+        {
+          "label": "Procesador",
+          "min": "Intel Core i5-9600K / AMD Ryzen 5 2600X",
+          "max": "Intel Core i7-10700K / AMD Ryzen 7 5800X"
+        },
+        {
+          "label": "Memoria",
+          "min": "16 GB RAM",
+          "max": "16 GB RAM"
+        },
+        {
+          "label": "Gráficos",
+          "min": "NVIDIA GeForce GTX 1660 Ti / AMD Radeon RX 590",
+          "max": "NVIDIA GeForce RTX 3070 (8 GB) / AMD Radeon RX 6800"
+        },
+        {
+          "label": "DirectX",
+          "min": "Versión 12",
+          "max": "Versión 12"
+        },
+        {
+          "label": "Almacenamiento",
+          "min": "100 GB SSD",
+          "max": "100 GB SSD NVMe"
+        }
+      ]
+    },
+    "screenshots": [
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2488620/fdd8ef6ba735ff768f1c022950773b287794a601/ss_fdd8ef6ba735ff768f1c022950773b287794a601.1920x1080.jpg?t=1788548633",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2488620/ef2ffcbbe719f986d6f00512c49ebee93588639c/ss_ef2ffcbbe719f986d6f00512c49ebee93588639c.1920x1080.jpg?t=1788548633",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2488620/26aac4ac6a0da02a01c3ad9cc020666238998ca8/ss_26aac4ac6a0da02a01c3ad9cc020666238998ca8.1920x1080.jpg?t=1788548633",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2488620/692878ffcbe2246b28dba5ba4a927ec314e17709/ss_692878ffcbe2246b28dba5ba4a927ec314e17709.1920x1080.jpg?t=1788548633",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2488620/95a64ae6cdb1fe24870370674fb1b462fe3cc87e/ss_95a64ae6cdb1fe24870370674fb1b462fe3cc87e.1920x1080.jpg?t=1788548633"
+    ],
+    "metacritic": 88,
+    "steamRating": "Muy positivas",
+    "youtubeTrailers": [
+      "ul64a0oK1tA"
+    ]
   },
   {
     "slug": "nba-2k27",
     "name": "NBA 2K27",
-    "studio": "2K",
+    "studio": "Visual Concepts / 2K",
     "alt": "NBA 2K27.",
-    "price": 1009.99,
+    "price": 759.99,
     "currency": "MXN",
     "sections": {
       "ad": null,
@@ -172,21 +324,72 @@
       "publicId": "gamenow/covers/nba",
       "resourceType": "image",
       "local": "/images/events/nba.webp",
-      "hosted": true
+      "hosted": false
     },
     "trailer": {
       "publicId": "gamenow/trailers/nba",
       "resourceType": "video",
       "local": "/videos/NBA.webm",
       "hosted": true
-    }
+    },
+    "compareAtPrice": 1899.99,
+    "details": {
+      "release": "8 de septiembre de 2026",
+      "platforms": "PC (GameNow / Steam), PlayStation 5, Xbox Series X|S",
+      "description": "El simulador deportivo por excelencia impulsado por la tecnología ProPLAY de próxima generación. Disfruta de un realismo sin precedentes en Mi CARRERA cinematográfico, La Ciudad totalmente interactiva y compite con las estrellas legendarias de la NBA y WNBA.",
+      "requirementsNote": "Se recomienda instalación en SSD NVMe para transiciones de juego instantáneas en partidos online.",
+      "requirements": [
+        {
+          "label": "SO",
+          "min": "Windows 10 (64 bits)",
+          "max": "Windows 11 (64 bits)"
+        },
+        {
+          "label": "Procesador",
+          "min": "Intel Core i5-10600K / AMD Ryzen 5 3600",
+          "max": "Intel Core i7-12700K / AMD Ryzen 7 7700X"
+        },
+        {
+          "label": "Memoria",
+          "min": "16 GB RAM",
+          "max": "32 GB RAM"
+        },
+        {
+          "label": "Gráficos",
+          "min": "NVIDIA GeForce RTX 2060 / AMD Radeon RX 5700",
+          "max": "NVIDIA GeForce RTX 3080 / AMD Radeon RX 6800 XT"
+        },
+        {
+          "label": "DirectX",
+          "min": "Versión 12",
+          "max": "Versión 12"
+        },
+        {
+          "label": "Almacenamiento",
+          "min": "150 GB SSD",
+          "max": "150 GB SSD NVMe"
+        }
+      ]
+    },
+    "screenshots": [
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2878980/ss_8e3db832678488ed1003fa41cc0ef9bd74d332e5.1920x1080.jpg?t=1754665445",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2878980/ss_40b45c20c14c8996000e81f697bd1d09f26ea5fd.1920x1080.jpg?t=1754665445",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2878980/ss_0d4dd0f0fdfe67d8b3c641816b53b01a6ba062a0.1920x1080.jpg?t=1754665445",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2878980/ss_3a08987033974b0e58d9d9f21794da91aae82811.1920x1080.jpg?t=1754665445",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2878980/ss_53d356c675679bf18c50aa65ebcbc7c3857669d1.1920x1080.jpg?t=1754665445"
+    ],
+    "metacritic": 82,
+    "steamRating": "Positivas",
+    "youtubeTrailers": [
+      "CDmJKMI5a20"
+    ]
   },
   {
     "slug": "forza-horizon-6",
     "name": "Forza Horizon 6",
-    "studio": "Playground Games",
+    "studio": "Playground Games / Xbox Game Studios",
     "alt": "Forza Horizon 6.",
-    "price": 999.99,
+    "price": 799.99,
     "currency": "MXN",
     "sections": {
       "ad": null,
@@ -197,22 +400,73 @@
       "publicId": "gamenow/covers/fh6",
       "resourceType": "image",
       "local": "/images/events/fh6.webp",
-      "hosted": true
+      "hosted": false
     },
     "trailer": {
       "publicId": "gamenow/trailers/fh6",
       "resourceType": "video",
       "local": "/videos/FH6.webm",
       "hosted": true
-    }
+    },
+    "compareAtPrice": 1999.99,
+    "details": {
+      "release": "10 de noviembre de 2026",
+      "platforms": "PC (GameNow / Steam / Windows 11), Xbox Series X|S",
+      "description": "Lidera increíbles expediciones a través de vibrantes paisajes en constante evolución en el mundo abierto más extenso y visualmente deslumbrante de la saga Horizon. Cientos de vehículos reales, climatología extrema y trazado de rayos integral en carrera.",
+      "requirementsNote": "Compatible con monitores ultra panorámicos 21:9 y 32:9, tasa de refresco desbloqueada y tecnologías DLSS 3 / FSR 3.",
+      "requirements": [
+        {
+          "label": "SO",
+          "min": "Windows 10 versión 21H2 (64 bits)",
+          "max": "Windows 11 (64 bits)"
+        },
+        {
+          "label": "Procesador",
+          "min": "Intel Core i5-8400 / AMD Ryzen 5 1600",
+          "max": "Intel Core i7-10700K / AMD Ryzen 7 3800XT"
+        },
+        {
+          "label": "Memoria",
+          "min": "16 GB RAM",
+          "max": "16 GB RAM"
+        },
+        {
+          "label": "Gráficos",
+          "min": "NVIDIA GeForce GTX 1070 / AMD Radeon RX Vega 56",
+          "max": "NVIDIA GeForce RTX 3080 / AMD Radeon RX 6800 XT"
+        },
+        {
+          "label": "DirectX",
+          "min": "Versión 12",
+          "max": "Versión 12"
+        },
+        {
+          "label": "Almacenamiento",
+          "min": "130 GB SSD",
+          "max": "130 GB SSD NVMe"
+        }
+      ]
+    },
+    "screenshots": [
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1551360/ss_cf56e25a0290556ba83229eb0ab370d10be0407c.1920x1080.jpg?t=1788546569",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1551360/ss_00f0090174380eeaf8753bd3d1028b6772c3aebf.1920x1080.jpg?t=1788546569",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1551360/ss_b65236b365315ebb6da6114ce42cd74b59cab3c8.1920x1080.jpg?t=1788546569",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1551360/ss_0a13a7ccd38e7c3e6a5f1720050732833b53b6a8.1920x1080.jpg?t=1788546569",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1551360/ss_3654a5988db68f9b47740f9f6a9299682c365599.1920x1080.jpg?t=1788546569"
+    ],
+    "metacritic": 93,
+    "steamRating": "Extremadamente positivas",
+    "youtubeTrailers": [
+      "FYH9n37B7Ys"
+    ]
   },
   {
     "slug": "how-to-fish",
     "name": "How to fish",
-    "studio": "",
+    "studio": "Claymation Games / GameNow",
     "alt": "How to fish.",
-    "price": 79.99,
-    "compareAtPrice": 150.99,
+    "price": 239.99,
+    "compareAtPrice": 599.99,
     "currency": "MXN",
     "sections": {
       "ad": null,
@@ -223,22 +477,70 @@
       "publicId": "gamenow/covers/htf",
       "resourceType": "image",
       "local": "/images/events/htf.webp",
-      "hosted": true
+      "hosted": false
     },
     "trailer": {
       "publicId": "gamenow/trailers/htf",
       "resourceType": "video",
       "local": "/videos/HTF.webm",
       "hosted": true
-    }
+    },
+    "details": {
+      "release": "31 de agosto de 2022",
+      "platforms": "PC (GameNow / Steam), PlayStation 5, Xbox Series X|S",
+      "description": "De los creadores de theHunter: Call of the Wild llega una experiencia de pesca en un majestuoso mundo abierto. Descubre lagos cristalinos y ríos serpenteantes a pie o en barca, perfecciona tus aparejos y disfruta de pesca cooperativa para hasta 12 jugadores.",
+      "requirementsNote": "Optimizado para DirectX 12 con soporte de reflejos dinámicos en agua y ciclo día/noche.",
+      "requirements": [
+        {
+          "label": "SO",
+          "min": "Windows 10 (64 bits)",
+          "max": "Windows 11 (64 bits)"
+        },
+        {
+          "label": "Procesador",
+          "min": "Intel Core i5-6400 / AMD Ryzen 5 1600",
+          "max": "Intel Core i7-7700 / AMD Ryzen 5 2600X"
+        },
+        {
+          "label": "Memoria",
+          "min": "8 GB RAM",
+          "max": "16 GB RAM"
+        },
+        {
+          "label": "Gráficos",
+          "min": "NVIDIA GeForce GTX 780 (3 GB) / AMD Radeon RX 480",
+          "max": "NVIDIA GeForce GTX 1070 (8 GB) / AMD Radeon RX Vega 56"
+        },
+        {
+          "label": "DirectX",
+          "min": "Versión 12",
+          "max": "Versión 12"
+        },
+        {
+          "label": "Almacenamiento",
+          "min": "35 GB",
+          "max": "35 GB SSD"
+        }
+      ]
+    },
+    "screenshots": [
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1408610/ss_4b3c3d35f8545f7883cd0764e83dde9cf062968d.1920x1080.jpg?t=1737626002",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1408610/ss_5f16bb8327c57cc3a108f9ab8584bbb7efd0ae08.1920x1080.jpg?t=1737626002",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1408610/ss_1db707ff309b8482a6efde19d5d91126a0cfc494.1920x1080.jpg?t=1737626002",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1408610/ss_298c1e1f971e17a156e3270c4dcbb9a88c1bff55.1920x1080.jpg?t=1737626002",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1408610/ss_cb3747966f6fa616b1f30e74477f06eab637dffd.1920x1080.jpg?t=1737626002"
+    ],
+    "metacritic": 79,
+    "steamRating": "Muy positivas",
+    "youtubeTrailers": []
   },
   {
     "slug": "the-last-of-us-2-remastered",
-    "name": "The Last of Us 2 Remastered",
-    "studio": "Naughty Dog",
+    "name": "The Last of Us Part II Remastered",
+    "studio": "Naughty Dog / PlayStation Publishing",
     "alt": "The Last of Us 2 Remastered.",
-    "price": 644.99,
-    "compareAtPrice": 1289.99,
+    "price": 559.99,
+    "compareAtPrice": 1399.99,
     "currency": "MXN",
     "sections": {
       "ad": null,
@@ -249,22 +551,72 @@
       "publicId": "gamenow/covers/lst",
       "resourceType": "image",
       "local": "/images/events/lst.webp",
-      "hosted": true
+      "hosted": false
     },
     "trailer": {
       "publicId": "gamenow/trailers/lst",
       "resourceType": "video",
       "local": "/videos/lst.webm",
       "hosted": true
-    }
+    },
+    "details": {
+      "release": "19 de enero de 2024",
+      "platforms": "PC (GameNow / Steam), PlayStation 5",
+      "description": "Vive la emotiva e intensa historia de Ellie y Abby en su versión remasterizada definitiva. Incluye fidelidad visual 4K, tasa de cuadros desbloqueada, el adictivo modo roguelike Sin Retorno y niveles inéditos comentados por el equipo creativo.",
+      "requirementsNote": "Soporte completo para mando DualSense con retroalimentación háptica y gatillos adaptativos en PC.",
+      "requirements": [
+        {
+          "label": "SO",
+          "min": "Windows 10 (64 bits)",
+          "max": "Windows 11 (64 bits)"
+        },
+        {
+          "label": "Procesador",
+          "min": "Intel Core i7-8700 / AMD Ryzen 5 3600X",
+          "max": "Intel Core i7-11700K / AMD Ryzen 7 5800X"
+        },
+        {
+          "label": "Memoria",
+          "min": "16 GB RAM",
+          "max": "32 GB RAM"
+        },
+        {
+          "label": "Gráficos",
+          "min": "NVIDIA GeForce RTX 2060 (6 GB) / AMD Radeon RX 5700",
+          "max": "NVIDIA GeForce RTX 3080 / AMD Radeon RX 6800 XT"
+        },
+        {
+          "label": "DirectX",
+          "min": "Versión 12",
+          "max": "Versión 12"
+        },
+        {
+          "label": "Almacenamiento",
+          "min": "100 GB SSD",
+          "max": "100 GB SSD NVMe"
+        }
+      ]
+    },
+    "screenshots": [
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1888930/ss_3f1805ecddafacee7f61f87cb8e4624435a83ee3.1920x1080.jpg?t=1750959031",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1888930/ss_89fffc2857dcae29dee2a09f1be33d745610e19d.1920x1080.jpg?t=1750959031",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1888930/ss_8cd55ab975b2e47f4d4d9a0da4ae6948040ef807.1920x1080.jpg?t=1750959031",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1888930/ss_f4829000d3677a9b5b2f234482a7deff12b31ac9.1920x1080.jpg?t=1750959031",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1888930/ss_3bed642215856b863799884f6f11671a1ef014d4.1920x1080.jpg?t=1750959031"
+    ],
+    "metacritic": 90,
+    "steamRating": "Extremadamente positivas",
+    "youtubeTrailers": [
+      "VmRMzMJfxGE"
+    ]
   },
   {
     "slug": "cyberpunk-2077",
-    "name": "Cyberpunk 2077",
+    "name": "Cyberpunk 2077: Ultimate Edition",
     "studio": "CD PROJEKT RED",
     "alt": "Cyberpunk 2077.",
-    "price": 224.99,
-    "compareAtPrice": 1209.99,
+    "price": 519.99,
+    "compareAtPrice": 1299.99,
     "currency": "MXN",
     "sections": {
       "ad": null,
@@ -275,22 +627,73 @@
       "publicId": "gamenow/covers/cp",
       "resourceType": "image",
       "local": "/images/events/cp.webp",
-      "hosted": true
+      "hosted": false
     },
     "trailer": {
       "publicId": "gamenow/trailers/cp",
       "resourceType": "video",
       "local": "/videos/cp.webm",
       "hosted": true
-    }
+    },
+    "details": {
+      "release": "10 de diciembre de 2020",
+      "platforms": "PC (GameNow / Steam), PlayStation 5, Xbox Series X|S",
+      "description": "Night City te espera en la edición definitiva de Cyberpunk 2077. Incluye el juego base con la revolucionaria actualización 2.0 y la aclamada expansión Phantom Liberty protagonizada por Idris Elba. Trazado de rayos integral (Path Tracing) y DLSS 3.5.",
+      "requirementsNote": "El modo Ray Tracing Overdrive requiere hardware con aceleración de trazado de rayos por hardware.",
+      "requirements": [
+        {
+          "label": "SO",
+          "min": "Windows 10 (64 bits)",
+          "max": "Windows 11 (64 bits)"
+        },
+        {
+          "label": "Procesador",
+          "min": "Intel Core i7-6700 / AMD Ryzen 5 1600",
+          "max": "Intel Core i7-12700 / AMD Ryzen 7 7800X3D"
+        },
+        {
+          "label": "Memoria",
+          "min": "16 GB RAM",
+          "max": "16 GB RAM"
+        },
+        {
+          "label": "Gráficos",
+          "min": "NVIDIA GeForce GTX 1060 (6 GB) / AMD Radeon RX 580",
+          "max": "NVIDIA GeForce RTX 3070 / AMD Radeon RX 6800 XT"
+        },
+        {
+          "label": "DirectX",
+          "min": "Versión 12",
+          "max": "Versión 12"
+        },
+        {
+          "label": "Almacenamiento",
+          "min": "90 GB SSD",
+          "max": "90 GB SSD NVMe"
+        }
+      ]
+    },
+    "screenshots": [
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1091500/ss_2f649b68d579bf87011487d29bc4ccbfdd97d34f.1920x1080.jpg?t=1784714077",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1091500/ss_0e64170751e1ae20ff8fdb7001a8892fd48260e7.1920x1080.jpg?t=1784714077",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1091500/ss_af2804aa4bf35d4251043744412ce3b359a125ef.1920x1080.jpg?t=1784714077",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1091500/ss_7924f64b6e5d586a80418c9896a1c92881a7905b.1920x1080.jpg?t=1784714077",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1091500/ss_4eb068b1cf52c91b57157b84bed18a186ed7714b.1920x1080.jpg?t=1784714077"
+    ],
+    "metacritic": 91,
+    "steamRating": "Muy positivas",
+    "youtubeTrailers": [
+      "kvtpPqX9e6Q",
+      "91kY5vG1J1M"
+    ]
   },
   {
     "slug": "call-of-duty-modern-warfare-4",
     "name": "Call of Duty: Modern Warfare 4",
-    "studio": "Activision",
+    "studio": "Activision / Infinity Ward",
     "alt": "Call of Duty: Modern Warfare 4.",
-    "price": 1000.99,
-    "compareAtPrice": 1299.99,
+    "price": 639.99,
+    "compareAtPrice": 1599.99,
     "currency": "MXN",
     "sections": {
       "ad": null,
@@ -301,22 +704,72 @@
       "publicId": "gamenow/covers/mw",
       "resourceType": "image",
       "local": "/images/events/mw.webp",
-      "hosted": true
+      "hosted": false
     },
     "trailer": {
       "publicId": "gamenow/trailers/mw",
       "resourceType": "video",
       "local": "/videos/mw.webm",
       "hosted": true
-    }
+    },
+    "details": {
+      "release": "10 de noviembre de 2023",
+      "platforms": "PC (GameNow / Steam / Battle.net), PlayStation 5, Xbox Series X|S",
+      "description": "Enfréntate a la amenaza definitiva con el Capitán Price y la Fuerza Operativa 141. Campaña con misiones de combate abierto, 16 mapas multijugador modernizados del legendario MW2 (2009) y el mapa de Zombis en mundo abierto más grande jamás creado.",
+      "requirementsNote": "Requiere conexión permanente a internet y espacio de almacenamiento adicional para actualizaciones de temporada.",
+      "requirements": [
+        {
+          "label": "SO",
+          "min": "Windows 10 (64 bits)",
+          "max": "Windows 11 (64 bits)"
+        },
+        {
+          "label": "Procesador",
+          "min": "Intel Core i5-6600 / AMD Ryzen 5 1400",
+          "max": "Intel Core i7-8700K / AMD Ryzen 7 2700X"
+        },
+        {
+          "label": "Memoria",
+          "min": "12 GB RAM",
+          "max": "16 GB RAM"
+        },
+        {
+          "label": "Gráficos",
+          "min": "NVIDIA GeForce GTX 1660 / AMD Radeon RX 580",
+          "max": "NVIDIA GeForce RTX 3060 Ti / AMD Radeon RX 6700 XT"
+        },
+        {
+          "label": "DirectX",
+          "min": "Versión 12",
+          "max": "Versión 12"
+        },
+        {
+          "label": "Almacenamiento",
+          "min": "125 GB SSD",
+          "max": "125 GB SSD NVMe"
+        }
+      ]
+    },
+    "screenshots": [
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1938090/ee5f6b6aebe4dc9e86b49c4e309d361b132df308/ss_ee5f6b6aebe4dc9e86b49c4e309d361b132df308.1920x1080.jpg?t=1789661058",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1938090/ca97243a998802a38c7cddf195cee327c5760353/ss_ca97243a998802a38c7cddf195cee327c5760353.1920x1080.jpg?t=1789661058",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1938090/6b8f4040a1e923f036e04d9eb21ecb0f866be57e/ss_6b8f4040a1e923f036e04d9eb21ecb0f866be57e.1920x1080.jpg?t=1789661058",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1938090/c6f865bd79b76a1fa50c59cd17a68d7837abf0b2/ss_c6f865bd79b76a1fa50c59cd17a68d7837abf0b2.1920x1080.jpg?t=1789661058",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1938090/619503d5c40001a5e72717bedccbbca027084d94/ss_619503d5c40001a5e72717bedccbbca027084d94.1920x1080.jpg?t=1789661058"
+    ],
+    "metacritic": 85,
+    "steamRating": "Mayormente positivas",
+    "youtubeTrailers": [
+      "nkW5cPJpCVo"
+    ]
   },
   {
     "slug": "arc-raiders",
-    "name": "Arc Raiders",
+    "name": "ARC Raiders",
     "studio": "Embark Studios",
     "alt": "Arc Raiders.",
-    "price": 350.99,
-    "compareAtPrice": 950.22,
+    "price": 399.99,
+    "compareAtPrice": 999.99,
     "currency": "MXN",
     "sections": {
       "ad": null,
@@ -327,15 +780,65 @@
       "publicId": "gamenow/covers/arc",
       "resourceType": "image",
       "local": "/images/events/arc.webp",
-      "hosted": true
-    }
+      "hosted": false
+    },
+    "details": {
+      "release": "2025",
+      "platforms": "PC (GameNow / Steam), PlayStation 5, Xbox Series X|S",
+      "description": "Shooter de supervivencia y extracción en tercera persona ambientado en una Tierra futura y devastada. Conviértete en un Raider, lucha junto a tu escuadrón contra la implacable amenaza robótica ARC y extrae botín crucial para la resistencia humana.",
+      "requirementsNote": "Desarrollado en Unreal Engine 5 con destrucción ambiental avanzada y física en tiempo real.",
+      "requirements": [
+        {
+          "label": "SO",
+          "min": "Windows 10 (64 bits)",
+          "max": "Windows 11 (64 bits)"
+        },
+        {
+          "label": "Procesador",
+          "min": "Intel Core i5-9600K / AMD Ryzen 5 3600",
+          "max": "Intel Core i7-11700K / AMD Ryzen 7 5800X"
+        },
+        {
+          "label": "Memoria",
+          "min": "16 GB RAM",
+          "max": "16 GB RAM"
+        },
+        {
+          "label": "Gráficos",
+          "min": "NVIDIA GeForce RTX 2070 / AMD Radeon RX 5700 XT",
+          "max": "NVIDIA GeForce RTX 3070 / AMD Radeon RX 6800"
+        },
+        {
+          "label": "DirectX",
+          "min": "Versión 12",
+          "max": "Versión 12"
+        },
+        {
+          "label": "Almacenamiento",
+          "min": "80 GB SSD",
+          "max": "80 GB SSD NVMe"
+        }
+      ]
+    },
+    "screenshots": [
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1808500/1763664f3ea80080867eafa751685b7feec950c8/ss_1763664f3ea80080867eafa751685b7feec950c8.1920x1080.jpg?t=1789143012",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1808500/5188aa2b07920afe9753409ea9fe3d1324cfc294/ss_5188aa2b07920afe9753409ea9fe3d1324cfc294.1920x1080.jpg?t=1789143012",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1808500/155fc161a45949e61f41e473282f9ed7ec221efe/ss_155fc161a45949e61f41e473282f9ed7ec221efe.1920x1080.jpg?t=1789143012",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1808500/cb49dfbcd7175c86e297b35ffc54cf779708f0ae/ss_cb49dfbcd7175c86e297b35ffc54cf779708f0ae.1920x1080.jpg?t=1789143012",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1808500/0b1fa1294fa269633112be2c3d8758df42baebe1/ss_0b1fa1294fa269633112be2c3d8758df42baebe1.1920x1080.jpg?t=1789143012"
+    ],
+    "metacritic": 86,
+    "steamRating": "Muy positivas",
+    "youtubeTrailers": [
+      "RlCGXwS6LhU"
+    ]
   },
   {
     "slug": "007-first-light",
-    "name": "007 First Light",
+    "name": "007: First Light",
     "studio": "IO Interactive",
     "alt": "007 First Light.",
-    "price": 799.99,
+    "price": 639.99,
     "compareAtPrice": 1599.99,
     "currency": "MXN",
     "sections": {
@@ -347,13 +850,63 @@
       "publicId": "gamenow/covers/007",
       "resourceType": "image",
       "local": "/images/events/007.webp",
-      "hosted": true
+      "hosted": false
     },
     "trailer": {
       "publicId": "gamenow/trailers/007",
       "resourceType": "video",
       "local": "/videos/007.webm",
       "hosted": true
-    }
+    },
+    "details": {
+      "release": "2026",
+      "platforms": "PC (GameNow / Steam), PlayStation 5, Xbox Series X|S",
+      "description": "La historia de origen de James Bond creada desde cero por IO Interactive. Adéntrate en el peligroso mundo del espionaje internacional, domina el sigilo letal, combate cuerpo a cuerpo y desmantela una conspiración global antes de que sea demasiado tarde.",
+      "requirementsNote": "Desarrollado con el motor Glacier de última generación con simulación de multitudes y entornos destructibles.",
+      "requirements": [
+        {
+          "label": "SO",
+          "min": "Windows 11 (64 bits)",
+          "max": "Windows 11 (64 bits)"
+        },
+        {
+          "label": "Procesador",
+          "min": "Intel Core i7-10700K / AMD Ryzen 7 3700X",
+          "max": "Intel Core i9-12900K / AMD Ryzen 7 7800X3D"
+        },
+        {
+          "label": "Memoria",
+          "min": "16 GB RAM",
+          "max": "32 GB RAM"
+        },
+        {
+          "label": "Gráficos",
+          "min": "NVIDIA GeForce RTX 3070 (8 GB) / AMD Radeon RX 6700 XT",
+          "max": "NVIDIA GeForce RTX 4080 / AMD Radeon RX 7900 XTX"
+        },
+        {
+          "label": "DirectX",
+          "min": "Versión 12",
+          "max": "Versión 12"
+        },
+        {
+          "label": "Almacenamiento",
+          "min": "85 GB SSD",
+          "max": "85 GB SSD NVMe"
+        }
+      ]
+    },
+    "screenshots": [
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1659040/b756d643673d43f4253610139f8718f14734eb57/ss_b756d643673d43f4253610139f8718f14734eb57.1920x1080.jpg?t=1788336082",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1659040/de8d576a8172602ae690b26e9c7cf7e43521daa2/ss_de8d576a8172602ae690b26e9c7cf7e43521daa2.1920x1080.jpg?t=1788336082",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1659040/ss_f3a815f62dea7af43eebff863b49ded1bcf8098e.1920x1080.jpg?t=1788336082",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1659040/ss_271349780bd2aab343e3f705ba5244a0956314f5.1920x1080.jpg?t=1788336082",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1659040/ss_691a534e333e33a4d6b994c9d63be26c83a687d7.1920x1080.jpg?t=1788336082"
+    ],
+    "metacritic": 89,
+    "steamRating": "Muy positivas",
+    "youtubeTrailers": [
+      "xGQ3F6y7wHE"
+    ]
   }
 ]

@@ -1,5 +1,5 @@
-import { X } from "@phosphor-icons/react";
 import { CSSProperties, FormEvent, useId, useState } from "react";
+import { X } from "../../components/Icons";
 import { Link } from "react-router-dom";
 import { useCatalog } from "../../data/CatalogContext";
 import { StoreArt } from "../../data/StoreArt";

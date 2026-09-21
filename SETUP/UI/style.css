@@ -1,0 +1,652 @@
+/* GameNow Installer Design System & Styles */
+:root {
+  --color-bg-canvas: #000000;
+  --color-bg-surface: #1a1815;
+  --color-bg-subtle: #221f1b;
+  --color-fg-default: #ece7de;
+  --color-fg-muted: #9c9588;
+  /* Acento blanco en lugar de rojo */
+  --color-accent-primary: #ffffff;
+  --color-accent-on-primary: #000000;
+  --color-accent-hover: #e5e5e5;
+  --color-border-subtle: #2e2b26;
+  --color-border-strong: #4a453d;
+  --color-focus-ring: #ffffff;
+  --font-family: 'Sora', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  background-color: var(--color-bg-canvas);
+  color: var(--color-fg-default);
+  font-family: var(--font-family);
+  overflow-x: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Installer window container */
+.installer-window {
+  position: relative;
+  min-height: 100vh;
+  width: 100%;
+  background-color: var(--color-bg-canvas);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Aura ambiental sutil de fondo */
+.ambient-aura {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 720px;
+  height: 480px;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(255, 255, 255, 0.055) 0%,
+    rgba(255, 255, 255, 0.018) 45%,
+    transparent 72%
+  );
+  filter: blur(60px);
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0;
+  transition: opacity 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.installer-window.hide-hero .ambient-aura {
+  opacity: 1;
+  animation: auraFloat 8s ease-in-out infinite alternate;
+}
+
+@keyframes auraFloat {
+  0% {
+    transform: translate(-50%, -50%) scale(0.92);
+    opacity: 0.6;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1.1);
+    opacity: 1;
+  }
+}
+
+/* Barra superior: Logo centrado hasta arriba */
+.installer-topbar {
+  position: absolute;
+  top: 28px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.installer-logo {
+  height: 124px;
+  width: auto;
+  pointer-events: auto;
+  filter: drop-shadow(0 4px 18px rgba(0, 0, 0, 0.85));
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.35s ease;
+}
+
+.installer-logo:hover {
+  transform: scale(1.04);
+}
+
+/* Destello reactivo del logo durante transiciones */
+.installer-logo.glint {
+  animation: logoPulseGlint 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes logoPulseGlint {
+  0% {
+    filter: drop-shadow(0 4px 18px rgba(0, 0, 0, 0.85));
+    transform: scale(1);
+  }
+  40% {
+    filter: drop-shadow(0 0 32px rgba(255, 255, 255, 0.8)) drop-shadow(0 6px 22px rgba(0, 0, 0, 0.9));
+    transform: scale(1.05);
+  }
+  100% {
+    filter: drop-shadow(0 4px 18px rgba(0, 0, 0, 0.85));
+    transform: scale(1);
+  }
+}
+
+/* Top Hero Banner Section con animación cinemática */
+.hero-banner {
+  position: relative;
+  width: 100%;
+  height: 340px;
+  overflow: hidden;
+  background-color: var(--color-bg-canvas);
+  transition: height 0.65s cubic-bezier(0.7, 0, 0.2, 1),
+              opacity 0.45s ease,
+              transform 0.65s cubic-bezier(0.7, 0, 0.2, 1);
+  will-change: height, opacity, transform;
+}
+
+/* Quitar la imagen con zoom out y disolución al colapsar */
+.installer-window.hide-hero .hero-banner {
+  height: 0;
+  opacity: 0;
+  transform: translateY(-50px) scale(0.98);
+  margin: 0;
+  pointer-events: none;
+}
+
+.hero-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 25%;
+  display: block;
+  transform: scale(1.02);
+  filter: brightness(1) blur(0px);
+  transition: transform 0.75s cubic-bezier(0.16, 1, 0.3, 1),
+              filter 0.6s ease;
+  will-change: transform, filter;
+}
+
+.installer-window.hide-hero .hero-image {
+  transform: scale(1.2);
+  filter: brightness(0.08) blur(14px);
+}
+
+/* Sombra suave superior para contrastar el logo */
+.hero-top-shade {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 130px;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.75) 0%,
+    rgba(0, 0, 0, 0.3) 60%,
+    rgba(0, 0, 0, 0) 100%
+  );
+}
+
+/* Gradient fade on bottom edge of image to blend into black background */
+.hero-fade {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0) 0%,
+    rgba(0, 0, 0, 0.05) 40%,
+    rgba(0, 0, 0, 0.35) 65%,
+    rgba(0, 0, 0, 0.75) 85%,
+    #000000 100%
+  );
+  transition: opacity 0.5s ease;
+}
+
+/* Subtle side vignette for immersive feel */
+.hero-vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    circle at 50% 30%,
+    transparent 45%,
+    rgba(0, 0, 0, 0.5) 100%
+  );
+}
+
+/* Content container below hero */
+.installer-content {
+  position: relative;
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 16px 32px 48px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  z-index: 2;
+  min-height: 220px;
+  transition: padding 0.65s cubic-bezier(0.16, 1, 0.3, 1),
+              min-height 0.65s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Al quitar la imagen, centrar todo verticalmente en la pantalla negra */
+.installer-window.hide-hero .installer-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding-top: 175px;
+  padding-bottom: 75px;
+}
+
+/* Steps and Staggered Transitions */
+.installer-step {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+/* Salida animada escalonada (Staggered Out) */
+.installer-step.animate-out .installer-badge {
+  opacity: 0;
+  transform: translateY(-16px);
+  filter: blur(4px);
+  transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.installer-step.animate-out .installer-title {
+  opacity: 0;
+  transform: translateY(-24px) scale(0.95);
+  filter: blur(6px);
+  transition: all 0.26s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.installer-step.animate-out .input-group-location,
+.installer-step.animate-out .progress-box,
+.installer-step.animate-out .step-actions,
+.installer-step.animate-out .btn-primary {
+  opacity: 0;
+  transform: translateY(20px) scale(0.92);
+  filter: blur(6px);
+  transition: all 0.24s cubic-bezier(0.4, 0, 0.2, 1) 0.04s;
+}
+
+/* Entrada animada escalonada (Staggered In Cascade) */
+.installer-step.animate-in .installer-badge {
+  animation: cascadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.06s both;
+}
+
+.installer-step.animate-in .installer-title {
+  animation: cascadeIn 0.55s cubic-bezier(0.16, 1, 0.3, 1) 0.14s both;
+}
+
+.installer-step.animate-in .input-group-location,
+.installer-step.animate-in .progress-box {
+  animation: cascadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.22s both,
+             inputPulseGlow 1s cubic-bezier(0.16, 1, 0.3, 1) 0.3s both;
+}
+
+.installer-step.animate-in .step-actions,
+.installer-step.animate-in .btn-primary {
+  animation: cascadeIn 0.55s cubic-bezier(0.16, 1, 0.3, 1) 0.32s both;
+}
+
+@keyframes cascadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(30px) scale(0.94);
+    filter: blur(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes inputPulseGlow {
+  0% {
+    box-shadow: 0 0 0 rgba(255, 255, 255, 0);
+  }
+  45% {
+    box-shadow: 0 0 32px rgba(255, 255, 255, 0.18);
+  }
+  100% {
+    box-shadow: 0 0 0 rgba(255, 255, 255, 0);
+  }
+}
+
+/* Badge de paso */
+.installer-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: var(--color-fg-muted);
+  margin-bottom: 12px;
+  opacity: 0.8;
+  text-transform: uppercase;
+}
+
+/* Título principal en el medio */
+.installer-title {
+  font-size: clamp(24px, 3.5vw, 32px);
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  color: var(--color-fg-default);
+  margin-bottom: 32px;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.65);
+}
+
+/* Input group para la ubicación */
+.input-group-location {
+  width: 100%;
+  max-width: 540px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 36px;
+  border-radius: 14px;
+}
+
+.input-wrapper {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.input-icon {
+  position: absolute;
+  left: 16px;
+  color: var(--color-fg-muted);
+  pointer-events: none;
+  transition: color 0.2s ease;
+}
+
+.path-input {
+  width: 100%;
+  padding: 16px 16px 16px 48px;
+  background-color: var(--color-bg-surface);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 12px;
+  color: var(--color-fg-default);
+  font-family: var(--font-family);
+  font-size: 14px;
+  letter-spacing: 0.01em;
+  outline: none;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease, background-color 0.25s ease;
+}
+
+.path-input:hover {
+  border-color: var(--color-border-strong);
+}
+
+.path-input:focus {
+  border-color: var(--color-accent-primary);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.16);
+  background-color: #22201b;
+}
+
+.path-input:focus + .input-icon,
+.input-wrapper:focus-within .input-icon {
+  color: #ffffff;
+}
+
+.btn-browse {
+  padding: 16px 24px;
+  background-color: var(--color-bg-surface);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 12px;
+  color: var(--color-fg-default);
+  font-family: var(--font-family);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-browse:hover {
+  border-color: var(--color-accent-primary);
+  background-color: var(--color-bg-subtle);
+  color: #ffffff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+}
+
+.btn-browse:active {
+  transform: translateY(0);
+}
+
+/* Botones de acción del paso */
+.step-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  width: 100%;
+}
+
+.btn-secondary {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  padding: 16px 32px;
+  background: transparent;
+  color: var(--color-fg-muted);
+  font-family: var(--font-family);
+  font-size: 15px;
+  font-weight: 500;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: color 0.2s ease, background-color 0.2s ease, transform 0.2s ease;
+}
+
+.btn-secondary:hover {
+  color: var(--color-fg-default);
+  background-color: rgba(255, 255, 255, 0.06);
+  transform: translateY(-1px);
+}
+
+.btn-secondary:active {
+  background-color: rgba(255, 255, 255, 0.1);
+  transform: translateY(0);
+}
+
+.btn-secondary:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 4px;
+}
+
+/* Botón de acción principal: Blanco con texto negro y destello metálico */
+.btn-primary {
+  position: relative;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  min-width: 240px;
+  padding: 16px 40px;
+  background-color: var(--color-accent-primary);
+  color: var(--color-accent-on-primary);
+  font-family: var(--font-family);
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  text-decoration: none;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(255, 255, 255, 0.12);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              background-color 0.2s ease,
+              box-shadow 0.25s ease;
+}
+
+/* Efecto de haz de luz reflectivo al pasar el cursor */
+.btn-primary::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -120%;
+  width: 70%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(0, 0, 0, 0.15),
+    transparent
+  );
+  transform: skewX(-22deg);
+  transition: left 0.75s ease;
+}
+
+.btn-primary:hover::after {
+  left: 140%;
+}
+
+.btn-primary:hover {
+  background-color: var(--color-accent-hover);
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 10px 32px rgba(255, 255, 255, 0.25);
+}
+
+.btn-primary:active {
+  transform: translateY(0) scale(0.98);
+  box-shadow: 0 2px 10px rgba(255, 255, 255, 0.14);
+}
+
+.btn-primary:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 4px;
+}
+
+/* ===================================================
+   Checkmark icon (shown on completion)
+   =================================================== */
+.checkmark-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  margin-bottom: 18px;
+  color: #ffffff;
+  opacity: 0;
+  transform: scale(0.4);
+  pointer-events: none;
+  transition: opacity 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.checkmark-icon.visible {
+  opacity: 1;
+  transform: scale(1);
+  animation: checkmarkPop 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes checkmarkPop {
+  0% {
+    opacity: 0;
+    transform: scale(0.3) rotate(-12deg);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.15) rotate(3deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+/* ===================================================
+   Paso 3: Barra de progreso de instalación
+   =================================================== */
+.progress-box {
+  width: 100%;
+  max-width: 540px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 32px;
+}
+
+.progress-track {
+  position: relative;
+  width: 100%;
+  height: 10px;
+  background-color: var(--color-bg-surface);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 999px;
+  overflow: hidden;
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.7);
+}
+
+.progress-bar {
+  position: relative;
+  height: 100%;
+  width: 0%;
+  background: var(--color-accent-primary);
+  border-radius: 999px;
+  transition: width 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: width;
+}
+
+/* Efecto de brillo reflectivo continuo en la barra */
+.progress-bar::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.4) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  animation: progressSheen 2.2s ease-in-out infinite;
+}
+
+@keyframes progressSheen {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.progress-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  margin-top: 14px;
+  font-size: 13px;
+  font-family: var(--font-family);
+}
+
+.progress-status {
+  color: var(--color-fg-muted);
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 80%;
+  transition: color 0.3s ease;
+}
+
+.progress-percent {
+  font-weight: 600;
+  color: var(--color-fg-default);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+/* Botón final al completar instalación */
+.progress-finished-actions {
+  animation: cascadeIn 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+

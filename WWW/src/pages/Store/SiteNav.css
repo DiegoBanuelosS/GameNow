@@ -104,6 +104,22 @@
   }
 }
 
+.site-nav a.site-nav-download {
+  color: var(--color-fg-default);
+  background: rgba(255, 255, 255, 0.08);
+  padding: 6px 14px;
+  border-radius: var(--radius-control);
+  font-weight: 500;
+  text-decoration: none !important;
+  transition: all var(--duration) var(--ease-out);
+}
+
+.site-nav a.site-nav-download:hover {
+  background: rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
 @media (max-width: 767px) {
   .site-header-bar {
     grid-template-columns: 1fr auto;

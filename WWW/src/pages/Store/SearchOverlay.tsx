@@ -1,5 +1,5 @@
-import { MagnifyingGlass } from "@phosphor-icons/react";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { MagnifyingGlass } from "../../components/Icons";
 import { Link } from "react-router-dom";
 import { StoreArt } from "../../data/StoreArt";
 import { useCatalog } from "../../data/CatalogContext";

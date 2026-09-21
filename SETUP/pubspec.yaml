@@ -22,6 +22,8 @@ flutter:
   assets:
     - assets/vortex-256.png
     - assets/payload.zip
+    - assets/header.webp
+    - assets/logo.png
   fonts:
     - family: Sora
       fonts:

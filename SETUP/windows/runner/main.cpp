@@ -25,9 +25,13 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   project.set_dart_entrypoint_arguments(std::move(command_line_arguments));
 
   FlutterWindow window(project);
-  Win32Window::Point origin(80, 60);
-  Win32Window::Size size(760, 680);
-  if (!window.Create(L"GameNow", origin, size)) {
+  int screen_width = GetSystemMetrics(SM_CXSCREEN);
+  int screen_height = GetSystemMetrics(SM_CYSCREEN);
+  int x = (screen_width - 1085) / 2;
+  int y = (screen_height - 710) / 2;
+  Win32Window::Point origin(x > 0 ? x : 50, y > 0 ? y : 50);
+  Win32Window::Size size(1085, 710);
+  if (!window.Create(L"GameNow - Instalador", origin, size)) {
     return EXIT_FAILURE;
   }
   window.SetQuitOnClose(true);

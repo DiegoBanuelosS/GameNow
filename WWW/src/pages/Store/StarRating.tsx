@@ -1,7 +1,7 @@
-import { Star } from "@phosphor-icons/react";
+import { Star } from "../../components/Icons";
 import "./StarRating.css";
 
-export function scoreToStars(score: number | null) {
+function scoreToStars(score: number | null) {
   if (!score) {
     return 0;
   }

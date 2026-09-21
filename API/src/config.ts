@@ -1,7 +1,8 @@
-import { config as loadEnv } from "dotenv";
 import { resolve } from "node:path";
 
-loadEnv({ path: resolve(process.cwd(), ".env") });
+try {
+  process.loadEnvFile(resolve(process.cwd(), ".env"));
+} catch (_) {}
 
 export const config = {
   port: Number(process.env.PORT || 8787),
