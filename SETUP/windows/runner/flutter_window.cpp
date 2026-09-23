@@ -3,6 +3,7 @@
 #include <optional>
 
 #include "flutter/generated_plugin_registrant.h"
+#include "utils.h"
 
 FlutterWindow::FlutterWindow(const flutter::DartProject& project)
     : project_(project) {}
@@ -46,6 +47,12 @@ bool FlutterWindow::OnCreate() {
           ReleaseCapture();
           SendMessage(GetHandle(), WM_NCLBUTTONDOWN, HTCAPTION, 0);
           result->Success();
+        } else if (call.method_name() == "args") {
+          flutter::EncodableList list;
+          for (const auto& arg : GetCommandLineArguments()) {
+            list.push_back(flutter::EncodableValue(arg));
+          }
+          result->Success(flutter::EncodableValue(list));
         } else {
           result->NotImplemented();
         }

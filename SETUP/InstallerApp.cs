@@ -2,6 +2,7 @@ using System;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
+using Microsoft.Win32;
 using System.IO.Compression;
 using System.Net.Http;
 using System.Reflection;
@@ -865,6 +866,11 @@ namespace GameNow.Installer {
                         CreateShortcut(exePath, startMenuPath);
                     } catch { }
 
+                    UpdateProgress(0.98, "Registrando GameNow en Windows...", "98%");
+                    if (File.Exists(exePath)) {
+                        RegisterInstalledApp(_targetDirectory, exePath);
+                    }
+
                     // 4. Completed!
                     UpdateProgress(1.0, "Listo", "100%");
                     System.Threading.Thread.Sleep(400);
@@ -917,6 +923,41 @@ namespace GameNow.Installer {
             } catch { }
             Close();
             try { Application.Current.Shutdown(); } catch { }
+        }
+
+        private static void RegisterInstalledApp(string appDir, string exePath) {
+            string uninstallCmd = System.IO.Path.Combine(appDir, "uninstall.cmd");
+            string script =
+                "@echo off\r\n" +
+                "taskkill /F /IM gamenow.exe >nul 2>&1\r\n" +
+                "reg delete \"HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\GameNow\" /f >nul 2>&1\r\n" +
+                "powershell -NoProfile -Command \"$d = [Environment]::GetFolderPath('Desktop'); if ($d) { Remove-Item (Join-Path $d 'GameNow.lnk') -Force -ErrorAction SilentlyContinue }; $p = [Environment]::GetFolderPath('Programs'); if ($p) { Remove-Item (Join-Path $p 'GameNow.lnk') -Force -ErrorAction SilentlyContinue }\"\r\n" +
+                "start \"\" /min cmd /c \"ping 127.0.0.1 -n 3 >nul & rmdir /s /q \\\"" + appDir + "\\\"\"\r\n";
+            File.WriteAllText(uninstallCmd, script);
+
+            long bytes = 0;
+            try {
+                foreach (var file in Directory.GetFiles(appDir, "*", SearchOption.AllDirectories)) {
+                    bytes += new FileInfo(file).Length;
+                }
+            } catch { }
+            int sizeKb = (int)Math.Max(1, bytes / 1024);
+            string uninstall = "cmd.exe /c \"" + uninstallCmd + "\"";
+
+            using (var key = Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\Windows\CurrentVersion\Uninstall\GameNow")) {
+                key.SetValue("DisplayName", "GameNow");
+                key.SetValue("DisplayVersion", "1.0.0");
+                key.SetValue("Publisher", "GameNow");
+                key.SetValue("InstallLocation", appDir);
+                key.SetValue("DisplayIcon", exePath + ",0");
+                key.SetValue("UninstallString", uninstall);
+                key.SetValue("QuietUninstallString", uninstall);
+                key.SetValue("InstallDate", DateTime.Now.ToString("yyyyMMdd"));
+                key.SetValue("EstimatedSize", sizeKb, RegistryValueKind.DWord);
+                key.SetValue("NoModify", 1, RegistryValueKind.DWord);
+                key.SetValue("NoRepair", 1, RegistryValueKind.DWord);
+                key.SetValue("Language", 1034, RegistryValueKind.DWord);
+            }
         }
 
         private static void CreateShortcut(string targetPath, string shortcutPath) {

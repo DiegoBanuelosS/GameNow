@@ -12,12 +12,67 @@ class InstallResult {
   final String exePath;
 }
 
+class ExistingInstall {
+  const ExistingInstall({required this.appDir, required this.exePath});
+
+  final String appDir;
+  final String exePath;
+}
+
+ExistingInstall? _existingIn(String dir) {
+  final exe = File(p.join(dir, 'gamenow.exe'));
+  if (exe.existsSync()) {
+    return ExistingInstall(appDir: dir, exePath: exe.path);
+  }
+  return null;
+}
+
+/// Instalación en la carpeta por defecto, sin consultar el registro.
+ExistingInstall? findExistingInstallSync() {
+  try {
+    final home = Platform.environment['LOCALAPPDATA'];
+    if (home == null || home.isEmpty) return null;
+    return _existingIn(p.join(home, 'Programs', 'GameNow')) ??
+        _existingIn(p.join(home, 'GameNow'));
+  } catch (_) {}
+  return null;
+}
+
+/// Busca una instalación previa en el registro o en la carpeta por defecto.
+Future<ExistingInstall?> findExistingInstall() async {
+  final fromRegistry = await _installDirFromRegistry();
+  if (fromRegistry != null) {
+    final exe = File(p.join(fromRegistry, 'gamenow.exe'));
+    if (exe.existsSync()) {
+      return ExistingInstall(appDir: fromRegistry, exePath: exe.path);
+    }
+  }
+  return findExistingInstallSync();
+}
+
+Future<String?> _installDirFromRegistry() async {
+  const script = r'''
+$k = Get-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\GameNow' -ErrorAction SilentlyContinue
+if (-not $k) { exit 0 }
+if ($k.InstallLocation) { Write-Output $k.InstallLocation.TrimEnd('\') }
+elseif ($k.UninstallString) { Write-Output (Split-Path -Parent $k.UninstallString) }
+''';
+  try {
+    final result = await Process.run('powershell', ['-NoProfile', '-Command', script]);
+    final raw = (result.stdout as String).trim();
+    if (raw.isEmpty) return null;
+    return raw.split(RegExp(r'\r?\n')).last.trim();
+  } catch (_) {
+    return null;
+  }
+}
+
 String installDir() {
   final home = Platform.environment['LOCALAPPDATA'];
   if (home == null || home.isEmpty) {
     throw const FileSystemException('No encontramos tu carpeta de usuario.');
   }
-  return p.join(home, 'GameNow');
+  return p.join(home, 'Programs', 'GameNow');
 }
 
 /// Descarga o carga el paquete comprimido de la aplicación GameNow
@@ -232,16 +287,163 @@ reg delete "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\GameN
 ''',
   );
 
-  final script =
-      '''
-New-Item -Path 'HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\GameNow' -Force | Out-Null
-Set-ItemProperty -Path 'HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\GameNow' -Name DisplayName -Value 'GameNow'
-Set-ItemProperty -Path 'HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\GameNow' -Name DisplayIcon -Value '${_ps(exePath)}'
-Set-ItemProperty -Path 'HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\GameNow' -Name UninstallString -Value '${_ps(p.join(appDir, 'uninstall.cmd'))}'
-Set-ItemProperty -Path 'HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\GameNow' -Name Publisher -Value 'GameNow'
-Set-ItemProperty -Path 'HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\GameNow' -Name NoModify -Value 1 -Type DWord
+  await _registerInstalledApp(appDir, exePath);
+}
+
+Future<void> _registerInstalledApp(String appDir, String exePath) async {
+  const key = r'HKCU\Software\Microsoft\Windows\CurrentVersion\Uninstall\GameNow';
+  final sizeKb = _folderSizeKb(appDir).clamp(1, 0x7fffffff);
+  final installDate = DateTime.now().toIso8601String().substring(0, 10).replaceAll('-', '');
+
+  Future<void> add(String name, String type, String value) async {
+    final result = await Process.run('reg', [
+      'add',
+      key,
+      '/v',
+      name,
+      '/t',
+      type,
+      '/d',
+      value,
+      '/f',
+    ]);
+    if (result.exitCode != 0) {
+      throw FileSystemException(
+        'No se pudo registrar GameNow en Aplicaciones instaladas.',
+        name,
+        '${result.stderr}'.trim(),
+      );
+    }
+  }
+
+  await add('DisplayName', 'REG_SZ', 'GameNow');
+  await add('DisplayVersion', 'REG_SZ', '1.0.0');
+  await add('Publisher', 'REG_SZ', 'GameNow');
+  await add('InstallLocation', 'REG_SZ', appDir);
+  final setupExe = await copySetupRuntime(p.join(appDir, 'uninstall'));
+  final uninstallLaunch = '"$setupExe" --uninstall';
+
+  await add('DisplayIcon', 'REG_SZ', '$exePath,0');
+  await add('UninstallString', 'REG_SZ', uninstallLaunch);
+  await add('QuietUninstallString', 'REG_SZ', uninstallLaunch);
+  await add('InstallDate', 'REG_SZ', installDate);
+  await add('EstimatedSize', 'REG_DWORD', '$sizeKb');
+  await add('NoModify', 'REG_DWORD', '1');
+  await add('NoRepair', 'REG_DWORD', '1');
+  await add('Language', 'REG_DWORD', '1034');
+}
+
+bool launchedForUninstall(List<String> args) {
+  return args.any((arg) {
+    final value = arg.toLowerCase();
+    return value == '--uninstall' || value == '/uninstall' || value == '-uninstall';
+  });
+}
+
+bool executableInside(String appDir) {
+  final exe = p.normalize(Platform.resolvedExecutable).toLowerCase();
+  final root = p.normalize(appDir).toLowerCase();
+  return exe == root || exe.startsWith('$root${Platform.pathSeparator}');
+}
+
+/// Copia el instalador en ejecución para poder volver a abrirlo desde Windows.
+Future<String> copySetupRuntime(String destRoot) async {
+  final exe = File(Platform.resolvedExecutable);
+  final source = exe.parent;
+  final dest = Directory(destRoot);
+  if (p.normalize(source.path).toLowerCase() == p.normalize(dest.path).toLowerCase()) {
+    return exe.path;
+  }
+  dest.createSync(recursive: true);
+  await _copyTree(source, dest);
+  return p.join(dest.path, p.basename(exe.path));
+}
+
+Future<void> _copyTree(Directory source, Directory dest) async {
+  dest.createSync(recursive: true);
+  for (final entity in source.listSync(followLinks: false)) {
+    final name = p.basename(entity.path);
+    if (name == 'uninstall') continue;
+    final target = p.join(dest.path, name);
+    if (entity is File) {
+      await File(entity.path).copy(target);
+    } else if (entity is Directory) {
+      await _copyTree(Directory(entity.path), Directory(target));
+    }
+  }
+}
+
+/// Si Windows abrió el desinstalador dentro de la carpeta de GameNow,
+/// lo relanza desde una copia temporal para poder borrar esa carpeta.
+Future<void> relaunchSetupOutsideInstall(String appDir, List<String> args) async {
+  if (!executableInside(appDir)) return;
+  final temp = await Directory.systemTemp.createTemp('gamenow_setup_');
+  final exe = await copySetupRuntime(temp.path);
+  await Process.start(
+    exe,
+    args,
+    workingDirectory: p.dirname(exe),
+    mode: ProcessStartMode.detached,
+  );
+  exit(0);
+}
+
+List<String> installedFileNames(String appDir) {
+  final root = Directory(appDir);
+  if (!root.existsSync()) return const ['gamenow.exe'];
+  final names = <String>[];
+  for (final entity in root.listSync(recursive: true, followLinks: false)) {
+    if (entity is! File) continue;
+    final relative = p.relative(entity.path, from: appDir);
+    if (relative.toLowerCase().startsWith('uninstall${Platform.pathSeparator}')) continue;
+    names.add(relative);
+    if (names.length >= 24) break;
+  }
+  if (names.isEmpty) names.add('gamenow.exe');
+  return names;
+}
+
+int _folderSizeKb(String dir) {
+  var bytes = 0;
+  final root = Directory(dir);
+  if (!root.existsSync()) return 1;
+  for (final entity in root.listSync(recursive: true, followLinks: false)) {
+    if (entity is File) {
+      try {
+        bytes += entity.lengthSync();
+      } catch (_) {}
+    }
+  }
+  return (bytes / 1024).ceil();
+}
+
+Future<void> uninstallGameNow(
+  String appDir, {
+  void Function(double progress, String status)? onProgress,
+}) async {
+  onProgress?.call(0.15, 'Cerrando GameNow...');
+  try {
+    await Process.run('taskkill', ['/F', '/IM', 'gamenow.exe']);
+  } catch (_) {}
+  await Future.delayed(const Duration(milliseconds: 250));
+
+  onProgress?.call(0.45, 'Quitando accesos directos...');
+  const shortcuts = r'''
+$d = [Environment]::GetFolderPath('Desktop')
+if ($d) { Remove-Item (Join-Path $d 'GameNow.lnk') -Force -ErrorAction SilentlyContinue }
+$p = [Environment]::GetFolderPath('Programs')
+if ($p) { Remove-Item (Join-Path $p 'GameNow.lnk') -Force -ErrorAction SilentlyContinue }
+Remove-Item -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\GameNow' -Recurse -Force -ErrorAction SilentlyContinue
 ''';
-  await Process.run('powershell', ['-NoProfile', '-Command', script]);
+  await Process.run('powershell', ['-NoProfile', '-Command', shortcuts]);
+
+  onProgress?.call(0.75, 'Eliminando archivos de GameNow...');
+  final dest = Directory(appDir);
+  if (dest.existsSync()) {
+    dest.deleteSync(recursive: true);
+  }
+
+  onProgress?.call(1.0, 'GameNow se desinstaló.');
 }
 
 Future<void> openGameNow(String exePath) {

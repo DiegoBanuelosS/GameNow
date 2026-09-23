@@ -4,11 +4,36 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'install.dart';
+import 'maintenance_page.dart';
 import 'theme.dart';
 
-void main() {
+Future<void> main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const GameNowSetupApp());
+  var launchArgs = args;
+  if (launchArgs.isEmpty) {
+    try {
+      final raw = await _windowChannel.invokeMethod<dynamic>('args');
+      if (raw is List) {
+        launchArgs = raw.map((item) => '$item').toList();
+      }
+    } catch (_) {}
+  }
+
+  ExistingInstall? existing;
+  try {
+    existing = await findExistingInstall();
+  } catch (_) {}
+
+  if (existing != null && executableInside(existing.appDir)) {
+    try {
+      await relaunchSetupOutsideInstall(existing.appDir, launchArgs);
+    } catch (_) {}
+  }
+
+  runApp(GameNowSetupApp(
+    maintenance: launchedForUninstall(launchArgs) || existing != null,
+    existing: existing,
+  ));
 }
 
 // ---------------------------------------------------------------------------
@@ -40,7 +65,10 @@ Future<void> _startDragWindow() async {
 // Aplicación Principal Flutter
 // ---------------------------------------------------------------------------
 class GameNowSetupApp extends StatelessWidget {
-  const GameNowSetupApp({super.key});
+  const GameNowSetupApp({super.key, this.maintenance = false, this.existing});
+
+  final bool maintenance;
+  final ExistingInstall? existing;
 
   @override
   Widget build(BuildContext context) {
@@ -48,12 +76,16 @@ class GameNowSetupApp extends StatelessWidget {
       title: 'GameNow - Instalador',
       debugShowCheckedModeBanner: false,
       theme: gameNowTheme(),
-      home: const InstallerWindow(),
+      home: maintenance
+          ? MaintenancePage(existing: existing)
+          : const InstallerWindow(),
     );
   }
 }
 
-enum InstallerStep { welcome, location, progress, error }
+enum InstallerStep { welcome, location, maintenance, progress, error }
+
+enum _ProgressMode { install, repair, uninstall }
 
 class InstallerWindow extends StatefulWidget {
   const InstallerWindow({super.key});
@@ -72,6 +104,9 @@ class _InstallerWindowState extends State<InstallerWindow>
   String _statusText = 'Iniciando instalación...';
   String _errorMessage = '';
   String _installedExePath = '';
+  String _existingAppDir = '';
+  _ProgressMode _progressMode = _ProgressMode.install;
+  bool _busy = false;
 
   late AnimationController _bannerAnimController;
   late Animation<double> _bannerHeightAnim;
@@ -104,6 +139,7 @@ class _InstallerWindowState extends State<InstallerWindow>
         curve: Curves.easeInOut,
       ),
     );
+
   }
 
   @override
@@ -122,11 +158,107 @@ class _InstallerWindowState extends State<InstallerWindow>
     }
   }
 
+  Future<void> _startRepair() async {
+    _progressMode = _ProgressMode.repair;
+    _pathController.text = _existingAppDir;
+    await _startInstallation();
+  }
+
+  Future<void> _startUninstall({bool skipConfirm = false}) async {
+    if (_busy || _existingAppDir.isEmpty) return;
+
+    if (!skipConfirm) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: GameNowColors.surface,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text(
+            'Desinstalar GameNow',
+            style: TextStyle(
+              fontFamily: 'Sora',
+              fontWeight: FontWeight.w600,
+              color: GameNowColors.text,
+            ),
+          ),
+          content: const Text(
+            'Se eliminarán la aplicación y sus accesos directos.',
+            style: TextStyle(
+              fontFamily: 'Sora',
+              fontSize: 14,
+              color: GameNowColors.muted,
+              height: 1.45,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancelar', style: TextStyle(color: GameNowColors.muted)),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: GameNowColors.accent,
+                foregroundColor: GameNowColors.onAccent,
+              ),
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Desinstalar'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true || !mounted) return;
+    }
+
+    _progressMode = _ProgressMode.uninstall;
+    _busy = true;
+    _goToStep(InstallerStep.progress);
+    setState(() {
+      _progress = 0.08;
+      _statusText = 'Preparando la desinstalación...';
+      _installedExePath = '';
+    });
+
+    try {
+      await uninstallGameNow(
+        _existingAppDir,
+        onProgress: (prog, text) {
+          if (!mounted) return;
+          setState(() {
+            _progress = prog;
+            _statusText = text;
+          });
+        },
+      );
+      if (!mounted) return;
+      setState(() {
+        _existingAppDir = '';
+        _progress = 1.0;
+        _statusText = 'Se quitaron los archivos y accesos directos.';
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _errorMessage =
+            'No se pudo desinstalar GameNow. Ciérralo si sigue abierto e inténtalo de nuevo.\n\nDetalle: $e';
+        _step = InstallerStep.error;
+      });
+    } finally {
+      _busy = false;
+    }
+  }
+
   Future<void> _startInstallation() async {
+    if (_busy) return;
+    _busy = true;
+    if (_progressMode != _ProgressMode.repair) {
+      _progressMode = _ProgressMode.install;
+    }
     _goToStep(InstallerStep.progress);
     setState(() {
       _progress = 0.0;
-      _statusText = 'Preparando espacio y archivos...';
+      _statusText = _progressMode == _ProgressMode.repair
+          ? 'Reparando la instalación...'
+          : 'Preparando espacio y archivos...';
     });
 
     try {
@@ -155,6 +287,8 @@ class _InstallerWindowState extends State<InstallerWindow>
             'Hubo un problema durante la instalación. Cierra GameNow si está abierto e inténtalo de nuevo.\n\nDetalle: $e';
         _step = InstallerStep.error;
       });
+    } finally {
+      _busy = false;
     }
   }
 
@@ -382,13 +516,29 @@ class _InstallerWindowState extends State<InstallerWindow>
           onBack: () => _goToStep(InstallerStep.welcome),
           onInstall: _startInstallation,
         );
+      case InstallerStep.maintenance:
+        return _StepMaintenance(
+          key: const ValueKey('step-maintenance'),
+          onUninstall: _startUninstall,
+          onRepair: _startRepair,
+          onClose: _closeWindow,
+        );
       case InstallerStep.progress:
         return _StepProgress(
           key: const ValueKey('step-progress'),
           progress: _progress,
           statusText: _statusText,
+          busyTitle: _progressMode == _ProgressMode.uninstall
+              ? 'Desinstalando GameNow...'
+              : _progressMode == _ProgressMode.repair
+                  ? 'Reparando GameNow...'
+                  : 'Instalando GameNow...',
+          doneTitle: _progressMode == _ProgressMode.uninstall
+              ? 'GameNow se desinstaló'
+              : 'GameNow ya está instalado',
+          finishLabel: _progressMode == _ProgressMode.uninstall ? 'Cerrar' : 'Abrir GameNow',
           onFinish: () async {
-            if (_installedExePath.isNotEmpty) {
+            if (_progressMode != _ProgressMode.uninstall && _installedExePath.isNotEmpty) {
               await openGameNow(_installedExePath);
             }
             exit(0);
@@ -398,7 +548,9 @@ class _InstallerWindowState extends State<InstallerWindow>
         return _StepError(
           key: const ValueKey('step-error'),
           message: _errorMessage,
-          onRetry: _startInstallation,
+          onRetry: _progressMode == _ProgressMode.uninstall
+              ? () => _startUninstall(skipConfirm: true)
+              : _startInstallation,
           onQuit: () => exit(0),
         );
     }
@@ -445,6 +597,69 @@ class _StepWelcome extends StatelessWidget {
         _PrimaryActionButton(
           label: 'Continuar',
           onPressed: onContinue,
+        ),
+      ],
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Instalación existente: Desinstalar, Reparar o Cerrar
+// ---------------------------------------------------------------------------
+class _StepMaintenance extends StatelessWidget {
+  const _StepMaintenance({
+    super.key,
+    required this.onUninstall,
+    required this.onRepair,
+    required this.onClose,
+  });
+
+  final VoidCallback onUninstall;
+  final VoidCallback onRepair;
+  final VoidCallback onClose;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Text(
+          'GameNow ya está instalado',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontFamily: 'Sora',
+            fontSize: 32,
+            fontWeight: FontWeight.w600,
+            letterSpacing: -0.5,
+            color: GameNowColors.text,
+            height: 1.2,
+          ),
+        ),
+        const SizedBox(height: 16),
+        const Text(
+          'Elige qué quieres hacer con la instalación actual.',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontFamily: 'Sora',
+            fontSize: 15,
+            color: GameNowColors.muted,
+            height: 1.5,
+          ),
+        ),
+        const SizedBox(height: 36),
+        _SecondaryActionButton(
+          label: 'Desinstalar',
+          onPressed: onUninstall,
+        ),
+        const SizedBox(height: 12),
+        _PrimaryActionButton(
+          label: 'Reparar',
+          onPressed: onRepair,
+        ),
+        const SizedBox(height: 12),
+        _SecondaryActionButton(
+          label: 'Cerrar',
+          onPressed: onClose,
         ),
       ],
     );
@@ -693,11 +908,17 @@ class _StepProgress extends StatefulWidget {
     required this.progress,
     required this.statusText,
     required this.onFinish,
+    this.busyTitle = 'Instalando GameNow...',
+    this.doneTitle = 'GameNow ya está instalado',
+    this.finishLabel = 'Abrir GameNow',
   });
 
   final double progress;
   final String statusText;
   final VoidCallback onFinish;
+  final String busyTitle;
+  final String doneTitle;
+  final String finishLabel;
 
   @override
   State<_StepProgress> createState() => _StepProgressState();
@@ -775,7 +996,7 @@ class _StepProgressState extends State<_StepProgress>
 
         // Título del paso
         Text(
-          isFinished ? 'GameNow ya está instalado' : 'Instalando GameNow...',
+          isFinished ? widget.doneTitle : widget.busyTitle,
           textAlign: TextAlign.center,
           style: const TextStyle(
             fontFamily: 'Sora',
@@ -847,7 +1068,7 @@ class _StepProgressState extends State<_StepProgress>
         // Botón principal al finalizar
         if (isFinished)
           _PrimaryActionButton(
-            label: 'Abrir GameNow',
+            label: widget.finishLabel,
             onPressed: widget.onFinish,
           ),
       ],
@@ -973,6 +1194,49 @@ class _PrimaryActionButtonState extends State<_PrimaryActionButton> {
               fontWeight: FontWeight.w600,
               letterSpacing: -0.2,
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SecondaryActionButton extends StatefulWidget {
+  const _SecondaryActionButton({required this.label, required this.onPressed});
+
+  final String label;
+  final VoidCallback onPressed;
+
+  @override
+  State<_SecondaryActionButton> createState() => _SecondaryActionButtonState();
+}
+
+class _SecondaryActionButtonState extends State<_SecondaryActionButton> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: OutlinedButton(
+        onPressed: widget.onPressed,
+        style: OutlinedButton.styleFrom(
+          backgroundColor: _isHovered ? GameNowColors.subtle : Colors.transparent,
+          foregroundColor: GameNowColors.text,
+          minimumSize: const Size(240, 52),
+          side: BorderSide(
+            color: _isHovered ? GameNowColors.accent : GameNowColors.border,
+          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+        child: Text(
+          widget.label,
+          style: const TextStyle(
+            fontFamily: 'Sora',
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+            letterSpacing: -0.2,
           ),
         ),
       ),
