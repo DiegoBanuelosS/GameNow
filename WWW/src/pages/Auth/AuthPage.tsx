@@ -1,7 +1,6 @@
 import { CSSProperties, FormEvent, useEffect, useId, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { X } from "../../components/Icons";
-import { useCatalog } from "../../data/CatalogContext";
 import { useAuth } from "../../data/AuthContext";
 import { StoreArt } from "../../data/StoreArt";
 import { checkIsDesktopApp } from "../../data/useDesktopApp";
@@ -14,7 +13,6 @@ interface AuthPageProps {
 export function AuthPage({ isMandatory = false }: AuthPageProps) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { catalog } = useCatalog();
   const { login, register, status } = useAuth();
   const isDesktop = checkIsDesktopApp() || isMandatory;
 
@@ -141,7 +139,7 @@ export function AuthPage({ isMandatory = false }: AuthPageProps) {
         <Link className="brand" to="/">
           <img
             className="brand-logo"
-            src="/logotipes/logotipe-mark.svg"
+            src="/logotipes/logotipe-mark-adaptive.svg"
             alt="GameNow"
             width="281"
             height="154"
@@ -350,12 +348,11 @@ export function AuthPage({ isMandatory = false }: AuthPageProps) {
 
         <aside className="auth-visual">
           <StoreArt
-            src={catalog.authPanel || "/images/auth-panel.webp"}
-            srcSet={catalog.authPanelSrcSet}
+            src="/images/auth-panel.webp"
             sizes="(min-width: 900px) 42vw, 100vw"
-            alt="Sala en penumbra con un mando frente a una pantalla encendida."
+            alt="Un aventurero con sombrero y espada contempla un valle brumoso de bosques otoñales al pie de una montaña."
             width={1024}
-            height={1365}
+            height={576}
           />
         </aside>
       </main>

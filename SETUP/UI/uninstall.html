@@ -51,9 +51,11 @@
 
         <section class="installer-step" id="step-progress" style="display: none;" aria-hidden="true">
           <div class="checkmark-icon uninstall-check" id="uninstall-check" aria-hidden="true">
-            <i data-lucide="check"></i>
+            <i data-lucide="check" class="result-icon-ok"></i>
+            <i data-lucide="x" class="result-icon-fail"></i>
           </div>
           <h1 class="installer-title" id="uninstall-progress-title">Esperamos Volverte a ver Pronto</h1>
+          <p class="uninstall-reason" id="uninstall-reason" role="alert" hidden></p>
           <div class="progress-box" id="uninstall-progress-box">
             <div class="progress-track">
               <div class="progress-bar" id="uninstall-progress-bar" style="width: 0%;"></div>
@@ -83,6 +85,7 @@
       const progressTitle = document.getElementById("uninstall-progress-title");
       const progressCheck = document.getElementById("uninstall-check");
       const doneActions = document.getElementById("uninstall-done-actions");
+      const failReason = document.getElementById("uninstall-reason");
 
       const uninstallWindow = document.querySelector(".uninstall-window");
       const uninstallHero = document.getElementById("uninstall-hero");
@@ -157,9 +160,22 @@
         progressCheck.classList.remove("visible");
         progressCheck.style.display = "none";
         doneActions.style.display = "none";
+        clearFailure();
         progressTitle.textContent = flow.phases ? flow.phases[0] : "Esperamos Volverte a ver Pronto";
         progressStatus.textContent = flow.status;
         showStep(stepProgress);
+      }
+
+      function clearFailure() {
+        stepProgress.classList.remove("is-error");
+        failReason.hidden = true;
+        failReason.textContent = "";
+      }
+
+      function showFailure(reason) {
+        stepProgress.classList.add("is-error");
+        failReason.textContent = reason || "Ocurrió un error inesperado.";
+        failReason.hidden = false;
       }
 
       window.applySetupUpdate = function (data) {
@@ -175,6 +191,7 @@
         if (data.title) swapText(progressTitle, data.title);
         if (data.status) swapText(progressStatus, data.status);
         if (data.done) {
+          if (data.error) showFailure(data.reason);
           progressBox.style.display = "none";
           progressCheck.style.display = "flex";
           progressCheck.removeAttribute("aria-hidden");
@@ -241,6 +258,7 @@
         progressCheck.classList.remove("visible");
         progressCheck.style.display = "none";
         doneActions.style.display = "none";
+        clearFailure();
 
         let percent = 0;
         let phaseIndex = -1;

@@ -766,6 +766,10 @@ html, body {
   padding-top: 360px;
 }
 
+.uninstall-window.is-progress .installer-content:has(.is-error) {
+  padding-top: 320px;
+}
+
 .installer-step.animate-out .btn-danger,
 .installer-step.animate-out .uninstall-check {
   opacity: 0;
@@ -781,6 +785,35 @@ html, body {
 .uninstall-check svg {
   width: 32px;
   height: 32px;
+}
+
+.uninstall-check .result-icon-fail,
+.is-error .uninstall-check .result-icon-ok {
+  display: none;
+}
+
+.is-error .uninstall-check .result-icon-fail {
+  display: block;
+}
+
+.is-error .uninstall-check,
+.is-error #uninstall-progress-title {
+  color: #ff6b5e;
+}
+
+.uninstall-reason {
+  max-width: 520px;
+  margin: -8px auto 24px;
+  color: #ff6b5e;
+  font-size: 14px;
+  line-height: 1.5;
+  text-align: center;
+  opacity: 0.9;
+  animation: cascadeIn 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.uninstall-reason[hidden] {
+  display: none;
 }
 
 .btn-danger {

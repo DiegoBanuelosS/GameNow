@@ -311,7 +311,7 @@ Future<void> _registerInstalledApp(String appDir, String exePath) async {
       throw FileSystemException(
         'No se pudo registrar GameNow en Aplicaciones instaladas.',
         name,
-        '${result.stderr}'.trim(),
+        OSError('${result.stderr}'.trim(), result.exitCode),
       );
     }
   }
@@ -423,7 +423,7 @@ Future<void> uninstallGameNow(
 }) async {
   onProgress?.call(0.15, 'Cerrando GameNow...');
   try {
-    await Process.run('taskkill', ['/F', '/IM', 'gamenow.exe']);
+    await Process.run('taskkill', ['/F', '/T', '/IM', 'gamenow.exe']);
   } catch (_) {}
   await Future.delayed(const Duration(milliseconds: 250));
 
@@ -439,8 +439,14 @@ Remove-Item -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\Gam
 
   onProgress?.call(0.75, 'Eliminando archivos de GameNow...');
   final dest = Directory(appDir);
-  if (dest.existsSync()) {
-    dest.deleteSync(recursive: true);
+  // WebView2 helper processes keep files in gamenow.exe.WebView2 locked briefly after the app exits.
+  for (var attempt = 1; dest.existsSync(); attempt++) {
+    try {
+      dest.deleteSync(recursive: true);
+    } on FileSystemException {
+      if (attempt >= 10) rethrow;
+      await Future.delayed(const Duration(milliseconds: 500));
+    }
   }
 
   onProgress?.call(1.0, 'GameNow se desinstaló.');

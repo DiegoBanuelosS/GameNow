@@ -127,6 +127,8 @@ class _MaintenancePageState extends State<MaintenancePage> {
       await _push({
         'mode': 'uninstall',
         'title': 'GameNow no está instalado',
+        'reason': 'No encontramos una instalación de GameNow en este equipo.',
+        'error': true,
         'done': true,
         'percent': 100,
       });
@@ -156,7 +158,8 @@ class _MaintenancePageState extends State<MaintenancePage> {
       await _push({
         'mode': 'uninstall',
         'title': 'No se pudo desinstalar GameNow',
-        'status': '$e',
+        'reason': _failureReason(e),
+        'error': true,
         'done': true,
         'percent': 100,
       });
@@ -172,6 +175,8 @@ class _MaintenancePageState extends State<MaintenancePage> {
       await _push({
         'mode': 'repair',
         'title': 'GameNow no está instalado',
+        'reason': 'No encontramos una instalación de GameNow en este equipo.',
+        'error': true,
         'done': true,
         'percent': 100,
       });
@@ -232,13 +237,40 @@ class _MaintenancePageState extends State<MaintenancePage> {
       await _push({
         'mode': 'repair',
         'title': 'No se pudo reparar GameNow',
-        'status': '$e',
+        'reason': _failureReason(e),
+        'error': true,
         'done': true,
         'percent': 100,
       });
     } finally {
       _busy = false;
     }
+  }
+
+  String _failureReason(Object error) {
+    if (error is FileSystemException) {
+      final code = error.osError?.errorCode;
+      final where = error.path == null ? '' : ' (${error.path})';
+      switch (code) {
+        case 5:
+          return 'Windows negó el acceso a los archivos de GameNow$where. '
+              'Ejecuta el instalador como administrador e inténtalo de nuevo.';
+        case 32:
+        case 33:
+          return 'Un archivo de GameNow está en uso por otro programa$where. '
+              'Cierra GameNow y cualquier ventana que lo use, e inténtalo de nuevo.';
+        case 112:
+          return 'No hay suficiente espacio en el disco para completar la operación.';
+      }
+      final detail = error.osError?.message.trim();
+      return detail == null || detail.isEmpty
+          ? '${error.message}$where'
+          : '${error.message}$where: $detail';
+    }
+    if (error is ProcessException) {
+      return 'No se pudo ejecutar ${error.executable}: ${error.message}';
+    }
+    return '$error';
   }
 
   @override
