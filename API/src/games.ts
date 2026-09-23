@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { cacheGet, cacheSet } from "./cache.js";
+import { config } from "./config.js";
 import { loadProducts, type ProductDoc } from "./catalog.js";
 import { deliverImage, steamCover } from "./media.js";
 import { formatMxn, toMxn, usdMxnRate } from "./money.js";
@@ -80,16 +81,32 @@ async function fromFeatured(product: ProductDoc) {
 }
 
 async function fromSnapshot(): Promise<CatalogGame[]> {
+  if (config.mongoUri) {
+    try {
+      const { connectDb } = await import("./db.js");
+      if (await connectDb()) {
+        const { Game } = await import("./models/Game.js");
+        const rows = await Game.find().select("-__v -createdAt -updatedAt").lean();
+        if (rows.length) {
+          return rows as CatalogGame[];
+        }
+      }
+    } catch {
+      // Si Atlas no responde, se usa el JSON local
+    }
+  }
   const raw = await readFile(resolve(process.cwd(), "data/games.json"), "utf8");
   return JSON.parse(raw) as CatalogGame[];
 }
 
+type PublicGame = Awaited<ReturnType<typeof toPublic>>;
+
 type GamesCatalog = {
-  games: ReturnType<typeof toPublic>[];
+  games: PublicGame[];
   tables: {
-    rated: ReturnType<typeof toPublic>[];
-    deals: ReturnType<typeof toPublic>[];
-    catalog: ReturnType<typeof toPublic>[];
+    rated: PublicGame[];
+    deals: PublicGame[];
+    catalog: PublicGame[];
   };
   total: number;
 };

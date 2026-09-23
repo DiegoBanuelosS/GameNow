@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from "react";
+import { ThumbsUp } from "lucide-react";
+import { Star } from "../../components/Icons";
 import { StarRating } from "../Store/StarRating";
 import "./ReviewsSection.css";
 
@@ -12,7 +14,7 @@ type Review = {
 };
 
 async function fetchReviews(slug: string): Promise<Review[]> {
-  const res = await fetch(`http://127.0.0.1:8787/api/reviews/${slug}`);
+  const res = await fetch(`/api/reviews/${slug}`);
   if (!res.ok) throw new Error("error");
   return res.json() as Promise<Review[]>;
 }
@@ -23,7 +25,7 @@ async function postReview(
   rating: number,
   text: string,
 ): Promise<Review> {
-  const res = await fetch(`http://127.0.0.1:8787/api/reviews/${slug}`, {
+  const res = await fetch(`/api/reviews/${slug}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ author, rating, text }),
@@ -33,7 +35,7 @@ async function postReview(
 }
 
 async function markHelpful(slug: string, id: string): Promise<void> {
-  await fetch(`http://127.0.0.1:8787/api/reviews/${slug}/${id}/helpful`, {
+  await fetch(`/api/reviews/${slug}/${id}/helpful`, {
     method: "PATCH",
   });
 }
@@ -59,7 +61,7 @@ function StarPicker({
           onMouseLeave={() => setHover(0)}
           onClick={() => onChange(star)}
         >
-          ★
+          <Star size={18} weight={star <= (hover || value) ? "fill" : "regular"} />
         </button>
       ))}
     </div>
@@ -103,7 +105,7 @@ function ReviewCard({ review, slug }: { review: Review; slug: string }) {
           onClick={() => void handleHelpful()}
           disabled={helped}
         >
-          👍 Útil {count > 0 ? `(${count})` : ""}
+          <ThumbsUp size={14} aria-hidden="true" /> Útil {count > 0 ? `(${count})` : ""}
         </button>
       </footer>
     </article>

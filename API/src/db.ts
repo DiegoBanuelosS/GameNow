@@ -1,4 +1,12 @@
+import dns from "node:dns";
 import { config } from "./config.js";
+
+// Resolver con servidores DNS públicos confiables para evitar fallos de resolución SRV en Windows/redes locales
+if (config.mongoUri.startsWith("mongodb+srv://")) {
+  try {
+    dns.setServers(["8.8.8.8", "1.1.1.1", "8.8.4.4"]);
+  } catch (_) {}
+}
 
 export async function connectDb() {
   if (!config.mongoUri) {
@@ -9,6 +17,12 @@ export async function connectDb() {
   const connection = mongoose.default?.connection ?? mongoose.connection;
   if (connection.readyState === 1) {
     return true;
+  }
+
+  if (config.mongoUri.startsWith("mongodb+srv://")) {
+    try {
+      dns.setServers(["8.8.8.8", "1.1.1.1", "8.8.4.4"]);
+    } catch (_) {}
   }
 
   const connect = mongoose.default?.connect ?? mongoose.connect;

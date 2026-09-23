@@ -10,6 +10,26 @@ const assetSchema = new Schema(
   { _id: false },
 );
 
+const requirementSchema = new Schema(
+  {
+    label: { type: String, required: true },
+    min: { type: String, default: "" },
+    max: { type: String, default: "" },
+  },
+  { _id: false },
+);
+
+const detailsSchema = new Schema(
+  {
+    release: String,
+    platforms: String,
+    description: String,
+    requirementsNote: String,
+    requirements: { type: [requirementSchema], default: undefined },
+  },
+  { _id: false },
+);
+
 const productSchema = new Schema(
   {
     slug: { type: String, required: true, unique: true, index: true },
@@ -27,6 +47,11 @@ const productSchema = new Schema(
     cover: { type: assetSchema, required: true },
     studioLogo: { type: assetSchema },
     trailer: { type: assetSchema },
+    screenshots: { type: [String], default: undefined },
+    youtubeTrailers: { type: [String], default: undefined },
+    metacritic: Number,
+    steamRating: String,
+    details: { type: detailsSchema },
   },
   { timestamps: true },
 );

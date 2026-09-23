@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+
 export type StoreProduct = {
   slug: string;
   name: string;
@@ -20,7 +22,7 @@ export type StoreProduct = {
   metacritic?: number | null;
   steamRating?: string;
   gallery?: {
-    type: "image" | "video";
+    type: "image" | "video" | "youtube";
     src: string;
     srcSet?: string;
     sizes?: string;
@@ -110,6 +112,41 @@ export async function fetchGames(): Promise<GamesCatalog> {
     throw new Error("No se pudo cargar Nuestros Juegos.");
   }
   return (await response.json()) as GamesCatalog;
+}
+
+export function useOurCovers() {
+  const [covers, setCovers] = useState<Map<string, string>>(() => new Map());
+
+  useEffect(() => {
+    let alive = true;
+    Promise.all([
+      fetchGames().catch(() => null),
+      fetchStore().catch(() => null),
+    ]).then(([games, store]) => {
+      if (!alive) return;
+      const next = new Map<string, string>();
+      const add = (key: string | undefined, cover: string | undefined) => {
+        if (!key || !cover) return;
+        next.set(key, cover);
+        next.set(key.toLowerCase(), cover);
+      };
+      for (const game of games?.games ?? []) {
+        add(game.steamAppId, game.coverFallback || game.cover);
+        add(game.slug, game.coverFallback || game.cover);
+        add(game.name, game.coverFallback || game.cover);
+      }
+      for (const product of [...(store?.ads ?? []), ...(store?.events ?? []), ...(store?.offers ?? [])]) {
+        add(product.slug, product.cover);
+        add(product.name, product.cover);
+      }
+      setCovers(next);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  return covers;
 }
 
 export type PcFit = {

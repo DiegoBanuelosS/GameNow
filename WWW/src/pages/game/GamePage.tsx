@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { useCart } from "../../data/CartContext";
 import { fetchProduct, type StoreProduct } from "../../data/catalog";
 import { StoreArt } from "../../data/StoreArt";
 import { Footer9 } from "../Store/Footer9";
@@ -12,6 +13,8 @@ import "./GamePage.css";
 
 export function GamePage() {
   const { id } = useParams();
+  const navigate = useNavigate();
+  const { add } = useCart();
   const [product, setProduct] = useState<StoreProduct | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error" | "missing">("loading");
   const [active, setActive] = useState(0);
@@ -195,9 +198,22 @@ export function GamePage() {
                 {product.was ? <s>{product.was}</s> : null}
                 <span>{product.price}</span>
               </p>
-              <Link className="game-buy" to="/cart">
+              <button
+                type="button"
+                className="game-buy"
+                onClick={() => {
+                  add({
+                    slug: product.slug,
+                    name: product.name,
+                    price: product.price,
+                    priceValue: product.priceValue,
+                    cover: product.cover,
+                  });
+                  navigate("/cart");
+                }}
+              >
                 Añadir al carrito
-              </Link>
+              </button>
               {product.platforms ? <p className="game-meta">Plataformas: {product.platforms}</p> : null}
               <PcFitCard slug={product.slug} />
               {product.description ? <p className="game-copy">{product.description}</p> : null}

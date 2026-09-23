@@ -1,0 +1,590 @@
+/* ProfilePage.css - GameNow Perfil de Usuario */
+
+.profile-page {
+  width: 100%;
+  min-height: 100dvh;
+  background: #000;
+  color: var(--color-fg-default);
+  display: flex;
+  flex-direction: column;
+}
+
+.profile-main-container {
+  width: 100%;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 80px;
+}
+
+/* ==========================================================================
+   1. HERO / BANNER DE PERFIL AL 100%
+   ========================================================================== */
+.profile-hero {
+  width: 100%;
+  position: relative;
+  background: #121110 center / cover no-repeat;
+  border-bottom: 1px solid var(--color-border-subtle);
+  padding: 44px var(--space-6) 36px;
+  overflow: hidden;
+  min-height: 168px;
+}
+
+.profile-hero-media {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.profile-hero-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+}
+
+.profile-hero-content {
+  position: relative;
+  z-index: 2;
+  max-width: 1720px;
+  width: 100%;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32px;
+  flex-wrap: wrap;
+}
+
+.profile-user-info {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+}
+
+.profile-avatar-wrap {
+  position: relative;
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  background: #1e1d1b;
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+  display: grid;
+  place-items: center;
+  font-size: 36px;
+  font-weight: 700;
+  color: #fff;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.profile-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-avatar-wrap.has-frame {
+  width: 112px;
+  height: 112px;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  overflow: visible;
+}
+
+.profile-avatar-wrap.has-frame .profile-avatar-img {
+  width: 78px;
+  height: 78px;
+  border-radius: 2px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -52%);
+}
+
+.profile-avatar-frame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.profile-steam-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+  min-width: 0;
+}
+
+.profile-steam-name {
+  font-size: 13.5px;
+  color: #f3efe8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.profile-steam-unlink {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #8c857b;
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  flex-shrink: 0;
+}
+
+.profile-steam-unlink:hover {
+  color: #fff;
+}
+
+.profile-friend-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.profile-friend-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.profile-friend-buttons button,
+.profile-friend-panel button {
+  display: inline-flex;
+  align-items: center;
+  height: 32px;
+  padding: 0 8px;
+  border: 0;
+  background: transparent;
+  color: #c8c2ba;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.profile-friend-buttons button span {
+  display: inline-block;
+  max-width: 0;
+  margin-left: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  opacity: 0;
+}
+
+.profile-friend-buttons button:hover span,
+.profile-friend-buttons button:focus-visible span {
+  max-width: 9.5rem;
+  margin-left: 6px;
+  opacity: 1;
+}
+
+.profile-friend-buttons .friends-chat:hover,
+.profile-friend-buttons .friends-chat:focus-visible,
+.profile-friend-buttons .friends-chat[aria-pressed="true"] {
+  color: #6ea8ff;
+}
+
+.profile-friend-buttons .friends-invite:hover,
+.profile-friend-buttons .friends-invite:focus-visible,
+.profile-friend-buttons .friends-invite[aria-pressed="true"] {
+  color: #6fbf8b;
+}
+
+.profile-friend-buttons .friends-favorite:hover,
+.profile-friend-buttons .friends-favorite:focus-visible,
+.profile-friend-buttons .friends-favorite[aria-pressed="true"] {
+  color: #e0b15c;
+}
+
+.profile-friend-buttons .friends-remove:hover,
+.profile-friend-buttons .friends-remove:focus-visible {
+  color: #e07a6a;
+}
+
+.profile-friend-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: min(420px, 100%);
+}
+
+.profile-friend-panel p {
+  margin: 0;
+  color: #a39c93;
+  font-size: 13px;
+}
+
+.profile-friend-panel label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: #a39c93;
+  font-size: 12px;
+}
+
+.profile-friend-panel input,
+.profile-friend-panel select {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: #141312;
+  color: #f3efe8;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font: inherit;
+  font-size: 14px;
+}
+
+.profile-link-error {
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(0, 0, 0, 0.35);
+  color: #f3efe8;
+  font-size: 13.5px;
+}
+
+.profile-user-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.profile-username-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.profile-username {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.5px;
+}
+
+.profile-username-steam {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.profile-username-steam span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-email {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--color-fg-muted);
+}
+
+.profile-stats-row {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+}
+
+.profile-stat-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.profile-stat-num {
+  font-size: 20px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.profile-stat-label {
+  font-size: 12px;
+  color: #8c857b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ==========================================================================
+   2. CUERPO DEL PERFIL: 100% ANCHO CON SECCIONES
+   ========================================================================== */
+.profile-body {
+  width: 100%;
+  max-width: 1720px;
+  margin: 0 auto;
+  padding: 36px var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: 36px;
+}
+
+/* SECCIÓN CABECERA */
+.profile-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.profile-section-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.profile-section-count {
+  font-size: 12px;
+  color: var(--color-fg-muted);
+  background: rgba(255, 255, 255, 0.06);
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-weight: 500;
+}
+
+/* ==========================================================================
+   3. SECCIÓN: ÚLTIMOS JUEGOS JUGADOS (GRID 100% RESPONSIVE)
+   ========================================================================== */
+.profile-recent-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+  width: 100%;
+}
+
+.profile-recent-card {
+  display: flex;
+  flex-direction: column;
+  background: #0f0e0d;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  overflow: hidden;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  text-decoration: none;
+  color: inherit;
+}
+
+.profile-recent-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(255, 255, 255, 0.25);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.8);
+}
+
+.profile-recent-cover-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  background: #141312;
+  overflow: hidden;
+}
+
+.profile-recent-cover {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  background: #141312;
+}
+
+.profile-recent-cover.store-art-missing {
+  position: absolute;
+  inset: 0;
+}
+
+.profile-recent-tag {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.profile-recent-info {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+
+.profile-recent-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.profile-recent-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12.5px;
+  color: var(--color-fg-muted);
+}
+
+.profile-recent-hours {
+  color: #38bdf8;
+  font-weight: 600;
+}
+
+.profile-recent-empty {
+  width: 100%;
+  padding: 40px 24px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  color: var(--color-fg-muted);
+}
+
+.profile-recent-empty p {
+  margin: 0;
+  max-width: 440px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* ==========================================================================
+   4. SECCIÓN PRIVADA: CONECTA O COMPRA JUEGOS
+   ========================================================================== */
+.profile-private-actions-bar {
+  width: 100%;
+  background: #0f0e0d;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 14px;
+  padding: 22px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.profile-private-actions-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.profile-private-actions-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.profile-private-actions-subtitle {
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-fg-muted);
+}
+
+.profile-private-actions-btns {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+/* BOTÓN COMPRAR JUEGOS */
+.profile-buy-games-btn {
+  background: transparent;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  font-family: var(--font-sans);
+  font-size: 13.5px;
+  font-weight: 600;
+  padding: 11px 22px;
+  border-radius: 8px;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.18s ease;
+}
+
+.profile-buy-games-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: #fff;
+}
+
+/* BOTÓN CONECTAR CON STEAM */
+.profile-steam-connect-btn {
+  background: #171a21;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  font-family: var(--font-sans);
+  font-size: 13.5px;
+  font-weight: 600;
+  padding: 11px 22px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease;
+}
+
+.profile-steam-connect-btn:hover:not(:disabled) {
+  background: #1c2028;
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.profile-steam-connect-btn:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .profile-hero-media {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .profile-hero {
+    padding: 32px 16px 24px;
+  }
+  .profile-hero-content {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .profile-body {
+    padding: 24px 16px;
+  }
+  .profile-private-actions-bar {
+    padding: 18px 16px;
+  }
+}

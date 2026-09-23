@@ -36,17 +36,14 @@ Name: "spanish"; MessagesFile: "compiler:Languages\Spanish.isl"
 Source: "{#SetupUI}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Run]
-Filename: "{app}\gamenow_setup.exe"; Flags: waituntilterminated
+Filename: "{app}\gamenow_setup.exe"; Flags: nowait
 
 [Code]
 function InitializeSetup: Boolean;
 var
   ResultCode: Integer;
 begin
+  // Terminar cualquier instancia previa colgada en segundo plano
+  Exec('cmd.exe', '/c taskkill /F /IM gamenow_setup.exe >nul 2>&1', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
   Result := True;
-  if not WizardSilent then
-  begin
-    Exec(ExpandConstant('{srcexe}'), '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
-    Result := False;
-  end;
 end;

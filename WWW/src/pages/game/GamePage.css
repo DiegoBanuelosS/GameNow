@@ -122,6 +122,12 @@
   font: var(--body-small);
 }
 
+button.game-buy {
+  border: 0;
+  cursor: pointer;
+  font: var(--caption);
+}
+
 .game-buy {
   display: inline-flex;
   align-items: center;

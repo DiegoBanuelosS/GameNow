@@ -362,3 +362,33 @@
     bottom: var(--space-4);
   }
 }
+
+/* Indicador de requisitos de contraseña */
+.password-rules {
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+  border-radius: var(--radius-control);
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--color-border-subtle);
+  font-size: 12px;
+}
+
+.rule-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-fg-muted);
+  transition: color var(--duration) var(--ease-out);
+}
+
+.rule-item.valid {
+  color: #4ade80;
+}
+
+.rule-icon {
+  display: inline-block;
+  width: 14px;
+  text-align: center;
+  font-weight: bold;
+}

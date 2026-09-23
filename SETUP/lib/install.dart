@@ -20,10 +20,44 @@ String installDir() {
   return p.join(home, 'GameNow');
 }
 
-/// Descarga el paquete comprimido de la aplicación GameNow desde el servidor/API
+/// Descarga o carga el paquete comprimido de la aplicación GameNow
 Future<List<int>> _downloadAppPayload({
   required void Function(double progress, String status) onProgress,
 }) async {
+  // 1. Intentar cargar primero el paquete local empaquetado con el instalador
+  onProgress(0.08, 'Cargando componentes de GameNow...');
+
+  final localCandidates = [
+    p.join(p.dirname(Platform.resolvedExecutable), 'data', 'flutter_assets', 'assets', 'payload.zip'),
+    p.join(Directory.current.path, 'assets', 'payload.zip'),
+    p.join(Directory.current.path, 'data', 'flutter_assets', 'assets', 'payload.zip'),
+  ];
+  for (final candidate in localCandidates) {
+    final f = File(candidate);
+    if (f.existsSync()) {
+      try {
+        final bytes = f.readAsBytesSync();
+        if (bytes.isNotEmpty) {
+          onProgress(0.50, 'Paquete local cargado.');
+          return bytes;
+        }
+      } catch (_) {}
+    }
+  }
+
+  try {
+    final localBundle = await rootBundle.load('assets/payload.zip');
+    final bytes = localBundle.buffer.asUint8List(
+      localBundle.offsetInBytes,
+      localBundle.lengthInBytes,
+    );
+    if (bytes.isNotEmpty) {
+      onProgress(0.50, 'Paquete de instalación cargado.');
+      return bytes;
+    }
+  } catch (_) {}
+
+  // 2. Si no viene en local, intentar con el servidor de descargas
   final candidateUrls = [
     if (Platform.environment['GAMENOW_APP_URL'] != null)
       Platform.environment['GAMENOW_APP_URL']!,
@@ -56,7 +90,6 @@ Future<List<int>> _downloadAppPayload({
 
           if (totalBytes > 0) {
             final double dlFraction = (downloaded / totalBytes).clamp(0.0, 1.0);
-            // Fase de descarga: 0.08 a 0.58 del progreso total
             final double overall = 0.08 + (dlFraction * 0.50);
             final String mbDown = (downloaded / (1024 * 1024)).toStringAsFixed(1);
             final String mbTotal = (totalBytes / (1024 * 1024)).toStringAsFixed(1);
@@ -72,22 +105,13 @@ Future<List<int>> _downloadAppPayload({
           return bytes;
         }
       }
-    } catch (_) {
-      // Intentar la siguiente URL candidata
-    }
+    } catch (_) {}
   }
   client.close();
 
-  // Si fallan las descargas por red, intentar con el paquete local si viene empaquetado
-  try {
-    onProgress(0.12, 'Cargando paquete local de respaldo...');
-    final localBundle = await rootBundle.load('assets/payload.zip');
-    return localBundle.buffer.asUint8List();
-  } catch (_) {
-    throw const SocketException(
-      'No se pudo descargar la aplicación GameNow. Verifica que el servidor o tu conexión a Internet estén activos.',
-    );
-  }
+  throw const SocketException(
+    'No se pudo encontrar el paquete de instalación de GameNow. Verifica la conexión o vuelve a empaquetar.',
+  );
 }
 
 Future<InstallResult> installGameNow({
@@ -102,13 +126,20 @@ Future<InstallResult> installGameNow({
   onProgress?.call(0.03, 'Preparando carpetas de instalación...');
   await Future.delayed(const Duration(milliseconds: 100));
 
+  // Cerrar GameNow si ya está ejecutándose para evitar bloqueos
+  try {
+    await Process.run('taskkill', ['/F', '/IM', 'gamenow.exe']);
+  } catch (_) {}
+
   final dest = Directory(destinationPath);
   if (dest.existsSync()) {
-    dest.deleteSync(recursive: true);
+    try {
+      dest.deleteSync(recursive: true);
+    } catch (_) {}
   }
   dest.createSync(recursive: true);
 
-  // 1. Descarga del paquete de la app desde la red / servidor
+  // 1. Descarga u obtención del paquete
   final bytes = await _downloadAppPayload(
     onProgress: (prog, text) => onProgress?.call(prog, text),
   );
@@ -131,16 +162,20 @@ Future<InstallResult> installGameNow({
     final outPath = p.join(dest.path, name);
     if (file.isFile) {
       File(outPath).parent.createSync(recursive: true);
-      File(outPath).writeAsBytesSync(file.content as List<int>);
+      final dynamic content = file.content;
+      if (content is List<int>) {
+        File(outPath).writeAsBytesSync(content);
+      } else {
+        File(outPath).writeAsBytesSync((content as dynamic).toList() as List<int>);
+      }
     } else {
       Directory(outPath).createSync(recursive: true);
     }
 
     if (i % 4 == 0 || i == total - 1) {
-      // Fase de extracción: 0.60 a 0.90
       final double progress = 0.60 + ((i + 1) / total) * 0.30;
       onProgress?.call(progress, 'Extrayendo: $name');
-      await Future.delayed(const Duration(milliseconds: 8));
+      await Future.delayed(const Duration(milliseconds: 6));
     }
   }
 
@@ -156,22 +191,9 @@ Future<InstallResult> installGameNow({
   await _writeUninstall(dest.path, exe.path);
 
   onProgress?.call(0.97, 'Creando accesos directos...');
-  await _makeShortcut(
-    p.join(
-      Platform.environment['APPDATA']!,
-      'Microsoft',
-      'Windows',
-      'Start Menu',
-      'Programs',
-      'GameNow.lnk',
-    ),
-    exe.path,
-  );
+  await _makeShortcutByFolder('Programs', 'GameNow.lnk', exe.path);
   if (desktopShortcut) {
-    final desktop = Platform.environment['USERPROFILE'];
-    if (desktop != null) {
-      await _makeShortcut(p.join(desktop, 'Desktop', 'GameNow.lnk'), exe.path);
-    }
+    await _makeShortcutByFolder('Desktop', 'GameNow.lnk', exe.path);
   }
 
   onProgress?.call(1.0, '¡Todo listo!');
@@ -182,15 +204,18 @@ Future<InstallResult> installGameNow({
 
 String _ps(String value) => value.replaceAll("'", "''");
 
-Future<void> _makeShortcut(String lnk, String target) async {
-  final script =
-      '''
-\$ws = New-Object -ComObject WScript.Shell
-\$s = \$ws.CreateShortcut('${_ps(lnk)}')
-\$s.TargetPath = '${_ps(target)}'
-\$s.WorkingDirectory = '${_ps(p.dirname(target))}'
-\$s.IconLocation = '${_ps(target)},0'
-\$s.Save()
+Future<void> _makeShortcutByFolder(String specialFolder, String linkName, String target) async {
+  final script = '''
+\$dir = [Environment]::GetFolderPath([Environment+SpecialFolder]::$specialFolder)
+if (\$dir -and (Test-Path \$dir)) {
+  \$lnk = Join-Path \$dir '${_ps(linkName)}'
+  \$ws = New-Object -ComObject WScript.Shell
+  \$s = \$ws.CreateShortcut(\$lnk)
+  \$s.TargetPath = '${_ps(target)}'
+  \$s.WorkingDirectory = '${_ps(p.dirname(target))}'
+  \$s.IconLocation = '${_ps(target)},0'
+  \$s.Save()
+}
 ''';
   await Process.run('powershell', ['-NoProfile', '-Command', script]);
 }
@@ -200,9 +225,9 @@ Future<void> _writeUninstall(String appDir, String exePath) async {
   uninstall.writeAsStringSync(
     '''
 @echo off
+taskkill /F /IM gamenow.exe 2>nul
 rmdir /s /q "$appDir"
-del /q "%USERPROFILE%\\Desktop\\GameNow.lnk" 2>nul
-del /q "%APPDATA%\\Microsoft\\Windows\\Start Menu\\Programs\\GameNow.lnk" 2>nul
+powershell -NoProfile -Command "\$d = [Environment]::GetFolderPath('Desktop'); if (\$d) { Remove-Item (Join-Path \$d 'GameNow.lnk') -Force -ErrorAction SilentlyContinue }; \$p = [Environment]::GetFolderPath('Programs'); if (\$p) { Remove-Item (Join-Path \$p 'GameNow.lnk') -Force -ErrorAction SilentlyContinue }"
 reg delete "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\GameNow" /f >nul 2>nul
 ''',
   );
@@ -220,5 +245,10 @@ Set-ItemProperty -Path 'HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uni
 }
 
 Future<void> openGameNow(String exePath) {
-  return Process.start(exePath, [], workingDirectory: p.dirname(exePath));
+  return Process.start(
+    exePath,
+    [],
+    workingDirectory: p.dirname(exePath),
+    mode: ProcessStartMode.detached,
+  );
 }

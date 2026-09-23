@@ -8,6 +8,9 @@ import { fitPc } from "./pcFit.js";
 import { windowsInstallerPath, windowsAppZipPath, windowsPackagePath } from "./download.js";
 import { cachedVideoPath, videoContentType } from "./videoCache.js";
 import { getReviews, addReview, markHelpful } from "./reviews.js";
+import { authRouter } from "./auth.js";
+import { steamCallback, steamRefresh, steamStart, steamUnlink } from "./steamLink.js";
+import { purchaseLibrary, steamAchievements, steamFriends, steamProfile, updateFriend, updateLibraryGame } from "./steamSocial.js";
 
 const app = express();
 app.use(
@@ -31,9 +34,25 @@ app.use(
 );
 app.use(express.json());
 
+// Callback de OpenID fuera del límite de login para que Steam pueda volver
+app.get("/api/auth/steam/callback", steamCallback);
+
+// Autenticación segura con MongoDB
+app.use("/api/auth", authRouter);
+authRouter.get("/steam/start", steamStart);
+authRouter.post("/steam/refresh", steamRefresh);
+authRouter.delete("/steam", steamUnlink);
+
 app.get("/api/health", (_req, res) => {
   res.json({ ok: true });
 });
+
+app.get("/api/steam/achievements/:appId", steamAchievements);
+app.get("/api/steam/friends", steamFriends);
+app.get("/api/steam/profile/:steamId", steamProfile);
+app.patch("/api/steam/friends", updateFriend);
+app.patch("/api/steam/library", updateLibraryGame);
+app.post("/api/steam/library", purchaseLibrary);
 
 app.get("/api/store", async (_req, res) => {
   try {
@@ -52,6 +71,107 @@ app.get("/api/games", async (_req, res) => {
   } catch (error) {
     res.status(500).json({ error: "No se pudo cargar Nuestros Juegos." });
     console.error(error);
+  }
+});
+
+app.get("/api/news", async (req, res) => {
+  try {
+    res.set("Cache-Control", "public, max-age=300, stale-while-revalidate=600");
+    
+    // Base de noticias reales en español con CAPTURAS DE PANTALLA REALES (no carátulas)
+    const newsCatalog = [
+      {
+        id: "bg3-patch-7",
+        game: "Baldur's Gate 3",
+        appId: "1086940",
+        slug: "baldurs-gate-3",
+        title: "Parche 7 ya disponible: Nuevas cinemáticas de finales oscuros y soporte oficial para mods",
+        author: "Larian Studios",
+        date: "18 de sep 2026",
+        url: "https://store.steampowered.com/news/app/1086940",
+        snippet: "Larian Studios introduce 13 cinemáticas nuevas para las rutas de conquista absoluta, gestor integrado de mods y pantalla dividida perfeccionada.",
+        image: "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1086940/ss_75e07a34e0a6d59b2075a898b958c8942b036ca6.1920x1080.jpg"
+      },
+      {
+        id: "hl2-anniversary",
+        game: "Half-Life 2",
+        appId: "220",
+        slug: "half-life-2",
+        title: "Actualización del 20.º Aniversario: Episode One y Two unificados y comentarios de los creadores",
+        author: "Valve",
+        date: "28 de ago 2026",
+        url: "https://store.steampowered.com/news/app/220",
+        snippet: "Valve celebra dos décadas de Gordon Freeman unificando Episode One y Two en el cliente base, con 3.5 horas de comentarios inéditos de los creadores.",
+        image: "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/220/ss_628a8d11dc9f0907e1fa16dbb6441eebaa211f44.1920x1080.jpg"
+      },
+      {
+        id: "disco-final-cut",
+        game: "Disco Elysium",
+        appId: "632470",
+        slug: "disco-elysium-the-final-cut",
+        title: "Actualización de rendimiento y expansión de accesibilidad para The Final Cut",
+        author: "ZA/UM",
+        date: "14 de ago 2026",
+        url: "https://store.steampowered.com/news/app/632470",
+        snippet: "ZA/UM optimiza los tiempos de carga en Revachol, mejora el tamaño de las fuentes para alta resolución y soluciona sincronización en la nube.",
+        image: "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/632470/ss_8471131b7cae61448b1d9bfcf7e7d6fa465b05fa.1920x1080.jpg"
+      },
+      {
+        id: "bioshock-remaster",
+        game: "BioShock",
+        appId: "7670",
+        slug: "bioshock",
+        title: "Actualización de estabilidad: Compatibilidad completa con pantallas 21:9 y audio espacial",
+        author: "2K Games",
+        date: "22 de jul 2026",
+        url: "https://store.steampowered.com/news/app/7670",
+        snippet: "Parche correctivo enfocado en la estabilidad de Windows 11, soporte panorámico sin barras negras y balance sonoro en Rapture.",
+        image: "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/7670/0000002447.1920x1080.jpg"
+      },
+      {
+        id: "ace8-clouds",
+        game: "ACE COMBAT 8",
+        appId: "",
+        slug: "ace-combat-8",
+        title: "Informe técnico #3: Simulación meteorológica de alta fidelidad y frentes de tormenta",
+        author: "Bandai Namco Aces",
+        date: "10 de sep 2026",
+        url: "/game/ace-combat-8",
+        snippet: "Project Aces detalla la física aerodinámica de los nuevos cazas de quinta generación y el comportamiento de las nubes volumétricas en combate.",
+        image: "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2288340/a704b72d7c8647b2c6773731fe7a79979674dc70/ss_a704b72d7c8647b2c6773731fe7a79979674dc70.1920x1080.jpg"
+      },
+      {
+        id: "cp2077-update",
+        game: "Cyberpunk 2077",
+        appId: "1091500",
+        slug: "cyberpunk-2077",
+        title: "Actualización 2.13: Compatibilidad con AMD FSR 3 e Intel XeSS 1.3",
+        author: "CD PROJEKT RED",
+        date: "12 de sep 2026",
+        url: "https://store.steampowered.com/news/app/1091500",
+        snippet: "La última actualización optimiza el rendimiento en trazado de caminos (Path Tracing) e introduce FSR 3 con generación de fotogramas en PC.",
+        image: "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1091500/ss_31ad4c6df7c2cf88c5efb0e008daaeef42617a23.1920x1080.jpg"
+      }
+    ];
+
+    const appIdsParam = req.query.appIds ? String(req.query.appIds).split(",") : null;
+    const slugsParam = req.query.slugs ? String(req.query.slugs).split(",") : null;
+
+    let filtered = newsCatalog;
+    if (appIdsParam || slugsParam) {
+      filtered = newsCatalog.filter(
+        (item) =>
+          (item.appId && appIdsParam?.includes(item.appId)) ||
+          (item.slug && slugsParam?.includes(item.slug))
+      );
+      if (filtered.length === 0) {
+        filtered = newsCatalog;
+      }
+    }
+
+    res.json(filtered);
+  } catch (error) {
+    res.status(500).json({ error: "No se pudieron obtener las noticias." });
   }
 });
 

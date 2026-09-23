@@ -1,12 +1,14 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:webview_windows/webview_windows.dart';
 
 import '../store_url.dart';
 import '../theme.dart';
+import '../widgets/app_title_bar.dart';
 
 class StoreWebViewPage extends StatefulWidget {
   const StoreWebViewPage({super.key});
@@ -51,6 +53,16 @@ class _StoreWebViewPageState extends State<StoreWebViewPage> {
     }
   }
 
+  Future<String?> _resolveStoreUrl() async {
+    final candidates = candidateStoreUrls();
+    for (final url in candidates) {
+      if (await _storeIsUp(url)) {
+        return url;
+      }
+    }
+    return null;
+  }
+
   Future<void> _openStore() async {
     if (Platform.environment.containsKey('FLUTTER_TEST')) {
       return;
@@ -60,12 +72,11 @@ class _StoreWebViewPageState extends State<StoreWebViewPage> {
       _error = null;
     });
 
-    final url = storeUrl();
-    final up = await _storeIsUp(url);
-    if (!up) {
+    final targetUrl = await _resolveStoreUrl();
+    if (targetUrl == null) {
       if (!mounted) return;
       setState(() {
-        _error = 'No se pudo abrir la tienda. Revisa tu conexión e inténtalo de nuevo.';
+        _error = 'No se pudo conectar con la tienda. Revisa que el servidor web de GameNow (Vite en el puerto 5173) esté corriendo.';
       });
       return;
     }
@@ -76,31 +87,102 @@ class _StoreWebViewPageState extends State<StoreWebViewPage> {
         await _controller.setBackgroundColor(GameNowColors.canvas);
         await _controller.setPopupWindowPolicy(WebviewPopupWindowPolicy.deny);
       }
-      await _controller.loadUrl(url);
+      final appUrl = targetUrl.contains('?') ? '$targetUrl&app=1' : '$targetUrl?app=1';
+      await _controller.loadUrl(appUrl);
       if (!mounted) return;
       setState(() => _ready = true);
-    } on PlatformException catch (_) {
+    } on PlatformException catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = 'No se pudo abrir la tienda. Revisa tu conexión e inténtalo de nuevo.';
+        _error = 'Error de inicialización de WebView2: ${e.message ?? e.code}.\nAsegúrate de tener Microsoft Edge WebView2 Runtime instalado en Windows.';
       });
-    } catch (_) {
+    } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = 'Hubo un problema. Inténtalo de nuevo.';
+        _error = 'Hubo un problema al cargar la tienda: $e';
       });
     }
+  }
+
+  void _dispatchScroll(double dx, double dy, double x, double y) {
+    if (!_controller.value.isInitialized) return;
+    _controller.executeScript('''
+      (function() {
+        var el = document.elementFromPoint($x, $y);
+        while (el && el !== document.body && el !== document.documentElement) {
+          var s = window.getComputedStyle(el);
+          var overflowY = s.overflowY;
+          var overflowX = s.overflowX;
+          var canScrollY = (overflowY === 'auto' || overflowY === 'scroll') && (el.scrollHeight > el.clientHeight);
+          var canScrollX = (overflowX === 'auto' || overflowX === 'scroll') && (el.scrollWidth > el.clientWidth);
+          if (canScrollY || canScrollX) {
+            var prevTop = el.scrollTop;
+            var prevLeft = el.scrollLeft;
+            el.scrollBy($dx, $dy);
+            if (el.scrollTop !== prevTop || el.scrollLeft !== prevLeft) {
+              return;
+            }
+          }
+          el = el.parentElement;
+        }
+
+        var prevY = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
+        window.scrollBy($dx, $dy);
+        var currY = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
+        if (currY === prevY) {
+          if (document.documentElement) document.documentElement.scrollTop += $dy;
+          if (document.body) document.body.scrollTop += $dy;
+          var root = document.getElementById('root');
+          if (root) root.scrollTop += $dy;
+          var store = document.querySelector('.store');
+          if (store) store.scrollTop += $dy;
+        }
+      })();
+    ''').catchError((_) {});
+  }
+
+  void _handlePointerSignal(PointerSignalEvent signal) {
+    if (signal is PointerScrollEvent) {
+      _dispatchScroll(
+        signal.scrollDelta.dx,
+        signal.scrollDelta.dy,
+        signal.localPosition.dx,
+        signal.localPosition.dy,
+      );
+    }
+  }
+
+  void _handlePointerPanZoomUpdate(PointerPanZoomUpdateEvent event) {
+    // Invert panDelta so trackpad natural scrolling scrolls down when dragging fingers up
+    _dispatchScroll(
+      -event.panDelta.dx * 1.5,
+      -event.panDelta.dy * 1.5,
+      event.localPosition.dx,
+      event.localPosition.dy,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: GameNowColors.canvas,
-      body: Stack(
-        fit: StackFit.expand,
+      body: Column(
         children: [
-          if (_ready) Webview(_controller),
-          if (!_ready) _Splash(error: _error, onRetry: _openStore),
+          const AppTitleBar(),
+          Expanded(
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                if (_ready)
+                  Listener(
+                    onPointerSignal: _handlePointerSignal,
+                    onPointerPanZoomUpdate: _handlePointerPanZoomUpdate,
+                    child: Webview(_controller),
+                  ),
+                if (!_ready) _Splash(error: _error, onRetry: _openStore),
+              ],
+            ),
+          ),
         ],
       ),
     );

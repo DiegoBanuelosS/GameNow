@@ -250,6 +250,9 @@
 }
 
 .rv-helpful {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   background: none;
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 20px;

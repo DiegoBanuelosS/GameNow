@@ -100,19 +100,14 @@ export function deliverImage(asset?: CloudAsset | null, role: ImageRole = "offer
 }
 
 export function steamCover(appId: string) {
-  const origin = `https://cdn.akamai.steamstatic.com/steam/apps/${appId}/header.jpg`;
-  const encoded = encodeURIComponent(origin);
-  const widths = [160, 320, 460];
+  const libraryHd = `https://cdn.akamai.steamstatic.com/steam/apps/${appId}/library_600x900_2x.jpg`;
+  const libraryStd = `https://cdn.akamai.steamstatic.com/steam/apps/${appId}/library_600x900.jpg`;
+  const headerFallback = `https://cdn.akamai.steamstatic.com/steam/apps/${appId}/header.jpg`;
   return {
-    src: `https://res.cloudinary.com/${cloud()}/image/fetch/f_auto,q_auto:good,c_fill,g_auto,w_320/${encoded}`,
-    srcSet: widths
-      .map(
-        (width) =>
-          `https://res.cloudinary.com/${cloud()}/image/fetch/f_auto,q_auto:good,c_fill,g_auto,w_${width}/${encoded} ${width}w`,
-      )
-      .join(", "),
-    sizes: "120px",
-    fallback: origin,
+    src: libraryHd,
+    srcSet: `${libraryStd} 600w, ${libraryHd} 1200w`,
+    sizes: "(min-width: 1200px) 300px, 220px",
+    fallback: headerFallback,
   };
 }
 

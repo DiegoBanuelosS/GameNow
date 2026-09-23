@@ -10,6 +10,7 @@ type StoreArtProps = {
   width?: number;
   height?: number;
   fallback?: string;
+  fallbacks?: string[];
 };
 
 export function StoreArt({
@@ -21,14 +22,17 @@ export function StoreArt({
   width,
   height,
   fallback,
+  fallbacks,
 }: StoreArtProps) {
   const [failed, setFailed] = useState(!src);
-  const usedFallback = useRef(false);
+  const chain = useRef<string[]>([]);
+  const extra = JSON.stringify(fallbacks ?? []);
 
   useEffect(() => {
+    const parsed = extra ? (JSON.parse(extra) as string[]) : [];
+    chain.current = [fallback, ...parsed].filter((url): url is string => Boolean(url));
     setFailed(!src);
-    usedFallback.current = false;
-  }, [src, fallback]);
+  }, [src, fallback, extra]);
 
   const frameClass = ["store-art-missing", className].filter(Boolean).join(" ");
 
@@ -58,10 +62,11 @@ export function StoreArt({
       decoding="async"
       onError={(event) => {
         const image = event.currentTarget;
-        if (fallback && !usedFallback.current && image.src !== fallback) {
-          usedFallback.current = true;
+        const next = chain.current.find((url) => url && image.src !== url);
+        if (next) {
+          chain.current = chain.current.filter((url) => url !== next);
           image.srcset = "";
-          image.src = fallback;
+          image.src = next;
           return;
         }
         setFailed(true);

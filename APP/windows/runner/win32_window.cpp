@@ -134,8 +134,11 @@ bool Win32Window::Create(const std::wstring& title,
   UINT dpi = FlutterDesktopGetDpiForMonitor(monitor);
   double scale_factor = dpi / 96.0;
 
-  HWND window = CreateWindow(
-      window_class, title.c_str(), WS_OVERLAPPEDWINDOW,
+  // Custom frameless window (removes standard Windows controls and titlebar)
+  HWND window = CreateWindowEx(
+      WS_EX_APPWINDOW,
+      window_class, title.c_str(),
+      WS_POPUP | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX,
       Scale(origin.x, scale_factor), Scale(origin.y, scale_factor),
       Scale(size.width, scale_factor), Scale(size.height, scale_factor),
       nullptr, nullptr, GetModuleHandle(nullptr), this);
@@ -144,13 +147,20 @@ bool Win32Window::Create(const std::wstring& title,
     return false;
   }
 
+  // Extend frame to enable clean DWM window shadow
+  MARGINS margins = {1, 1, 1, 1};
+  DwmExtendFrameIntoClientArea(window, &margins);
+
   UpdateTheme(window);
 
   return OnCreate();
 }
 
 bool Win32Window::Show() {
-  return ShowWindow(window_handle_, SW_SHOWNORMAL);
+  ShowWindow(window_handle_, SW_SHOWNORMAL);
+  ShowWindow(window_handle_, SW_SHOW);
+  SetForegroundWindow(window_handle_);
+  return true;
 }
 
 // static
@@ -179,6 +189,21 @@ Win32Window::MessageHandler(HWND hwnd,
                             WPARAM const wparam,
                             LPARAM const lparam) noexcept {
   switch (message) {
+    case WM_NCCALCSIZE: {
+      if (wparam == TRUE) {
+        return 0; // Removes standard window frame and caption
+      }
+      break;
+    }
+    case WM_GETMINMAXINFO: {
+      auto info = reinterpret_cast<MINMAXINFO*>(lparam);
+      HMONITOR monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+      UINT dpi = FlutterDesktopGetDpiForMonitor(monitor);
+      double scale_factor = dpi / 96.0;
+      info->ptMinTrackSize.x = Scale(960, scale_factor);
+      info->ptMinTrackSize.y = Scale(600, scale_factor);
+      return 0;
+    }
     case WM_DESTROY:
       window_handle_ = nullptr;
       Destroy();
