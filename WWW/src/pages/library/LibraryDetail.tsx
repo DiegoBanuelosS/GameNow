@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { Star } from "../../components/Icons";
+import { useDownloads } from "../../data/DownloadsContext";
+import { useLaunch } from "../../data/LaunchContext";
 import { StoreArt } from "../../data/StoreArt";
 
 type Achievement = {
@@ -62,8 +64,11 @@ export function LibraryDetail({
   const [note, setNote] = useState(game.userNote || "");
   const [savingRating, setSavingRating] = useState(false);
   const [savingNote, setSavingNote] = useState(false);
-  const [downloading, setDownloading] = useState(false);
   const [notice, setNotice] = useState("");
+  const { jobFor } = useDownloads();
+  const { startLaunch } = useLaunch();
+  const job = jobFor(game.slug);
+  const inFlight = job?.status === "active" || job?.status === "queued" || job?.status === "done";
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuView, setMenuView] = useState<"menu" | "properties" | "sell">("menu");
   const [shortcut, setShortcut] = useState(Boolean(game.desktopShortcut));
@@ -131,11 +136,16 @@ export function LibraryDetail({
     if (!result.ok) setNotice(result.error || "No se pudo guardar la nota.");
   };
 
+  const steamBase = game.steamAppId
+    ? `https://cdn.cloudflare.steamstatic.com/steam/apps/${game.steamAppId}`
+    : "";
   const bannerChain = [
-    game.steamAppId ? `https://cdn.cloudflare.steamstatic.com/steam/apps/${game.steamAppId}/header.jpg` : "",
+    steamBase ? `${steamBase}/library_hero_2x.jpg` : "",
+    steamBase ? `${steamBase}/library_hero.jpg` : "",
     game.banner || "",
-    game.steamAppId ? `https://cdn.cloudflare.steamstatic.com/steam/apps/${game.steamAppId}/capsule_616x353.jpg` : "",
+    steamBase ? `${steamBase}/capsule_616x353.jpg` : "",
     game.coverFallback || "",
+    game.cover || "",
   ].filter((url, index, list) => Boolean(url) && list.indexOf(url) === index);
   const [banner, setBanner] = useState(bannerChain[0] || "");
 
@@ -153,10 +163,8 @@ export function LibraryDetail({
   }, [menuOpen]);
 
   const download = async () => {
-    setDownloading(true);
     setNotice("");
     const result = await onDownload();
-    setDownloading(false);
     if (!result.ok) setNotice(result.error || "No se pudo descargar el juego.");
   };
 
@@ -201,10 +209,23 @@ export function LibraryDetail({
           <h2>{game.name}</h2>
           <p className="library-detail-hours">{game.playTimeHours} hrs jugadas</p>
           {game.isInstalled ? (
-            <p className="library-detail-ready">Descargado</p>
+            <button
+              type="button"
+              className="library-detail-download"
+              onClick={() =>
+                startLaunch({
+                  name: game.name,
+                  image: bannerChain[0] || banner || game.cover || "",
+                  images: bannerChain,
+                  cover: game.cover || game.coverFallback || banner || "",
+                })
+              }
+            >
+              Jugar
+            </button>
           ) : (
-            <button type="button" className="library-detail-download" onClick={download} disabled={downloading}>
-              {downloading ? "Descargando…" : "Descargar"}
+            <button type="button" className="library-detail-download" onClick={download} disabled={inFlight}>
+              {job?.status === "queued" ? "En cola" : inFlight ? "Descargando…" : "Descargar"}
             </button>
           )}
         </div>

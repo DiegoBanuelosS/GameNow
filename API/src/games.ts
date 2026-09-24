@@ -163,6 +163,7 @@ export async function loadGame(slug: string) {
     ...(extras?.videos ?? []).map((video, index) => ({
       type: "video" as const,
       src: video.src,
+      sources: video.sources,
       poster: video.poster,
       alt: `Vídeo ${index + 1} de ${game.name}`,
     })),

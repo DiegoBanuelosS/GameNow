@@ -11,7 +11,7 @@ export type SteamExtras = {
     recommended?: string;
   };
   screenshots: string[];
-  videos: { src: string; poster?: string }[];
+  videos: { src: string; poster?: string; sources?: { src: string; type: string }[] }[];
 };
 
 function plain(html: string) {
@@ -30,11 +30,20 @@ function plain(html: string) {
     .trim();
 }
 
+async function movieExists(url: string) {
+  try {
+    const response = await fetch(url, { method: "HEAD" });
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
 export async function loadSteamExtras(appId: string): Promise<SteamExtras | null> {
   if (!appId) {
     return null;
   }
-  const key = `steam-${appId}`;
+  const key = `steam-v3-${appId}`;
   const cached = cacheGet<SteamExtras | null>(key);
   if (cached !== undefined) {
     return cached;
@@ -62,6 +71,7 @@ export async function loadSteamExtras(appId: string): Promise<SteamExtras | null
           movies?: {
             id?: number;
             mp4?: { max?: string; "480"?: string };
+            hls_h264?: string;
             thumbnail?: string;
           }[];
         };
@@ -88,16 +98,38 @@ export async function loadSteamExtras(appId: string): Promise<SteamExtras | null
         .map((shot) => shot.path_full || "")
         .filter(Boolean)
         .slice(0, 8),
-      videos: (data.movies ?? [])
-        .map((movie) => ({
-          src:
-            movie.mp4?.max ||
-            movie.mp4?.["480"] ||
-            (movie.id
-              ? `https://cdn.akamai.steamstatic.com/steam/apps/${movie.id}/movie_max.mp4`
-              : ""),
-          poster: movie.thumbnail,
-        }))
+      videos: (
+        await Promise.all(
+          (data.movies ?? []).slice(0, 4).map(async (movie) => {
+            const base = movie.id
+              ? `https://cdn.cloudflare.steamstatic.com/steam/apps/${movie.id}`
+              : "";
+            const candidates = [
+              movie.mp4?.["480"]?.replace(/^http:/, "https:"),
+              base ? `${base}/movie480.mp4` : "",
+              movie.mp4?.max?.replace(/^http:/, "https:"),
+              base ? `${base}/movie_max.mp4` : "",
+            ].filter((src, index, list): src is string => Boolean(src) && list.indexOf(src) === index);
+            const live: string[] = [];
+            for (const src of candidates) {
+              if (await movieExists(src)) {
+                live.push(src);
+              }
+            }
+            const hls = movie.hls_h264?.replace(/^http:/, "https:") || "";
+            const src = live[0] || hls;
+            return {
+              src,
+              poster: movie.thumbnail,
+              sources: live.length
+                ? live.map((file) => ({ src: file, type: "video/mp4" }))
+                : hls
+                  ? [{ src: hls, type: "application/vnd.apple.mpegurl" }]
+                  : [],
+            };
+          }),
+        )
+      )
         .filter((movie) => movie.src)
         .slice(0, 3),
     };

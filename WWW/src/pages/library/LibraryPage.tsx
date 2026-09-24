@@ -4,6 +4,8 @@ import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
 import { SiteNav } from "../Store/SiteNav";
 import { useAuth } from "../../data/AuthContext";
+import { useDownloads } from "../../data/DownloadsContext";
+import { useLaunch } from "../../data/LaunchContext";
 import { useOurCovers } from "../../data/catalog";
 import { StoreArt } from "../../data/StoreArt";
 import { Cloud, Gamepad2, Newspaper, RefreshCw } from "lucide-react";
@@ -88,6 +90,8 @@ function artFallbacks(game: LibraryGameItem, ours: string) {
 
 export function LibraryPage() {
   const { user, status, token, refreshSteam, updateLibraryGame } = useAuth();
+  const { startDownload } = useDownloads();
+  const { notice, clearNotice } = useLaunch();
   const ourCovers = useOurCovers();
 
   // Estados de navegación y filtros
@@ -579,6 +583,23 @@ export function LibraryPage() {
             2. LADO DERECHO: NOTICIAS, MENÚ DE FILTROS Y CARÁTULAS CORTADAS
             ================================================================= */}
         <section className="library-main" aria-label="Colección de juegos">
+          {notice ? (
+            <article className="library-launch-notice" role="alert">
+              <header className="library-launch-notice-head">
+                <h3>{notice.name}</h3>
+                <button type="button" className="library-launch-notice-close" onClick={clearNotice} aria-label="Cerrar">
+                  ×
+                </button>
+              </header>
+              <div className="library-launch-notice-body">
+                {notice.cover ? <img src={notice.cover} alt="" /> : null}
+                <div>
+                  <p>ups... parece que hubo un problema al iniciar tu juego.</p>
+                  <p className="library-launch-notice-error">Error: Esta es una cuenta de prueba, No puedes ejecutar Juegos.</p>
+                </div>
+              </div>
+            </article>
+          ) : null}
           {selectedGame ? (
             <LibraryDetail
               game={selectedGame}
@@ -587,7 +608,13 @@ export function LibraryPage() {
               onClose={() => setSelectedSlug(null)}
               onRate={(userRating) => updateLibraryGame(selectedGame.slug, { userRating })}
               onNote={(userNote) => updateLibraryGame(selectedGame.slug, { userNote })}
-              onDownload={() => updateLibraryGame(selectedGame.slug, { isInstalled: true })}
+              onDownload={() =>
+                startDownload({
+                  slug: selectedGame.slug,
+                  name: selectedGame.name,
+                  cover: selectedGame.cover,
+                })
+              }
               onSettings={(patch) => updateLibraryGame(selectedGame.slug, patch)}
             />
           ) : (

@@ -1,0 +1,266 @@
+.download-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 90;
+  max-height: min(72vh, 560px);
+  overflow: auto;
+  background: rgba(10, 9, 8, 0.72);
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+  border-top: 1px solid rgba(236, 231, 222, 0.14);
+  padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+}
+
+.download-bar-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0 auto;
+  padding: 0;
+  list-style: none;
+  max-width: 960px;
+}
+
+.download-row {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) 32px;
+  gap: 10px;
+  align-items: center;
+}
+
+.download-thumb {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 6px;
+  background: #141312;
+}
+
+.download-name {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.download-meta {
+  margin: 2px 0 6px;
+  color: var(--color-fg-muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.download-track-button {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 6px 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.download-track {
+  position: relative;
+  display: block;
+  height: 28px;
+  border-radius: 6px;
+  background: rgba(236, 231, 222, 0.14);
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.download-segments {
+  position: absolute;
+  inset: 0 78px 0 0;
+  display: flex;
+}
+
+.download-ready-chunk,
+.download-rest {
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+}
+
+.download-ready-chunk {
+  flex: 0 0 118px;
+  display: grid;
+  place-items: center;
+  border-right: 1px solid rgba(10, 9, 8, 0.55);
+}
+
+.download-rest {
+  flex: 1;
+}
+
+.download-ready-fill,
+.download-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: #ece7de;
+}
+
+.download-ready-label,
+.download-speed {
+  position: relative;
+  z-index: 1;
+  font-size: 11px;
+  line-height: 1;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.download-ready-label {
+  color: #ece7de;
+}
+
+.download-ready-label span.is-covered {
+  color: #1a1815;
+}
+
+.download-speed {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  z-index: 1;
+  transform: translateY(-50%);
+  color: #ece7de;
+}
+
+.download-cancel {
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-fg-muted);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.download-cancel:hover {
+  background: rgba(236, 231, 222, 0.08);
+  color: var(--color-fg-default);
+}
+
+.download-expand {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 4px;
+}
+
+.download-graph {
+  width: 100%;
+  height: 96px;
+  display: block;
+  background: rgba(236, 231, 222, 0.04);
+  border-radius: 8px;
+}
+
+.download-graph-grid {
+  stroke: rgba(236, 231, 222, 0.12);
+  stroke-width: 1;
+}
+
+.download-graph-bar {
+  fill: rgba(236, 231, 222, 0.55);
+}
+
+.download-graph-line {
+  fill: none;
+  stroke: #ece7de;
+  stroke-width: 1.75;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.download-legend {
+  display: flex;
+  gap: 14px;
+  color: var(--color-fg-muted);
+  font-size: 12px;
+}
+
+.download-key {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.download-key::before {
+  content: "";
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  background: rgba(236, 231, 222, 0.55);
+}
+
+.download-key-line::before {
+  height: 2px;
+  border-radius: 99px;
+  background: #ece7de;
+}
+
+.download-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.download-stats div {
+  min-width: 0;
+}
+
+.download-stats dt {
+  margin: 0;
+  color: var(--color-fg-muted);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.download-stats dd {
+  margin: 2px 0 0;
+  font-size: 13px;
+}
+
+.download-eta {
+  margin: 0;
+  color: var(--color-fg-muted);
+  font-size: 12px;
+}
+
+@media (max-width: 520px) {
+  .download-segments {
+    right: 62px;
+  }
+
+  .download-ready-chunk {
+    flex-basis: 104px;
+    width: 104px;
+  }
+
+  .download-ready-label,
+  .download-speed {
+    font-size: 10px;
+  }
+}
+
+@media (min-width: 720px) {
+  .download-bar {
+    padding: 12px 20px calc(12px + env(safe-area-inset-bottom));
+  }
+}

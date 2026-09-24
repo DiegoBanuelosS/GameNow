@@ -1,3 +1,5 @@
+import { openSync, readSync, closeSync } from "node:fs";
+import { resolve } from "node:path";
 import { config } from "./config.js";
 
 export type CloudAsset = {
@@ -111,15 +113,48 @@ export function steamCover(appId: string) {
   };
 }
 
+const audioSeen = new Map<string, boolean>();
+
+/** El archivo local solo cuenta si trae pista de audio. Muchos WebM del catálogo van en silencio. */
+export function localFileHasAudio(publicPath: string) {
+  const cached = audioSeen.get(publicPath);
+  if (cached !== undefined) {
+    return cached;
+  }
+  const file = resolve(process.cwd(), "../WWW/public", publicPath.replace(/^\//, ""));
+  let has = false;
+  try {
+    const fd = openSync(file, "r");
+    try {
+      const chunk = Buffer.alloc(2 * 1024 * 1024);
+      const read = readSync(fd, chunk, 0, chunk.length, 0);
+      const head = chunk.subarray(0, read).toString("latin1");
+      has =
+        head.includes("A_OPUS") ||
+        head.includes("OpusHead") ||
+        head.includes("A_VORBIS") ||
+        head.includes("mp4a") ||
+        head.includes("soun");
+    } finally {
+      closeSync(fd);
+    }
+  } catch {
+    has = false;
+  }
+  audioSeen.set(publicPath, has);
+  return has;
+}
+
 export function videoSources(asset?: CloudAsset | null) {
   const sources: { src: string; type: string }[] = [];
-  if (asset?.local) {
+  const audible = Boolean(asset?.local && localFileHasAudio(asset.local));
+  if (asset?.local && audible) {
     sources.push({
       src: asset.local,
       type: asset.local.endsWith(".webm") ? "video/webm" : "video/mp4",
     });
   }
-  if (asset?.hosted && asset.publicId) {
+  if (asset?.hosted && asset.publicId && audible) {
     sources.push({ src: videoCachePath(asset.publicId), type: "video/mp4" });
   }
   return sources;

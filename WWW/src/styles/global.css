@@ -19,6 +19,7 @@ body {
   color: var(--color-fg-default);
   background: var(--color-bg-canvas);
   -webkit-font-smoothing: antialiased;
+  padding-bottom: var(--download-bar-space, 0px);
 }
 
 img {

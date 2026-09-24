@@ -3,13 +3,12 @@ import { resolve } from "node:path";
 import { cacheGet, cacheSet } from "./cache.js";
 import {
   deliverImage,
-  deliverVideo,
-  videoSources,
   type CloudAsset,
 } from "./media.js";
 import { config } from "./config.js";
 import { formatMxn, toMxn } from "./money.js";
 import { type RequirementRow } from "./requirements.js";
+import { loadSteamExtras } from "./steam.js";
 
 export type ProductDoc = {
   slug: string;
@@ -44,6 +43,21 @@ export type ProductDoc = {
   };
 };
 
+function steamAppIdOf(product: ProductDoc) {
+  for (const url of product.screenshots ?? []) {
+    const id = url.match(/\/apps\/(\d+)\//)?.[1];
+    if (id) {
+      return id;
+    }
+  }
+  return "";
+}
+
+async function steamTrailer(product: ProductDoc) {
+  const extras = await loadSteamExtras(steamAppIdOf(product));
+  return extras?.videos[0]?.src || "";
+}
+
 function roleFor(product: ProductDoc) {
   if (product.sections.ad != null) {
     return "ad" as const;
@@ -77,7 +91,7 @@ async function toPublic(product: ProductDoc) {
     coverSizes: cover.sizes,
     studioLogo: logo.src,
     studioLogoSrcSet: logo.srcSet,
-    trailer: deliverVideo(product.trailer),
+    trailer: await steamTrailer(product),
     tag: product.sections.event != null ? "Evento" : undefined,
     description: product.details?.description || "",
     release: product.details?.release || "",
@@ -95,13 +109,13 @@ async function fromSnapshot(): Promise<ProductDoc[]> {
 }
 
 export async function loadProducts(): Promise<ProductDoc[]> {
-  const cached = cacheGet<ProductDoc[]>("products");
+  const cached = cacheGet<ProductDoc[]>("products-steam");
   if (cached) {
     return cached;
   }
 
   const snapshot = await fromSnapshot();
-  const detailsBySlug = new Map(snapshot.map((product) => [product.slug, product.details]));
+  const fileBySlug = new Map(snapshot.map((product) => [product.slug, product]));
 
   if (config.mongoUri) {
     try {
@@ -109,11 +123,17 @@ export async function loadProducts(): Promise<ProductDoc[]> {
       const rows = await Product.find().lean();
       if (rows.length) {
         return cacheSet(
-          "products",
-          (rows as ProductDoc[]).map((row) => ({
-            ...row,
-            details: row.details ?? detailsBySlug.get(row.slug),
-          })),
+          "products-steam",
+          (rows as ProductDoc[]).map((row) => {
+            const file = fileBySlug.get(row.slug);
+            return {
+              ...row,
+              details: row.details ?? file?.details,
+              trailer: undefined,
+              screenshots: file?.screenshots?.length ? file.screenshots : row.screenshots,
+              youtubeTrailers: [],
+            };
+          }),
           30_000,
         );
       }
@@ -121,7 +141,7 @@ export async function loadProducts(): Promise<ProductDoc[]> {
       /* snapshot fallback */
     }
   }
-  return cacheSet("products", snapshot, 30_000);
+  return cacheSet("products-steam", snapshot, 30_000);
 }
 
 export async function loadProduct(slug: string) {
@@ -132,19 +152,16 @@ export async function loadProduct(slug: string) {
   }
   const cover = deliverImage(match.cover, "hero");
   const base = await toPublic(match);
-  const sources = videoSources(match.trailer);
-  const screenshotItems = (match.screenshots ?? []).map((url, i) => ({
+  const steam = await loadSteamExtras(steamAppIdOf(match));
+  const steamShots = (steam?.screenshots ?? []).filter(
+    (url) => !(match.screenshots ?? []).includes(url),
+  );
+  const screenshotItems = [...(match.screenshots ?? []), ...steamShots].slice(0, 8).map((url, i) => ({
     type: "image" as const,
     src: url,
     srcSet: undefined,
     sizes: "(min-width: 900px) 56vw, 92vw",
     alt: `${match.name} – captura ${i + 1}`,
-  }));
-  const youtubeItems = (match.youtubeTrailers ?? []).map((ytId, i) => ({
-    type: "youtube" as const,
-    src: `https://www.youtube.com/embed/${ytId}?autoplay=0&rel=0`,
-    youtubeId: ytId,
-    alt: `Tráiler ${i + 2} de ${match.name}`,
   }));
   const gallery = [
     {
@@ -154,18 +171,13 @@ export async function loadProduct(slug: string) {
       sizes: cover.sizes,
       alt: match.alt,
     },
-    ...(sources.length
-      ? [
-          {
-            type: "video" as const,
-            src: sources[0].src,
-            sources,
-            poster: cover.src,
-            alt: `Tráiler oficial de ${match.name}`,
-          },
-        ]
-      : []),
-    ...youtubeItems,
+    ...(steam?.videos ?? []).slice(0, 2).map((video, index) => ({
+      type: "video" as const,
+      src: video.src,
+      sources: video.sources,
+      poster: video.poster || cover.src,
+      alt: `Tráiler ${index + 1} de ${match.name}`,
+    })),
     ...screenshotItems,
   ];
   const details = match.details;

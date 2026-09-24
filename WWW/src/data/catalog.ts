@@ -22,7 +22,7 @@ export type StoreProduct = {
   metacritic?: number | null;
   steamRating?: string;
   gallery?: {
-    type: "image" | "video" | "youtube";
+    type: "image" | "video";
     src: string;
     srcSet?: string;
     sizes?: string;

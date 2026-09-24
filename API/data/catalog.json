@@ -23,12 +23,6 @@
       "local": "/images/ads/studios/bandai-namco.svg",
       "hosted": true
     },
-    "trailer": {
-      "publicId": "gamenow/trailers/ace8",
-      "resourceType": "video",
-      "local": "/videos/ace8.webm",
-      "hosted": true
-    },
     "details": {
       "release": "2 de octubre de 2026",
       "platforms": "PlayStation 5, Xbox Series X|S, PC (Steam) y GameNow",
@@ -75,10 +69,7 @@
       "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2288340/3336e83dd7a62acaf7c254803ca5a26e6712355b/ss_3336e83dd7a62acaf7c254803ca5a26e6712355b.1920x1080.jpg?t=1789362045"
     ],
     "metacritic": 87,
-    "steamRating": "Muy positivas",
-    "youtubeTrailers": [
-      "2DJXN5UzFdo"
-    ]
+    "steamRating": "Muy positivas"
   },
   {
     "slug": "gta-vi",
@@ -102,12 +93,6 @@
       "publicId": "gamenow/logos/rockstar",
       "resourceType": "image",
       "local": "/images/ads/studios/rockstar.svg",
-      "hosted": true
-    },
-    "trailer": {
-      "publicId": "gamenow/trailers/gtavi",
-      "resourceType": "video",
-      "local": "/videos/GTAVI.webm",
       "hosted": true
     },
     "details": {
@@ -151,10 +136,7 @@
       "https://www.rockstargames.com/VI/_next/static/media/Jason_and_Lucia_13.0q.hw42xbhptg.jpg?akim=1&imdensity=1&imwidth=1920"
     ],
     "metacritic": 98,
-    "steamRating": "Extremadamente positivas",
-    "youtubeTrailers": [
-      "QdBZQ5fmgaw"
-    ]
+    "steamRating": "Extremadamente positivas"
   },
   {
     "slug": "ark-2",
@@ -178,12 +160,6 @@
       "publicId": "gamenow/logos/wildcard",
       "resourceType": "image",
       "local": "/images/ads/studios/wildcard.webp",
-      "hosted": true
-    },
-    "trailer": {
-      "publicId": "gamenow/trailers/ark2",
-      "resourceType": "video",
-      "local": "/videos/ark2.webm",
       "hosted": true
     },
     "details": {
@@ -227,10 +203,7 @@
       "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2399830/ss_37b5cb9485658f91b856a0714a8cbdc69f1802b1.1920x1080.jpg?t=1779293241"
     ],
     "metacritic": 84,
-    "steamRating": "Positivas",
-    "youtubeTrailers": [
-      "MMDIh3FsBTQ"
-    ]
+    "steamRating": "Positivas"
   },
   {
     "slug": "f1-2025-2026-season-pack",
@@ -249,12 +222,6 @@
       "resourceType": "image",
       "local": "/images/events/f126.webp",
       "hosted": false
-    },
-    "trailer": {
-      "publicId": "gamenow/trailers/f126",
-      "resourceType": "video",
-      "local": "/videos/F126.webm",
-      "hosted": true
     },
     "compareAtPrice": 1799.99,
     "details": {
@@ -303,10 +270,7 @@
       "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2488620/95a64ae6cdb1fe24870370674fb1b462fe3cc87e/ss_95a64ae6cdb1fe24870370674fb1b462fe3cc87e.1920x1080.jpg?t=1788548633"
     ],
     "metacritic": 88,
-    "steamRating": "Muy positivas",
-    "youtubeTrailers": [
-      "ul64a0oK1tA"
-    ]
+    "steamRating": "Muy positivas"
   },
   {
     "slug": "nba-2k27",
@@ -325,12 +289,6 @@
       "resourceType": "image",
       "local": "/images/events/nba.webp",
       "hosted": false
-    },
-    "trailer": {
-      "publicId": "gamenow/trailers/nba",
-      "resourceType": "video",
-      "local": "/videos/NBA.webm",
-      "hosted": true
     },
     "compareAtPrice": 1899.99,
     "details": {
@@ -372,17 +330,15 @@
       ]
     },
     "screenshots": [
-      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2878980/ss_8e3db832678488ed1003fa41cc0ef9bd74d332e5.1920x1080.jpg?t=1754665445",
-      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2878980/ss_40b45c20c14c8996000e81f697bd1d09f26ea5fd.1920x1080.jpg?t=1754665445",
-      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2878980/ss_0d4dd0f0fdfe67d8b3c641816b53b01a6ba062a0.1920x1080.jpg?t=1754665445",
-      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2878980/ss_3a08987033974b0e58d9d9f21794da91aae82811.1920x1080.jpg?t=1754665445",
-      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2878980/ss_53d356c675679bf18c50aa65ebcbc7c3857669d1.1920x1080.jpg?t=1754665445"
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/4356430/0202201bff9e57adf4913e9c8a21062c730e0b27/ss_0202201bff9e57adf4913e9c8a21062c730e0b27.1920x1080.jpg?t=1789075530",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/4356430/2a04508bf934834c93cfe5c91f27f45d3043a83d/ss_2a04508bf934834c93cfe5c91f27f45d3043a83d.1920x1080.jpg?t=1789075530",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/4356430/57773a1574208a10b2a5a12fdf3e0be991461475/ss_57773a1574208a10b2a5a12fdf3e0be991461475.1920x1080.jpg?t=1789075530",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/4356430/8650f68a3903425f66263a256aa1e010b2c80334/ss_8650f68a3903425f66263a256aa1e010b2c80334.1920x1080.jpg?t=1789075530",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/4356430/80b9c51723cdddd5fc65f19a04505c6e9513f471/ss_80b9c51723cdddd5fc65f19a04505c6e9513f471.1920x1080.jpg?t=1789075530",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/4356430/5907fec74f8c3e45c5b59ce9a6f3026e51e49ba7/ss_5907fec74f8c3e45c5b59ce9a6f3026e51e49ba7.1920x1080.jpg?t=1789075530"
     ],
     "metacritic": 82,
-    "steamRating": "Positivas",
-    "youtubeTrailers": [
-      "CDmJKMI5a20"
-    ]
+    "steamRating": "Positivas"
   },
   {
     "slug": "forza-horizon-6",
@@ -401,12 +357,6 @@
       "resourceType": "image",
       "local": "/images/events/fh6.webp",
       "hosted": false
-    },
-    "trailer": {
-      "publicId": "gamenow/trailers/fh6",
-      "resourceType": "video",
-      "local": "/videos/FH6.webm",
-      "hosted": true
     },
     "compareAtPrice": 1999.99,
     "details": {
@@ -455,10 +405,7 @@
       "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1551360/ss_3654a5988db68f9b47740f9f6a9299682c365599.1920x1080.jpg?t=1788546569"
     ],
     "metacritic": 93,
-    "steamRating": "Extremadamente positivas",
-    "youtubeTrailers": [
-      "FYH9n37B7Ys"
-    ]
+    "steamRating": "Extremadamente positivas"
   },
   {
     "slug": "how-to-fish",
@@ -478,12 +425,6 @@
       "resourceType": "image",
       "local": "/images/events/htf.webp",
       "hosted": false
-    },
-    "trailer": {
-      "publicId": "gamenow/trailers/htf",
-      "resourceType": "video",
-      "local": "/videos/HTF.webm",
-      "hosted": true
     },
     "details": {
       "release": "31 de agosto de 2022",
@@ -531,8 +472,7 @@
       "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1408610/ss_cb3747966f6fa616b1f30e74477f06eab637dffd.1920x1080.jpg?t=1737626002"
     ],
     "metacritic": 79,
-    "steamRating": "Muy positivas",
-    "youtubeTrailers": []
+    "steamRating": "Muy positivas"
   },
   {
     "slug": "the-last-of-us-2-remastered",
@@ -552,12 +492,6 @@
       "resourceType": "image",
       "local": "/images/events/lst.webp",
       "hosted": false
-    },
-    "trailer": {
-      "publicId": "gamenow/trailers/lst",
-      "resourceType": "video",
-      "local": "/videos/lst.webm",
-      "hosted": true
     },
     "details": {
       "release": "19 de enero de 2024",
@@ -605,10 +539,7 @@
       "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1888930/ss_3bed642215856b863799884f6f11671a1ef014d4.1920x1080.jpg?t=1750959031"
     ],
     "metacritic": 90,
-    "steamRating": "Extremadamente positivas",
-    "youtubeTrailers": [
-      "VmRMzMJfxGE"
-    ]
+    "steamRating": "Extremadamente positivas"
   },
   {
     "slug": "cyberpunk-2077",
@@ -628,12 +559,6 @@
       "resourceType": "image",
       "local": "/images/events/cp.webp",
       "hosted": false
-    },
-    "trailer": {
-      "publicId": "gamenow/trailers/cp",
-      "resourceType": "video",
-      "local": "/videos/cp.webm",
-      "hosted": true
     },
     "details": {
       "release": "10 de diciembre de 2020",
@@ -681,11 +606,7 @@
       "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1091500/ss_4eb068b1cf52c91b57157b84bed18a186ed7714b.1920x1080.jpg?t=1784714077"
     ],
     "metacritic": 91,
-    "steamRating": "Muy positivas",
-    "youtubeTrailers": [
-      "kvtpPqX9e6Q",
-      "91kY5vG1J1M"
-    ]
+    "steamRating": "Muy positivas"
   },
   {
     "slug": "call-of-duty-modern-warfare-4",
@@ -705,12 +626,6 @@
       "resourceType": "image",
       "local": "/images/events/mw.webp",
       "hosted": false
-    },
-    "trailer": {
-      "publicId": "gamenow/trailers/mw",
-      "resourceType": "video",
-      "local": "/videos/mw.webm",
-      "hosted": true
     },
     "details": {
       "release": "10 de noviembre de 2023",
@@ -758,10 +673,7 @@
       "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1938090/619503d5c40001a5e72717bedccbbca027084d94/ss_619503d5c40001a5e72717bedccbbca027084d94.1920x1080.jpg?t=1789661058"
     ],
     "metacritic": 85,
-    "steamRating": "Mayormente positivas",
-    "youtubeTrailers": [
-      "nkW5cPJpCVo"
-    ]
+    "steamRating": "Mayormente positivas"
   },
   {
     "slug": "arc-raiders",
@@ -828,10 +740,7 @@
       "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1808500/0b1fa1294fa269633112be2c3d8758df42baebe1/ss_0b1fa1294fa269633112be2c3d8758df42baebe1.1920x1080.jpg?t=1789143012"
     ],
     "metacritic": 86,
-    "steamRating": "Muy positivas",
-    "youtubeTrailers": [
-      "RlCGXwS6LhU"
-    ]
+    "steamRating": "Muy positivas"
   },
   {
     "slug": "007-first-light",
@@ -851,12 +760,6 @@
       "resourceType": "image",
       "local": "/images/events/007.webp",
       "hosted": false
-    },
-    "trailer": {
-      "publicId": "gamenow/trailers/007",
-      "resourceType": "video",
-      "local": "/videos/007.webm",
-      "hosted": true
     },
     "details": {
       "release": "2026",
@@ -904,9 +807,6 @@
       "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1659040/ss_691a534e333e33a4d6b994c9d63be26c83a687d7.1920x1080.jpg?t=1788336082"
     ],
     "metacritic": 89,
-    "steamRating": "Muy positivas",
-    "youtubeTrailers": [
-      "xGQ3F6y7wHE"
-    ]
+    "steamRating": "Muy positivas"
   }
 ]

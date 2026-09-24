@@ -1,6 +1,10 @@
 import { Route, Routes } from "react-router-dom";
 import { CatalogProvider } from "./data/CatalogContext";
 import { AuthProvider, useAuth } from "./data/AuthContext";
+import { DownloadsProvider } from "./data/DownloadsContext";
+import { LaunchProvider } from "./data/LaunchContext";
+import { DownloadBar } from "./components/DownloadBar";
+import { LaunchScreen } from "./components/LaunchScreen";
 import { checkIsDesktopApp } from "./data/useDesktopApp";
 import { AuthPage } from "./pages/Auth/AuthPage";
 import { CartPage } from "./pages/cart/CartPage";
@@ -72,11 +76,17 @@ function AppRoutes() {
 export function App() {
   return (
     <AuthProvider>
-      <CartProvider>
-        <CatalogProvider>
-          <AppRoutes />
-        </CatalogProvider>
-      </CartProvider>
+      <DownloadsProvider>
+        <LaunchProvider>
+          <CartProvider>
+            <CatalogProvider>
+              <AppRoutes />
+              <DownloadBar />
+              <LaunchScreen />
+            </CatalogProvider>
+          </CartProvider>
+        </LaunchProvider>
+      </DownloadsProvider>
     </AuthProvider>
   );
 }

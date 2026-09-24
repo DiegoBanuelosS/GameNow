@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import Hls from "hls.js";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useCart } from "../../data/CartContext";
 import { fetchProduct, type StoreProduct } from "../../data/catalog";
@@ -78,8 +79,19 @@ export function GamePage() {
     if (!video || current?.type !== "video") {
       return;
     }
+    const src = current.sources?.[0]?.src || current.src;
+    const hlsStream = src.includes(".m3u8");
     video.muted = false;
     video.volume = 1;
+    if (hlsStream && Hls.isSupported()) {
+      const hls = new Hls();
+      hls.loadSource(src);
+      hls.attachMedia(video);
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        void video.play().catch(() => undefined);
+      });
+      return () => hls.destroy();
+    }
     void video.play().catch(() => undefined);
   }, [current]);
 
@@ -97,28 +109,21 @@ export function GamePage() {
             {current ? (
               <section className="game-media" aria-label="Medios">
                 <div className="game-hero">
-                  {current.type === "youtube" ? (
-                    <iframe
-                      key={current.src}
-                      className="game-hero-yt"
-                      src={current.src}
-                      title={current.alt}
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                    />
-                  ) : current.type === "video" ? (
+                  {current.type === "video" ? (
                     <video
                       key={current.src}
                       ref={heroVideoRef}
                       poster={current.poster}
                       controls
                       playsInline
-                      preload="auto"
+                      preload="metadata"
                       muted={false}
                     >
-                      {(current.sources?.length
-                        ? current.sources
-                        : [{ src: current.src, type: current.src.endsWith(".webm") ? "video/webm" : "video/mp4" }]
+                      {(current.src.includes(".m3u8")
+                        ? []
+                        : current.sources?.length
+                          ? current.sources
+                          : [{ src: current.src, type: current.src.endsWith(".webm") ? "video/webm" : "video/mp4" }]
                       ).map((source) => (
                         <source key={source.src} src={source.src} type={source.type} />
                       ))}
@@ -144,15 +149,8 @@ export function GamePage() {
                           aria-label={item.alt}
                           onClick={() => setActive(index)}
                         >
-                          {item.type === "youtube" ? (
-                            <div className="game-thumb-yt" aria-hidden>
-                              <img
-                                src={`https://img.youtube.com/vi/${(item as { youtubeId?: string }).youtubeId}/mqdefault.jpg`}
-                                alt=""
-                                className="game-thumb-yt-img"
-                              />
-                              <span className="game-thumb-yt-play">▶</span>
-                            </div>
+                          {item.type === "video" && item.src.includes(".m3u8") && item.poster ? (
+                            <img className="game-thumb-preview" src={item.poster} alt="" />
                           ) : item.type === "video" ? (
                             <video
                               className="game-thumb-preview"
