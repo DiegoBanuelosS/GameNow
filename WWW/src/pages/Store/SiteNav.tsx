@@ -4,6 +4,7 @@ import { Link, NavLink, useNavigate } from "react-router-dom";
 import { SearchOverlay } from "./SearchOverlay";
 import { useDesktopApp } from "../../data/useDesktopApp";
 import { useAuth } from "../../data/AuthContext";
+import { formatMxn } from "../../data/CartContext";
 import "./SiteNav.css";
 
 export function SiteNav() {
@@ -182,9 +183,14 @@ export function SiteNav() {
           >
             <MagnifyingGlass size={22} weight="bold" />
           </button>
-          <Link to="/cart" aria-label="Carrito">
-            <ShoppingCart size={22} weight="bold" />
-          </Link>
+          <div className="site-cart">
+            {user && (user.balance || 0) > 0 ? (
+              <span className="site-wallet">{formatMxn(user.balance || 0)}</span>
+            ) : null}
+            <Link to="/cart" aria-label="Carrito">
+              <ShoppingCart size={22} weight="bold" />
+            </Link>
+          </div>
         </div>
       </div>
       <SearchOverlay open={searchOpen} onClose={() => setSearchOpen(false)} />

@@ -36,6 +36,7 @@ interface LibraryGameItem {
   isInstalled: boolean;
   isFavorite: boolean;
   purchased?: boolean;
+  saleStatus?: "" | "pending";
   desktopShortcut?: boolean;
   taskbarPin?: boolean;
   beta?: string;
@@ -754,7 +755,7 @@ export function LibraryPage() {
                 {recentGames.map((game) => (
                   <article
                     key={`recent-${game.slug}`}
-                    className="library-cover-card library-recent-card"
+                    className={`library-cover-card library-recent-card${game.saleStatus === "pending" ? " is-sale-pending" : ""}`}
                     tabIndex={0}
                     onClick={() => selectGame(game.slug)}
                     onKeyDown={(event) => {
@@ -848,7 +849,7 @@ export function LibraryPage() {
                   {sortedGames.map((game) => (
                     <article
                       key={game.slug}
-                      className="library-cover-card"
+                      className={`library-cover-card${game.saleStatus === "pending" ? " is-sale-pending" : ""}`}
                       tabIndex={0}
                       onClick={() => selectGame(game.slug)}
                       onKeyDown={(event) => {

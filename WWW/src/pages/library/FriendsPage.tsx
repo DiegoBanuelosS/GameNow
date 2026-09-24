@@ -1,10 +1,18 @@
-import { useEffect, useState } from "react";
-import { Gamepad2, MessageCircle, Star, UserMinus } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Gamepad2, MessageCircle, Search, Star, UserMinus, UserPlus } from "lucide-react";
 import { Link } from "react-router-dom";
 import { SiteNav } from "../Store/SiteNav";
 import { Footer9 } from "../Store/Footer9";
 import { useAuth } from "../../data/AuthContext";
 import "./FriendsPage.css";
+
+type Person = {
+  steamId: string;
+  name: string;
+  avatarUrl: string;
+  username: string;
+  alreadyFriend: boolean;
+};
 
 type Friend = {
   steamId: string;
@@ -43,6 +51,13 @@ export function FriendsPage() {
   const [openChat, setOpenChat] = useState<string | null>(null);
   const [openInvite, setOpenInvite] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
+  const [friendQuery, setFriendQuery] = useState("");
+  const [addQuery, setAddQuery] = useState("");
+  const [adding, setAdding] = useState(false);
+  const [people, setPeople] = useState<Person[]>([]);
+  const addInput = useRef<HTMLInputElement>(null);
+  const [searching, setSearching] = useState(false);
+  const [addNotice, setAddNotice] = useState("");
 
   useEffect(() => {
     if (status !== "authenticated" || !token) {
@@ -85,6 +100,95 @@ export function FriendsPage() {
     return data as Pick<Friend, "steamId" | "favorite" | "inviteGame" | "messages"> & { hidden?: boolean };
   };
 
+  const visibleFriends = friends.filter((friend) => {
+    const query = friendQuery.trim().toLowerCase();
+    if (!query) return true;
+    return friend.name.toLowerCase().includes(query);
+  });
+
+  useEffect(() => {
+    if (!adding) return;
+    addInput.current?.focus();
+  }, [adding]);
+
+  const closeAdd = () => {
+    setAdding(false);
+    setAddQuery("");
+    setPeople([]);
+    setAddNotice("");
+  };
+
+  const searchPeople = async () => {
+    const query = addQuery.trim();
+    if (!token || query.length < 2) {
+      setPeople([]);
+      setAddNotice("Escribe al menos 2 caracteres.");
+      return;
+    }
+    setSearching(true);
+    setAddNotice("");
+    try {
+      const response = await fetch(`/api/steam/people?q=${encodeURIComponent(query)}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        setAddNotice(data.error || "No se pudo buscar.");
+        setPeople([]);
+        return;
+      }
+      const found = (data.people ?? []) as Person[];
+      setPeople(found);
+      setAddNotice(found.length ? "" : "No encontramos a nadie con ese usuario o código.");
+    } catch {
+      setAddNotice("No se pudo buscar. Revisa tu conexión.");
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const addPerson = async (person: Person) => {
+    if (!token || person.alreadyFriend) return;
+    setAddNotice("");
+    const response = await fetch("/api/steam/friends", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ steamId: person.steamId, username: person.username }),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      setAddNotice(data.error || "No se pudo agregar.");
+      return;
+    }
+    setPeople((current) =>
+      current.map((item) => (item.steamId === person.steamId ? { ...item, alreadyFriend: true } : item)),
+    );
+    setFriends((current) => {
+      if (current.some((friend) => friend.steamId === person.steamId)) return current;
+      return [
+        {
+          steamId: person.steamId,
+          name: person.name,
+          avatarUrl: person.avatarUrl,
+          profileUrl: /^\d{17}$/.test(person.steamId) ? `https://steamcommunity.com/profiles/${person.steamId}` : "",
+          status: person.username ? "En GameNow" : "Desconectado",
+          playingGame: "",
+          playingAppId: "",
+          playingMinutes: 0,
+          playingSpan: "",
+          favorite: false,
+          inviteGame: "",
+          messages: [],
+        },
+        ...current,
+      ];
+    });
+    setAddNotice(`${person.name} ya está en tus amigos.`);
+  };
+
   const applyPatch = (steamId: string, body: Record<string, unknown>) => {
     patchFriend(steamId, body).then((data) => {
       if (!data) return;
@@ -100,6 +204,80 @@ export function FriendsPage() {
       <SiteNav />
       <main className="friends-main">
         <h1>Mis Amigos</h1>
+        {status === "authenticated" ? (
+          <div className="friends-tools">
+            <form
+              className="friends-tool"
+              onSubmit={(event) => {
+                event.preventDefault();
+              }}
+            >
+              <label htmlFor="friend-search">Buscar amigos</label>
+              <div className="friends-tool-row">
+                <Search size={16} aria-hidden="true" />
+                <input
+                  id="friend-search"
+                  value={friendQuery}
+                  placeholder="Nombre"
+                  onChange={(event) => setFriendQuery(event.target.value)}
+                />
+              </div>
+            </form>
+            {adding ? (
+              <form
+                className="friends-tool friends-add-swap"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  void searchPeople();
+                }}
+              >
+                <label htmlFor="friend-add">Usuario o código de amigo</label>
+                <div className="friends-tool-row">
+                  <Search size={16} aria-hidden="true" />
+                  <input
+                    ref={addInput}
+                    id="friend-add"
+                    value={addQuery}
+                    placeholder="Usuario o código de amigo"
+                    onChange={(event) => setAddQuery(event.target.value)}
+                  />
+                  <button type="submit" disabled={searching}>
+                    {searching ? "Buscando…" : "Buscar"}
+                  </button>
+                  <button type="button" className="friends-add-close" onClick={closeAdd}>
+                    Cerrar
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <button type="button" className="friends-add" onClick={() => setAdding(true)}>
+                <UserPlus size={16} aria-hidden="true" />
+                Agregar amigo
+              </button>
+            )}
+          </div>
+        ) : null}
+        {people.length > 0 || addNotice ? (
+          <div className="friends-results" role="status">
+            {addNotice ? <p>{addNotice}</p> : null}
+            {people.length > 0 ? (
+              <ul>
+                {people.map((person) => (
+                  <li key={person.steamId}>
+                    {person.avatarUrl ? <img src={person.avatarUrl} alt="" /> : <span />}
+                    <span>
+                      <strong>{person.name}</strong>
+                      {person.username ? <small>@{person.username}</small> : null}
+                    </span>
+                    <button type="button" disabled={person.alreadyFriend} onClick={() => void addPerson(person)}>
+                      {person.alreadyFriend ? "Ya es tu amigo" : "Agregar"}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
+        ) : null}
         {status === "loading" || (status === "authenticated" && loading) ? (
           <p className="friends-empty">Cargando amigos…</p>
         ) : null}
@@ -117,20 +295,33 @@ export function FriendsPage() {
           <p className="friends-empty">Tu lista de amigos de Steam es privada.</p>
         ) : null}
         {!loading && user?.steamId && !hidden && friends.length === 0 && status === "authenticated" ? (
-          <p className="friends-empty">Todavía no hay amigos en esta cuenta.</p>
+          <p className="friends-empty">Todavía no hay amigos en esta cuenta. Agrega a alguien con su usuario de GameNow.</p>
         ) : null}
-        {friends.length > 0 ? (
+        {!loading && friends.length > 0 && visibleFriends.length === 0 ? (
+          <p className="friends-empty">Ningún amigo coincide con esa búsqueda.</p>
+        ) : null}
+        {visibleFriends.length > 0 ? (
           <ul className="friends-list">
-            {friends.map((friend) => (
+            {visibleFriends.map((friend) => (
               <li key={friend.steamId}>
                 <div className="friends-row">
-                  <Link className="friends-person" to={`/perfil/${friend.steamId}`}>
-                    {friend.avatarUrl ? <img src={friend.avatarUrl} alt="" /> : <span />}
-                    <span>
-                      <strong>{friend.name}</strong>
-                      <small>{friend.status}</small>
-                    </span>
-                  </Link>
+                  {/^\d{17}$/.test(friend.steamId) ? (
+                    <Link className="friends-person" to={`/perfil/${friend.steamId}`}>
+                      {friend.avatarUrl ? <img src={friend.avatarUrl} alt="" /> : <span />}
+                      <span>
+                        <strong>{friend.name}</strong>
+                        <small>{friend.status}</small>
+                      </span>
+                    </Link>
+                  ) : (
+                    <div className="friends-person">
+                      {friend.avatarUrl ? <img src={friend.avatarUrl} alt="" /> : <span />}
+                      <span>
+                        <strong>{friend.name}</strong>
+                        <small>{friend.status}</small>
+                      </span>
+                    </div>
+                  )}
                   <div className="friends-actions">
                     <button
                       type="button"

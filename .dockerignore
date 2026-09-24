@@ -1,0 +1,11 @@
+**/.git
+**/node_modules
+**/.env
+**/.env.*
+**/dist
+APP
+SETUP
+WWW/src
+WWW/node_modules
+API/cache
+**/*.log

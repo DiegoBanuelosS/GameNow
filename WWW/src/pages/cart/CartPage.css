@@ -108,8 +108,46 @@
 }
 
 .pay-form button[type="submit"],
-.pay-download {
+.pay-download,
+.pay-wallet {
   width: 100%;
+}
+
+.pay-methods {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pay-wallet-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 22px;
+}
+
+.pay-wallet-box p {
+  margin: 0;
+}
+
+.pay-wallet {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 22px;
+  border: 1px solid #6fbf8b;
+  border-radius: 8px;
+  background: transparent;
+  color: #6fbf8b;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.pay-wallet:disabled {
+  opacity: 0.45;
+  cursor: default;
 }
 
 .pay-layout {

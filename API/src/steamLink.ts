@@ -60,14 +60,10 @@ function browserOrigin(req: Request) {
     return `http://${forwarded}`;
   }
   try {
-    const origin = new URL(config.wwwOrigin);
-    if (origin.protocol === "http:" && /^(localhost|127\.0\.0\.1)$/.test(origin.hostname)) {
-      return origin.origin;
-    }
+    return new URL(config.wwwOrigin).origin;
   } catch {
-    /* origin de config inválido */
+    return "http://127.0.0.1:5173";
   }
-  return "http://127.0.0.1:5173";
 }
 
 function userIdFromRequest(req: Request) {
@@ -100,6 +96,9 @@ async function saveSteamLink(userId: string, steamId: string) {
         userRating: game.userRating,
         userNote: game.userNote,
         purchased: game.purchased,
+        paidPrice: game.paidPrice,
+        saleStatus: game.saleStatus,
+        salePayout: game.salePayout,
         desktopShortcut: game.desktopShortcut,
         taskbarPin: game.taskbarPin,
         beta: game.beta,
@@ -116,6 +115,8 @@ async function saveSteamLink(userId: string, steamId: string) {
       ...(saved.userRating ? { userRating: saved.userRating } : {}),
       ...(saved.userNote ? { userNote: saved.userNote } : {}),
       ...(saved.purchased ? { purchased: true } : {}),
+      ...(typeof saved.paidPrice === "number" && saved.paidPrice > 0 ? { paidPrice: saved.paidPrice } : {}),
+      ...(saved.saleStatus === "pending" ? { saleStatus: "pending" as const, salePayout: saved.salePayout } : {}),
       ...(saved.desktopShortcut ? { desktopShortcut: true } : {}),
       ...(saved.taskbarPin ? { taskbarPin: true } : {}),
       ...(saved.beta ? { beta: saved.beta } : {}),

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Star } from "../../components/Icons";
+import { useAuth } from "../../data/AuthContext";
 import { useDownloads } from "../../data/DownloadsContext";
 import { useLaunch } from "../../data/LaunchContext";
 import { StoreArt } from "../../data/StoreArt";
@@ -24,11 +25,23 @@ type LibraryDetailGame = {
   playTimeHours: number;
   isInstalled: boolean;
   purchased?: boolean;
+  saleStatus?: "" | "pending";
   desktopShortcut?: boolean;
   taskbarPin?: boolean;
   beta?: string;
   userRating?: number;
   userNote?: string;
+};
+
+type ResaleQuote = {
+  hours: number;
+  listPriceLabel: string;
+  hoursPercent: number;
+  marketPercent: number;
+  payoutPercent: number;
+  payoutLabel: string;
+  summary: string;
+  balanceLabel?: string;
 };
 
 type LibraryDetailProps = {
@@ -44,6 +57,7 @@ type LibraryDetailProps = {
     taskbarPin?: boolean;
     beta?: string;
     sell?: boolean;
+    payout?: "wallet" | "card";
   }) => Promise<{ ok: boolean; error?: string }>;
 };
 
@@ -74,6 +88,44 @@ export function LibraryDetail({
   const [shortcut, setShortcut] = useState(Boolean(game.desktopShortcut));
   const [pinned, setPinned] = useState(Boolean(game.taskbarPin));
   const [beta, setBeta] = useState(game.beta || "stable");
+  const [resale, setResale] = useState<ResaleQuote | null>(null);
+  const [resaleState, setResaleState] = useState<"idle" | "loading" | "ready" | "error">("idle");
+  const [sold, setSold] = useState<"wallet" | "card" | "">("");
+  const { user } = useAuth();
+  const cardLast4 = user?.cardLast4 || "";
+  const [balanceLabel, setBalanceLabel] = useState("");
+
+  useEffect(() => {
+    if (menuView !== "sell" || !token || !game.purchased) return;
+    let alive = true;
+    setResaleState("loading");
+    setSold("");
+    setNotice("");
+    fetch(`/api/library/resale?slug=${encodeURIComponent(game.slug)}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(async (response) => {
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "No pudimos calcular el reembolso.");
+        return data as { resale: ResaleQuote; balance: number };
+      })
+      .then((data) => {
+        if (!alive) return;
+        setResale(data.resale);
+        setBalanceLabel(
+          new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(data.balance || 0),
+        );
+        setResaleState("ready");
+      })
+      .catch((error: Error) => {
+        if (!alive) return;
+        setNotice(error.message || "No pudimos calcular el reembolso.");
+        setResaleState("error");
+      });
+    return () => {
+      alive = false;
+    };
+  }, [menuView, token, game.slug, game.purchased]);
 
   useEffect(() => {
     setRating(game.userRating || 0);
@@ -207,8 +259,14 @@ export function LibraryDetail({
         <div className="library-detail-copy">
           <p className="library-detail-genre">{game.genre}</p>
           <h2>{game.name}</h2>
-          <p className="library-detail-hours">{game.playTimeHours} hrs jugadas</p>
-          {game.isInstalled ? (
+          {game.saleStatus === "pending" ? (
+            <p className="library-sale-pending">
+              Juego vendido, pago en espera. Una vez confirmemos el pago, tu juego será retirado definitivamente.
+            </p>
+          ) : (
+            <p className="library-detail-hours">{game.playTimeHours} hrs jugadas</p>
+          )}
+          {game.saleStatus === "pending" ? null : game.isInstalled ? (
             <button
               type="button"
               className="library-detail-download"
@@ -250,15 +308,19 @@ export function LibraryDetail({
               <div className="library-config-options">
                 <button
                   type="button"
-                  disabled={!game.purchased}
+                  disabled={!game.purchased || game.saleStatus === "pending"}
                   onClick={() => {
-                    if (!game.purchased) return;
+                    if (!game.purchased || game.saleStatus === "pending") return;
                     setMenuView("sell");
                   }}
                 >
                   Vender
                 </button>
-                {!game.purchased ? <p className="library-config-note">Solo puedes vender juegos de GameNow.</p> : null}
+                {game.saleStatus === "pending" ? (
+                  <p className="library-config-note">Este juego ya está vendido. El pago a tu tarjeta sigue en espera.</p>
+                ) : !game.purchased ? (
+                  <p className="library-config-note">Solo puedes vender juegos de GameNow.</p>
+                ) : null}
                 <button type="button" onClick={() => setMenuView("properties")}>
                   Propiedades
                 </button>
@@ -275,23 +337,62 @@ export function LibraryDetail({
             ) : null}
             {menuView === "sell" ? (
               <div className="library-config-panel">
-                <p>Vender quita este juego de GameNow de tu biblioteca.</p>
-                <button
-                  type="button"
-                  onClick={async () => {
-                    const result = await onSettings({ sell: true });
-                    if (!result.ok) {
-                      setNotice(result.error || "No se pudo vender el juego.");
-                      return;
-                    }
-                    setMenuOpen(false);
-                    onClose();
-                  }}
-                >
-                  Confirmar venta
-                </button>
-                <button type="button" onClick={() => setMenuView("menu")}>
-                  Volver
+                <h3>Vender {game.name}</h3>
+                {resaleState === "loading" ? <p>Calculando el reembolso…</p> : null}
+                {resaleState === "error" ? <p>{notice || "No pudimos calcular el reembolso. Inténtalo de nuevo."}</p> : null}
+                {resale && resaleState === "ready" ? (
+                  <>
+                    <p>{resale.summary}</p>
+                    {balanceLabel && !sold ? <p>Saldo actual: {balanceLabel}.</p> : null}
+                    <p className="library-resale-amount">
+                      Recibes {resale.payoutLabel}
+                      <small>
+                        {resale.hoursPercent}% por {resale.hours} h
+                        {resale.marketPercent ? ` ${resale.marketPercent > 0 ? "+" : ""}${resale.marketPercent}% de mercado` : ""}
+                        . Pagaste {resale.listPriceLabel}.
+                      </small>
+                    </p>
+                  </>
+                ) : null}
+                {sold === "wallet" && resale ? <p>Listo. Sumamos {resale.payoutLabel} a tu cartera. Es inmediato.</p> : null}
+                {sold === "card" ? (
+                  <p>El reembolso va a tu tarjeta. Puede tardar hasta 8 días. El juego sigue aquí hasta que confirmemos el pago.</p>
+                ) : null}
+                {resale && resaleState === "ready" && !sold ? (
+                  <div className="library-payout-choices">
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const result = await onSettings({ sell: true, payout: "wallet" });
+                        if (!result.ok) {
+                          setNotice(result.error || "No se pudo vender el juego.");
+                          return;
+                        }
+                        setSold("wallet");
+                      }}
+                    >
+                      Cartera de GameNow
+                    </button>
+                    <p>Es inmediato.</p>
+                    <button
+                      type="button"
+                      disabled={!cardLast4}
+                      onClick={async () => {
+                        const result = await onSettings({ sell: true, payout: "card" });
+                        if (!result.ok) {
+                          setNotice(result.error || "No se pudo vender el juego.");
+                          return;
+                        }
+                        setSold("card");
+                      }}
+                    >
+                      Tarjeta terminación {cardLast4 || "••••"}
+                    </button>
+                    <p>{cardLast4 ? "Puede tardar hasta 8 días." : "Paga una compra con tarjeta para poder usarla."}</p>
+                  </div>
+                ) : null}
+                <button type="button" onClick={() => (sold ? onClose() : setMenuView("menu"))}>
+                  {sold ? "Cerrar" : "Volver"}
                 </button>
               </div>
             ) : null}

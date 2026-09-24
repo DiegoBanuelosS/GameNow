@@ -14,11 +14,17 @@ export interface IUser extends Document {
   steamBackgroundUrl?: string;
   steamBackgroundVideo?: string;
   steamGameCount?: number;
+  balance: number;
+  cardLast4: string;
   steamGames: SteamLibraryGame[];
   friendPrefs: {
     steamId: string;
     favorite?: boolean;
     hidden?: boolean;
+    added?: boolean;
+    name?: string;
+    avatarUrl?: string;
+    username?: string;
     inviteGame?: string;
     messages?: { text?: string; at?: number }[];
   }[];
@@ -78,6 +84,8 @@ const userSchema = new Schema<IUser>(
     steamBackgroundUrl: String,
     steamBackgroundVideo: String,
     steamGameCount: { type: Number, default: 0 },
+    balance: { type: Number, default: 0 },
+    cardLast4: { type: String, default: "" },
     steamGames: {
       type: [
         new Schema(
@@ -99,6 +107,9 @@ const userSchema = new Schema<IUser>(
             userRating: Number,
             userNote: String,
             purchased: Boolean,
+            paidPrice: Number,
+            saleStatus: String,
+            salePayout: Number,
             desktopShortcut: Boolean,
             taskbarPin: Boolean,
             beta: String,
@@ -115,6 +126,10 @@ const userSchema = new Schema<IUser>(
             steamId: String,
             favorite: Boolean,
             hidden: Boolean,
+            added: Boolean,
+            name: String,
+            avatarUrl: String,
+            username: String,
             inviteGame: String,
             messages: {
               type: [{ text: String, at: Number }],

@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { StoreArt } from "../../data/StoreArt";
 import { formatMxn, useCart, type CartItem } from "../../data/CartContext";
 import { useAuth } from "../../data/AuthContext";
+import { useDownloads } from "../../data/DownloadsContext";
 import { Footer9 } from "../Store/Footer9";
 import { SiteNav } from "../Store/SiteNav";
 import "./CartPage.css";
@@ -61,7 +62,8 @@ function CardMark({ brand }: { brand: string }) {
 
 export function PayPage() {
   const { items, clear } = useCart();
-  const { token, purchaseGames } = useAuth();
+  const { token, user, purchaseGames } = useAuth();
+  const { startDownload } = useDownloads();
   const [order, setOrder] = useState<CartItem[] | null>(null);
   const [name, setName] = useState("");
   const [card, setCard] = useState("");
@@ -74,9 +76,47 @@ export function PayPage() {
   const [showCvv, setShowCvv] = useState(false);
   const [picking, setPicking] = useState(false);
   const [selected, setSelected] = useState("");
+  const [downloadNote, setDownloadNote] = useState("");
+  const [paying, setPaying] = useState(false);
+  const [paidWith, setPaidWith] = useState<"wallet" | "card" | "">("");
 
   const games = order ?? items;
   const total = games.reduce((sum, item) => sum + item.priceValue, 0);
+  const balance = user?.balance || 0;
+  const walletCovers = balance + 0.001 >= total && total > 0;
+
+  const finish = async (payment: { method: "wallet" | "card"; cardLast4?: string }) => {
+    if (!token) {
+      setError("Inicia sesión para completar el pago.");
+      return;
+    }
+    setPaying(true);
+    const saved = await purchaseGames(
+      items.map((item) => ({ slug: item.slug, price: item.priceValue })),
+      payment,
+    );
+    setPaying(false);
+    if (!saved.ok) {
+      setError(saved.error || "No se pudo agregar el juego a la biblioteca.");
+      return;
+    }
+    setError("");
+    setPaidWith(payment.method);
+    setOrder(items);
+    setCard("");
+    setCvv("");
+    setExpiry("");
+    clear();
+  };
+
+  const payWithWallet = () => {
+    if (items.length === 0 || paying) return;
+    if (!walletCovers) {
+      setError(`Tu saldo es ${formatMxn(balance)} y este pedido cuesta ${formatMxn(total)}.`);
+      return;
+    }
+    void finish({ method: "wallet" });
+  };
 
   const pay = async (event: FormEvent) => {
     event.preventDefault();
@@ -103,20 +143,28 @@ export function PayPage() {
       setError("Completa la dirección.");
       return;
     }
-    const slugs = items.map((item) => item.slug);
-    if (token) {
-      const saved = await purchaseGames(slugs);
-      if (!saved.ok) {
-        setError(saved.error || "No se pudo agregar el juego a la biblioteca.");
-        return;
-      }
+    await finish({ method: "card", cardLast4: card.slice(-4) });
+  };
+
+  const beginDownload = async (item: CartItem) => {
+    setSelected(item.slug);
+    const result = await startDownload({ slug: item.slug, name: item.name, cover: item.cover });
+    setDownloadNote(result.ok ? "La descarga empezó. La ves en la barra de abajo." : result.error || "No se pudo descargar.");
+  };
+
+  const downloadContent = async () => {
+    if (!order?.length) return;
+    if (order.length === 1) {
+      await beginDownload(order[0]);
+      return;
     }
-    setError("");
-    setOrder(items);
-    setCard("");
-    setCvv("");
-    setExpiry("");
-    clear();
+    const item = order.find((game) => game.slug === selected);
+    if (!item) {
+      setPicking(true);
+      setDownloadNote("Elige un juego.");
+      return;
+    }
+    await beginDownload(item);
   };
 
   return (
@@ -129,10 +177,11 @@ export function PayPage() {
               <Check size={28} aria-hidden="true" />
             </span>
             <h1>Pago listo</h1>
-            <p>Tu pedido quedó registrado. Los datos de la tarjeta no se guardan.</p>
-            <button type="button" className="pay-download" onClick={() => setPicking(true)}>
-              Descargar ahora
+            <p>{paidWith === "wallet" ? "Se descontó de tu cartera." : "Tu pedido quedó registrado. Los datos de la tarjeta no se guardan."}</p>
+            <button type="button" className="pay-download" onClick={() => void downloadContent()}>
+              Descargar tu contenido
             </button>
+            {downloadNote ? <p className="pay-note">{downloadNote}</p> : null}
             {picking ? (
               <ul className="pay-pick" aria-label="Elige qué descargar">
                 {order.map((item) => {
@@ -143,7 +192,7 @@ export function PayPage() {
                         type="button"
                         className={on ? "is-selected" : ""}
                         aria-pressed={on}
-                        onClick={() => setSelected(item.slug)}
+                        onClick={() => void beginDownload(item)}
                       >
                         <span className="pay-pick-art">
                           <StoreArt className="cart-cover" src={item.cover} alt="" />
@@ -187,6 +236,16 @@ export function PayPage() {
               </ul>
               <p className="cart-lead">Total {formatMxn(total)}</p>
             </section>
+            <div className="pay-methods">
+            {balance > 0 ? (
+              <div className="pay-wallet-box">
+                <p>Saldo en tu cartera: {formatMxn(balance)}</p>
+                <button type="button" className="pay-wallet" disabled={!walletCovers || paying} onClick={payWithWallet}>
+                  Pagar con tu saldo
+                </button>
+                {walletCovers ? null : <p className="pay-note">Tu saldo no alcanza para este pedido.</p>}
+              </div>
+            ) : null}
             <form className="pay-form" onSubmit={pay}>
                 <label>
                   Nombre en la tarjeta
@@ -252,8 +311,9 @@ export function PayPage() {
                   />
                 </label>
                 {error ? <p className="pay-error">{error}</p> : <p className="pay-note">La tarjeta solo se usa en esta pantalla.</p>}
-                <button type="submit">Pagar {formatMxn(total)}</button>
+                <button type="submit" disabled={paying}>Pagar {formatMxn(total)}</button>
               </form>
+            </div>
           </div>
         )}
           </>

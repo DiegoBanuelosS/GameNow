@@ -10,7 +10,7 @@ import { cachedVideoPath, videoContentType } from "./videoCache.js";
 import { getReviews, addReview, markHelpful } from "./reviews.js";
 import { authRouter } from "./auth.js";
 import { steamCallback, steamRefresh, steamStart, steamUnlink } from "./steamLink.js";
-import { purchaseLibrary, steamAchievements, steamFriends, steamProfile, updateFriend, updateLibraryGame } from "./steamSocial.js";
+import { addFriend, purchaseLibrary, resaleQuote, searchPeople, steamAchievements, steamFriends, steamProfile, updateFriend, updateLibraryGame } from "./steamSocial.js";
 
 const app = express();
 app.use(
@@ -20,8 +20,15 @@ app.use(
         next(null, true);
         return;
       }
+      let host = "";
+      try {
+        host = new URL(origin).hostname;
+      } catch {
+        host = "";
+      }
       if (
         origin === config.wwwOrigin ||
+        host.endsWith(".pages.dev") ||
         origin.startsWith("http://127.0.0.1:") ||
         origin.startsWith("http://localhost:")
       ) {
@@ -49,7 +56,10 @@ app.get("/api/health", (_req, res) => {
 
 app.get("/api/steam/achievements/:appId", steamAchievements);
 app.get("/api/steam/friends", steamFriends);
+app.get("/api/steam/people", searchPeople);
+app.post("/api/steam/friends", addFriend);
 app.get("/api/steam/profile/:steamId", steamProfile);
+app.get("/api/library/resale", resaleQuote);
 app.patch("/api/steam/friends", updateFriend);
 app.patch("/api/steam/library", updateLibraryGame);
 app.post("/api/steam/library", purchaseLibrary);
@@ -328,8 +338,8 @@ app.patch("/api/reviews/:slug/:id/helpful", async (req, res) => {
 });
 
 
-app.listen(config.port, "127.0.0.1", () => {
-  console.log(`GameNow API http://127.0.0.1:${config.port}`);
+app.listen(config.port, "0.0.0.0", () => {
+  console.log(`GameNow API http://0.0.0.0:${config.port}`);
   connectDb()
     .then((connected) => {
       console.log(connected ? "MongoDB Atlas pool listo" : "Usando snapshot local hasta configurar MONGODB_URI");

@@ -3,7 +3,10 @@ import { config } from "./config.js";
 import { connectDb } from "./db.js";
 import { verifyJwt } from "./auth.js";
 import { User } from "./models/User.js";
+import { loadProducts } from "./catalog.js";
 import { loadGames } from "./games.js";
+import { formatMxn, toMxn } from "./money.js";
+import { purchasePrice, quoteResale, recordTrade } from "./resale.js";
 import { loadSteamVisit, type SteamLibraryGame } from "./steamSync.js";
 
 type Achievement = {
@@ -221,6 +224,51 @@ export async function steamFriends(req: Request, res: Response) {
         });
       }
     }
+    const listed = new Set(friends.map((friend) => friend.steamId));
+    const extras = (user.friendPrefs ?? []).filter(
+      (pref) => pref.added && !pref.hidden && pref.steamId && !listed.has(pref.steamId),
+    );
+    const steamExtras = extras.filter((pref) => /^\d{17}$/.test(pref.steamId));
+    if (steamExtras.length) {
+      const chunk = steamExtras.map((pref) => pref.steamId).join(",");
+      const summaries = await steamJson<{
+        response?: { players?: { steamid: string; personaname?: string; avatarfull?: string; profileurl?: string; personastate?: number }[] };
+      }>(`https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key=${key}&steamids=${chunk}`);
+      const byId = new Map((summaries?.response?.players ?? []).map((player) => [player.steamid, player]));
+      for (const pref of steamExtras) {
+        const player = byId.get(pref.steamId);
+        friends.push({
+          steamId: pref.steamId,
+          name: player?.personaname || pref.name || "Amigo",
+          avatarUrl: player?.avatarfull || pref.avatarUrl || "",
+          profileUrl: player?.profileurl || `https://steamcommunity.com/profiles/${pref.steamId}`,
+          status: player?.personastate ? "En línea" : "Desconectado",
+          playingGame: "",
+          playingAppId: "",
+          playingMinutes: 0,
+          playingSpan: "",
+          favorite: Boolean(pref.favorite),
+          inviteGame: pref.inviteGame || "",
+          messages: (pref.messages ?? []).slice(-20).map((message) => ({ text: message.text || "", at: message.at || 0 })),
+        });
+      }
+    }
+    for (const pref of extras.filter((item) => item.steamId.startsWith("user:"))) {
+      friends.push({
+        steamId: pref.steamId,
+        name: pref.name || pref.username || "Amigo",
+        avatarUrl: pref.avatarUrl || "",
+        profileUrl: "",
+        status: "En GameNow",
+        playingGame: "",
+        playingAppId: "",
+        playingMinutes: 0,
+        playingSpan: "",
+        favorite: Boolean(pref.favorite),
+        inviteGame: pref.inviteGame || "",
+        messages: (pref.messages ?? []).slice(-20).map((message) => ({ text: message.text || "", at: message.at || 0 })),
+      });
+    }
     friends.sort(
       (a, b) =>
         Number(b.favorite) - Number(a.favorite) ||
@@ -287,13 +335,42 @@ export async function updateLibraryGame(req: Request, res: Response) {
       res.status(403).json({ error: "Solo puedes vender juegos de GameNow." });
       return;
     }
+    if (owned.saleStatus === "pending") {
+      res.status(409).json({ error: "Este juego ya está vendido. El pago a tu tarjeta sigue en espera." });
+      return;
+    }
+    const payout = req.body?.payout === "card" ? "card" : req.body?.payout === "wallet" ? "wallet" : "";
+    if (!payout) {
+      res.status(400).json({ error: "Elige si el dinero va a tu cartera o a tu tarjeta." });
+      return;
+    }
+    const paid = await purchasePrice(userId, slug, owned.paidPrice);
+    if (paid > 0 && owned.paidPrice !== paid) owned.paidPrice = paid;
+    const quote = await quoteResale(slug, owned.playTimeHours || 0, paid);
+    if (!quote) {
+      res.status(404).json({ error: "No guardamos el precio de tu compra, así que no podemos calcular el reembolso." });
+      return;
+    }
+    if (payout === "card") {
+      if (!/^\d{4}$/.test(owner.cardLast4 || "")) {
+        res.status(400).json({ error: "No hay una tarjeta guardada para devolver el dinero." });
+        return;
+      }
+      owned.saleStatus = "pending";
+      owned.salePayout = quote.payout;
+      await owner.save();
+      res.json({ user: owner.toJSON(), resale: quote, payout: "card" });
+      return;
+    }
+    owner.balance = Math.round(((owner.balance || 0) + quote.payout) * 100) / 100;
+    await recordTrade(slug, "sell", userId, quote.payout);
     if ((owned.playTimeHours || 0) > 0) {
       owned.purchased = false;
     } else {
       owner.steamGames = owner.steamGames.filter((item) => item.slug !== slug);
     }
     await owner.save();
-    res.json({ user: owner.toJSON() });
+    res.json({ user: owner.toJSON(), resale: quote, payout: "wallet" });
     return;
   }
   if (!Object.keys(set).length) {
@@ -344,10 +421,15 @@ export async function purchaseLibrary(req: Request, res: Response) {
     res.status(401).json({ error: "No autorizado." });
     return;
   }
-  const slugs = (Array.isArray(req.body?.slugs) ? req.body.slugs : [])
-    .filter((slug: unknown): slug is string => typeof slug === "string" && /^[a-z0-9-]{2,80}$/.test(slug))
+  const fromItems = Array.isArray(req.body?.items) ? req.body.items : [];
+  const purchases = (fromItems.length ? fromItems : (Array.isArray(req.body?.slugs) ? req.body.slugs : []).map((slug: unknown) => ({ slug })))
+    .map((item: { slug?: unknown; price?: unknown }) => ({
+      slug: typeof item?.slug === "string" ? item.slug : typeof item === "string" ? item : "",
+      price: Number(typeof item === "object" && item ? item.price : NaN),
+    }))
+    .filter((item: { slug: string }) => /^[a-z0-9-]{2,80}$/.test(item.slug))
     .slice(0, 20);
-  if (!slugs.length) {
+  if (!purchases.length) {
     res.status(400).json({ error: "Falta el juego." });
     return;
   }
@@ -361,27 +443,251 @@ export async function purchaseLibrary(req: Request, res: Response) {
     res.status(404).json({ error: "Usuario no encontrado." });
     return;
   }
+  const method = req.body?.method === "wallet" ? "wallet" : "card";
   const catalog = await loadGames();
   const known = new Map(catalog.games.map((game) => [game.slug, game]));
+  const products = new Map((await loadProducts()).map((product) => [product.slug, product]));
   const now = Date.now();
-  for (const slug of slugs) {
-    const source = known.get(slug);
-    const current = user.steamGames.find((game) => game.slug === slug);
+  const ready: { slug: string; name: string; cover: string; steamAppId: string; coverFallback: string; catalogPrice: number; already: boolean }[] = [];
+  for (const item of purchases) {
+    const source = known.get(item.slug);
+    const product = products.get(item.slug);
+    const productPrice = product ? await toMxn(product.price, product.currency || "MXN") : 0;
+    const catalogPrice = Math.round((productPrice || source?.priceValue || 0) * 100) / 100;
+    const name = product?.name || source?.name || item.slug;
+    if (!catalogPrice) {
+      res.status(404).json({ error: "Ese juego no está en la tienda." });
+      return;
+    }
+    const paid = Number.isFinite(item.price) && item.price > 0 ? Math.round(item.price * 100) / 100 : catalogPrice;
+    if (Math.abs(paid - catalogPrice) > 0.01) {
+      res.status(409).json({ error: `El precio de ${name} cambió. Vuelve al carrito e inténtalo de nuevo.` });
+      return;
+    }
+    const owned = user.steamGames.find((game) => game.slug === item.slug);
+    ready.push({
+      slug: item.slug,
+      name,
+      cover: source?.cover || product?.cover.local || "",
+      steamAppId: source?.steamAppId || "",
+      coverFallback: source?.coverFallback || source?.cover || product?.cover.local || "",
+      catalogPrice,
+      already: Boolean(owned?.purchased),
+    });
+  }
+  const charge = Math.round(ready.reduce((sum, item) => sum + (item.already ? 0 : item.catalogPrice), 0) * 100) / 100;
+  if (method === "wallet") {
+    const balance = Math.round((user.balance || 0) * 100) / 100;
+    if (balance + 0.001 < charge) {
+      res.status(402).json({
+        error: `Tu saldo es ${formatMxn(balance)} y este pedido cuesta ${formatMxn(charge)}.`,
+      });
+      return;
+    }
+    user.balance = Math.round((balance - charge) * 100) / 100;
+  }
+  for (const item of ready) {
+    const current = user.steamGames.find((game) => game.slug === item.slug);
     if (current) {
+      if (!current.purchased) {
+        current.paidPrice = item.catalogPrice;
+        await recordTrade(item.slug, "buy", userId, item.catalogPrice);
+      }
       current.purchased = true;
       current.lastPlayed = "Hoy";
       current.lastPlayedTimestamp = now;
-      if (!current.banner && source?.steamAppId) {
-        current.banner = `https://cdn.cloudflare.steamstatic.com/steam/apps/${source.steamAppId}/header.jpg`;
+      if (!current.banner && item.steamAppId) {
+        current.banner = `https://cdn.cloudflare.steamstatic.com/steam/apps/${item.steamAppId}/header.jpg`;
       }
       continue;
     }
-    user.steamGames.unshift(
-      boughtGame(slug, source?.name || slug, source?.cover || "", source?.steamAppId || "", source?.coverFallback || ""),
-    );
+    const bought = boughtGame(item.slug, item.name, item.cover, item.steamAppId, item.coverFallback);
+    bought.paidPrice = item.catalogPrice;
+    user.steamGames.unshift(bought);
+    await recordTrade(item.slug, "buy", userId, item.catalogPrice);
   }
+  const last4 = method === "card" && typeof req.body?.cardLast4 === "string" ? req.body.cardLast4.replace(/\D/g, "").slice(-4) : "";
+  if (/^\d{4}$/.test(last4)) user.cardLast4 = last4;
   await user.save();
   res.json({ user: user.toJSON() });
+}
+
+function friendKey(value: string) {
+  const raw = value.trim();
+  if (/^user:[a-f0-9]{24}$/i.test(raw)) return raw.toLowerCase();
+  const digits = raw.replace(/\D/g, "");
+  return /^\d{17}$/.test(digits) ? digits : "";
+}
+
+export async function searchPeople(req: Request, res: Response) {
+  const userId = userIdFromRequest(req);
+  if (!userId) {
+    res.status(401).json({ error: "No autorizado." });
+    return;
+  }
+  const query = typeof req.query.q === "string" ? req.query.q.trim() : "";
+  if (query.length < 2) {
+    res.json({ people: [] });
+    return;
+  }
+  const hasDb = await connectDb();
+  if (!hasDb) {
+    res.status(503).json({ error: "La base de datos no está disponible." });
+    return;
+  }
+  const me = await User.findById(userId).select("steamId friendPrefs");
+  if (!me) {
+    res.status(404).json({ error: "Usuario no encontrado." });
+    return;
+  }
+  const known = new Set(
+    (me.friendPrefs ?? []).filter((pref) => pref.added && !pref.hidden).map((pref) => pref.steamId),
+  );
+  if (me.steamId) {
+    const steamFriends = await friendIds(me.steamId);
+    for (const id of steamFriends) known.add(id);
+  }
+
+  const people: { steamId: string; name: string; avatarUrl: string; username: string; alreadyFriend: boolean }[] = [];
+  const steamId = friendKey(query);
+  if (/^\d{17}$/.test(steamId) && steamId !== me.steamId) {
+    const key = encodeURIComponent(config.steamApiKey);
+    const summary = await steamJson<{
+      response?: { players?: { steamid: string; personaname?: string; avatarfull?: string }[] };
+    }>(`https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key=${key}&steamids=${steamId}`);
+    const player = summary?.response?.players?.[0];
+    if (player) {
+      people.push({
+        steamId: player.steamid,
+        name: player.personaname || "Jugador de Steam",
+        avatarUrl: player.avatarfull || "",
+        username: "",
+        alreadyFriend: known.has(player.steamid),
+      });
+    }
+  }
+
+  const safe = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const users = await User.find({
+    _id: { $ne: userId },
+    username: { $regex: safe, $options: "i" },
+  })
+    .select("username avatarUrl steamId steamName steamAvatarUrl")
+    .limit(8);
+  for (const person of users) {
+    const id = person.steamId || `user:${person.id}`;
+    if (people.some((item) => item.steamId === id)) continue;
+    people.push({
+      steamId: id,
+      name: person.steamName || person.username,
+      avatarUrl: person.steamAvatarUrl || person.avatarUrl || "",
+      username: person.username,
+      alreadyFriend: known.has(id) || Boolean(person.steamId && known.has(person.steamId)),
+    });
+  }
+  res.json({ people });
+}
+
+export async function addFriend(req: Request, res: Response) {
+  const userId = userIdFromRequest(req);
+  if (!userId) {
+    res.status(401).json({ error: "No autorizado." });
+    return;
+  }
+  const hasDb = await connectDb();
+  if (!hasDb) {
+    res.status(503).json({ error: "La base de datos no está disponible." });
+    return;
+  }
+  const me = await User.findById(userId).select("friendPrefs steamId");
+  if (!me) {
+    res.status(404).json({ error: "Usuario no encontrado." });
+    return;
+  }
+
+  let steamId = friendKey(typeof req.body?.steamId === "string" ? req.body.steamId : "");
+  let name = "";
+  let avatarUrl = "";
+  let username = "";
+  if (!steamId && typeof req.body?.username === "string") {
+    const person = await User.findOne({ username: req.body.username.trim() }).select("username avatarUrl steamId steamName steamAvatarUrl");
+    if (!person || person.id === userId) {
+      res.status(404).json({ error: "No encontramos a esa persona en GameNow." });
+      return;
+    }
+    steamId = person.steamId || `user:${person.id}`;
+    name = person.steamName || person.username;
+    avatarUrl = person.steamAvatarUrl || person.avatarUrl || "";
+    username = person.username;
+  }
+  if (!steamId || steamId === me.steamId) {
+    res.status(400).json({ error: "Escribe un usuario de GameNow o un SteamID." });
+    return;
+  }
+  if (!name && /^\d{17}$/.test(steamId)) {
+    const key = encodeURIComponent(config.steamApiKey);
+    const summary = await steamJson<{
+      response?: { players?: { personaname?: string; avatarfull?: string }[] };
+    }>(`https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key=${key}&steamids=${steamId}`);
+    const player = summary?.response?.players?.[0];
+    name = player?.personaname || "Jugador de Steam";
+    avatarUrl = player?.avatarfull || "";
+  }
+
+  const prefs = me.friendPrefs ?? [];
+  let current = prefs.find((item) => item.steamId === steamId);
+  if (current && !current.hidden && current.added) {
+    res.status(409).json({ error: "Esa persona ya está en tus amigos." });
+    return;
+  }
+  if (!current) {
+    current = { steamId, favorite: false, hidden: false, inviteGame: "", messages: [] };
+    prefs.push(current);
+  }
+  current.hidden = false;
+  current.added = true;
+  current.name = name || current.name || "";
+  current.avatarUrl = avatarUrl || current.avatarUrl || "";
+  current.username = username || current.username || "";
+  me.friendPrefs = prefs;
+  await me.save();
+  res.json({
+    steamId,
+    name: current.name,
+    avatarUrl: current.avatarUrl,
+    username: current.username,
+  });
+}
+
+export async function resaleQuote(req: Request, res: Response) {
+  const userId = userIdFromRequest(req);
+  if (!userId) {
+    res.status(401).json({ error: "No autorizado." });
+    return;
+  }
+  const slug = typeof req.query.slug === "string" ? req.query.slug : "";
+  if (!/^[a-z0-9-]{2,80}$/.test(slug)) {
+    res.status(400).json({ error: "Falta el juego." });
+    return;
+  }
+  const hasDb = await connectDb();
+  if (!hasDb) {
+    res.status(503).json({ error: "La base de datos no está disponible." });
+    return;
+  }
+  const owner = await User.findById(userId).select("steamGames balance");
+  const owned = owner?.steamGames.find((item) => item.slug === slug);
+  if (!owned?.purchased) {
+    res.status(403).json({ error: "Solo puedes vender juegos de GameNow." });
+    return;
+  }
+  const paid = await purchasePrice(userId, slug, owned.paidPrice);
+  const quote = await quoteResale(slug, owned.playTimeHours || 0, paid);
+  if (!quote) {
+    res.status(404).json({ error: "No guardamos el precio de tu compra, así que no podemos calcular el reembolso." });
+    return;
+  }
+  res.json({ resale: quote, balance: owner?.balance || 0 });
 }
 
 export async function updateFriend(req: Request, res: Response) {
@@ -390,7 +696,7 @@ export async function updateFriend(req: Request, res: Response) {
     res.status(401).json({ error: "No autorizado." });
     return;
   }
-  const steamId = typeof req.body?.steamId === "string" ? req.body.steamId.replace(/\D/g, "") : "";
+  const steamId = friendKey(typeof req.body?.steamId === "string" ? req.body.steamId : "");
   if (!steamId) {
     res.status(400).json({ error: "Falta el amigo." });
     return;

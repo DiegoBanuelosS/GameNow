@@ -26,6 +26,8 @@ export interface SteamLibraryGame {
   userRating?: number;
   userNote?: string;
   purchased?: boolean;
+  saleStatus?: "" | "pending";
+  salePayout?: number;
   desktopShortcut?: boolean;
   taskbarPin?: boolean;
   beta?: string;
@@ -44,6 +46,8 @@ export interface User {
   steamBackgroundUrl?: string;
   steamBackgroundVideo?: string;
   steamGameCount?: number;
+  balance?: number;
+  cardLast4?: string;
   steamGames?: SteamLibraryGame[];
   createdAt?: string;
 }
@@ -69,9 +73,13 @@ interface AuthContextType {
       taskbarPin?: boolean;
       beta?: string;
       sell?: boolean;
+      payout?: "wallet" | "card";
     },
   ) => Promise<{ ok: boolean; error?: string }>;
-  purchaseGames: (slugs: string[]) => Promise<{ ok: boolean; error?: string }>;
+  purchaseGames: (
+    items: { slug: string; price: number }[],
+    payment?: { method?: "wallet" | "card"; cardLast4?: string },
+  ) => Promise<{ ok: boolean; error?: string }>;
   unlinkSteam: () => Promise<{ ok: boolean; error?: string }>;
 }
 
@@ -214,6 +222,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         taskbarPin?: boolean;
         beta?: string;
         sell?: boolean;
+        payout?: "wallet" | "card";
       },
     ) => {
       if (!token) return { ok: false, error: "No autorizado." };
@@ -240,7 +249,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const purchaseGames = useCallback(
-    async (slugs: string[]) => {
+    async (items: { slug: string; price: number }[], payment?: { method?: "wallet" | "card"; cardLast4?: string }) => {
       if (!token) return { ok: false, error: "No autorizado." };
       try {
         const response = await fetch("/api/steam/library", {
@@ -249,7 +258,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ slugs }),
+          body: JSON.stringify({ items, method: payment?.method || "card", cardLast4: payment?.cardLast4 }),
         });
         const data = await response.json();
         if (!response.ok) {
