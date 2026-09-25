@@ -173,7 +173,7 @@ export function EventOffers() {
     catalog.offers.find((game) => game.slug === CYBERPUNK) ||
     catalog.events.find((game) => game.slug === CYBERPUNK) ||
     catalog.ads.find((game) => game.slug === CYBERPUNK);
-  const sideGames = [...catalog.ads, ...catalog.events, ...catalog.offers]
+  const sideGames = [...catalog.events, ...catalog.offers]
     .filter(
       (game, index, list) =>
         game.slug !== "how-to-fish" &&
@@ -181,7 +181,7 @@ export function EventOffers() {
         Boolean(game.cover) &&
         list.findIndex((item) => item.slug === game.slug) === index,
     )
-    .slice(0, 9);
+    .slice(0, 6);
 
   return (
     <section className="event-offers" id="eventos" aria-labelledby="event-offers-title">
