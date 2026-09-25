@@ -128,6 +128,7 @@ function GameTile({ game, size }: { game: StoreProduct; size: "large" | "small" 
           config={{
             appearance: "dark",
             material: "regular",
+            borderRadius: 16,
             blur: 18,
             saturation: 1.6,
             refractionStrength: 22,
