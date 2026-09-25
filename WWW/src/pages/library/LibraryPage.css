@@ -525,14 +525,6 @@
   padding-right: 4px;
 }
 
-.library-game-list::-webkit-scrollbar {
-  width: 4px;
-}
-
-.library-game-list::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 4px;
-}
 
 .library-game-row {
   background: transparent;
