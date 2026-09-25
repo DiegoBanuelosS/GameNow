@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { Gamepad2, MessageCircle, Star, UserMinus } from "lucide-react";
+import { Gamepad2, MessageCircle, Star, UserMinus, UserRound } from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { AuthRequiredGate } from "../../components/AuthRequiredGate";
 import { SiteNav } from "../Store/SiteNav";
 import { Footer9 } from "../Store/Footer9";
 import { apiUrl } from "../../data/api";
@@ -130,11 +131,20 @@ export function PublicProfilePage() {
       <SiteNav />
       <main className="profile-main-container">
         {status === "unauthenticated" ? (
-          <div style={{ padding: "80px 24px", textAlign: "center" }}>
-            <p className="profile-email">
-              <Link to="/auth#iniciar">Inicia sesión</Link> para ver este perfil.
-            </p>
-          </div>
+          <AuthRequiredGate
+            title="Inicia sesión para ver este perfil"
+            description="Los perfiles públicos de GameNow requieren una sesión activa. Entra con tu cuenta para ver actividad, amigos y juegos recientes."
+            features={[
+              {
+                icon: <UserRound size={16} aria-hidden="true" />,
+                label: "Perfiles de amigos y jugadores de Steam",
+              },
+              {
+                icon: <Gamepad2 size={16} aria-hidden="true" />,
+                label: "Actividad reciente y biblioteca visible",
+              },
+            ]}
+          />
         ) : null}
         {loading ? <p className="profile-email" style={{ padding: "48px 24px" }}>Cargando perfil…</p> : null}
         {!loading && error ? <p className="profile-link-error" style={{ margin: "24px" }}>{error}</p> : null}

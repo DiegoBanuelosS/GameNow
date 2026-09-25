@@ -85,9 +85,12 @@
 }
 
 .search-overlay-cover {
-  width: 160px;
-  height: 76px;
-  object-fit: cover;
+  width: 64px;
+  height: 96px;
+  flex-shrink: 0;
+  object-fit: contain;
+  object-position: center;
+  background: #121110;
   border-radius: var(--radius-button);
 }
 

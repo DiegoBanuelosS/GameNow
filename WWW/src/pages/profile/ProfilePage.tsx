@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
+import { Clock3, Gamepad2, UserRound } from "lucide-react";
+import { AuthRequiredGate } from "../../components/AuthRequiredGate";
 import { SiteNav } from "../Store/SiteNav";
 import { Footer9 } from "../Store/Footer9";
 import { useAuth, type SteamLibraryGame } from "../../data/AuthContext";
@@ -90,29 +92,24 @@ export function ProfilePage() {
     return (
       <div className="profile-page">
         <SiteNav />
-        <main className="profile-main-container">
-          <div style={{ padding: "80px 24px", textAlign: "center", maxWidth: "540px", margin: "0 auto" }}>
-            <h1 style={{ fontSize: "26px", color: "#fff", marginBottom: "12px" }}>Inicia sesión para ver tu perfil</h1>
-            <p style={{ color: "var(--color-fg-muted)", fontSize: "14.5px", marginBottom: "24px", lineHeight: "1.5" }}>
-              Accede a tu cuenta de GameNow para consultar tus últimos juegos jugados, tus horas acumuladas y gestionar tu biblioteca.
-            </p>
-            <Link
-              to="/auth#iniciar"
-              style={{
-                display: "inline-block",
-                background: "var(--color-accent-primary)",
-                color: "#fff",
-                fontWeight: 600,
-                fontSize: "14px",
-                padding: "12px 28px",
-                borderRadius: "var(--radius-button)",
-                textDecoration: "none",
-              }}
-            >
-              Iniciar sesión
-            </Link>
-          </div>
-        </main>
+        <AuthRequiredGate
+          title="Inicia sesión para ver tu perfil"
+          description="Accede a tu cuenta de GameNow para consultar tus últimos juegos jugados, tus horas acumuladas y gestionar tu biblioteca."
+          features={[
+            {
+              icon: <UserRound size={16} aria-hidden="true" />,
+              label: "Tu perfil, avatar y vínculo con Steam",
+            },
+            {
+              icon: <Clock3 size={16} aria-hidden="true" />,
+              label: "Horas jugadas y actividad reciente",
+            },
+            {
+              icon: <Gamepad2 size={16} aria-hidden="true" />,
+              label: "Acceso rápido a tu biblioteca",
+            },
+          ]}
+        />
         <Footer9 />
       </div>
     );

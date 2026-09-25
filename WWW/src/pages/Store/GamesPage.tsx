@@ -1,12 +1,9 @@
-import { useMemo } from "react";
+import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
+import { apiUrl } from "../../data/api";
+import type { CatalogGame } from "../../data/catalog";
 import { useCatalog } from "../../data/CatalogContext";
-import {
-  filterGames,
-  isGameTab,
-  priceCeiling,
-  type GameFilterState,
-} from "../../data/gameFilters";
+import { isGameTab, type GameFilterState } from "../../data/gameFilters";
 import { Footer9 } from "./Footer9";
 import { GamesPager } from "./GamesPager";
 import { GamesSidebar } from "./GamesSidebar";
@@ -17,14 +14,17 @@ import { useStoreEnter } from "./useStoreMotion";
 import "./GameTables.css";
 import "./StorePage.css";
 
-const PAGE_SIZE = 12;
+const PAGE_SIZE = 10;
 
 export function GamesPage() {
-  const { games, status } = useCatalog();
+  const { status } = useCatalog();
   const ready = status !== "loading";
   const root = useStoreEnter(ready);
   const [params, setParams] = useSearchParams();
-  const ceiling = useMemo(() => priceCeiling(games.games), [games.games]);
+  const [ceiling, setCeiling] = useState(2000);
+  const [visible, setVisible] = useState<CatalogGame[]>([]);
+  const [total, setTotal] = useState(0);
+  const [pageCount, setPageCount] = useState(1);
   const requestedTab = params.get("tab");
   const filters: GameFilterState = {
     collection: isGameTab(requestedTab) ? requestedTab : "todos",
@@ -32,13 +32,37 @@ export function GamesPage() {
     maxPrice: Number(params.get("max") ?? ceiling) || ceiling,
     minMetacritic: Number(params.get("stars") ?? params.get("meta") ?? 0) || 0,
   };
-  const filtered = useMemo(
-    () => filterGames(games.games, filters, ceiling),
-    [games.games, filters, ceiling],
-  );
-  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const page = Math.min(pageCount, Math.max(1, Number(params.get("page") ?? 1) || 1));
-  const visible = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const page = Math.max(1, Number(params.get("page") ?? 1) || 1);
+
+  useEffect(() => {
+    const query = new URLSearchParams();
+    query.set("page", String(page));
+    if (filters.collection !== "todos") query.set("tab", filters.collection);
+    if (filters.minPrice > 0) query.set("min", String(filters.minPrice));
+    if (filters.maxPrice < ceiling) query.set("max", String(filters.maxPrice));
+    if (filters.minMetacritic > 0) query.set("stars", String(filters.minMetacritic));
+    let alive = true;
+    fetch(apiUrl(`/api/games?${query}`))
+      .then((response) => {
+        if (!response.ok) throw new Error(String(response.status));
+        return response.json() as Promise<{ games: CatalogGame[]; total: number; pageCount: number; ceiling: number }>;
+      })
+      .then((payload) => {
+        if (!alive) return;
+        setVisible(payload.games.slice(0, PAGE_SIZE));
+        setTotal(payload.total);
+        setPageCount(payload.pageCount);
+        if (payload.ceiling) setCeiling(payload.ceiling);
+      })
+      .catch(() => {
+        if (!alive) return;
+        setVisible([]);
+        setTotal(0);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [page, filters.collection, filters.minPrice, filters.maxPrice, filters.minMetacritic, ceiling]);
 
   function writeParams(next: GameFilterState, nextPage: number) {
     const nextParams = new URLSearchParams();
@@ -80,7 +104,7 @@ export function GamesPage() {
             </p>
             <h1 id="games-page-title">Nuestros Juegos</h1>
             <p className="games-tables-lead">
-              {filtered.length} títulos · Página {page} de {pageCount}
+              {total} títulos · Página {page} de {pageCount}
             </p>
 
             <div className="games-layout" id="games-catalog">

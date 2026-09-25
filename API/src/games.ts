@@ -81,6 +81,121 @@ type GamesCatalog = {
   total: number;
 };
 
+const PAGE_SIZE = 10;
+
+function slugify(title: string, appId: string) {
+  const base = title
+    .normalize("NFKD")
+    .replace(/[^\w\s-]/g, "")
+    .trim()
+    .toLowerCase()
+    .replace(/[\s_]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+  return base || `steam-${appId}`;
+}
+
+async function steamAppList() {
+  const cached = cacheGet<{ appid: number; name: string }[]>("steam-app-list");
+  if (cached) return cached;
+  if (!config.steamApiKey) throw new Error("Sin clave de catálogo.");
+  const apps: { appid: number; name: string }[] = [];
+  let lastAppId = 0;
+  for (let page = 0; page < 40 && apps.length < 1_000_000; page += 1) {
+    const url = new URL("https://api.steampowered.com/IStoreService/GetAppList/v1/");
+    url.searchParams.set("key", config.steamApiKey);
+    url.searchParams.set("include_games", "true");
+    url.searchParams.set("max_results", "50000");
+    if (lastAppId) url.searchParams.set("last_appid", String(lastAppId));
+    const response = await fetch(url, { signal: AbortSignal.timeout(60_000) });
+    if (!response.ok) throw new Error(String(response.status));
+    const payload = (await response.json()) as {
+      response?: { apps?: { appid: number; name: string }[]; have_more_results?: boolean; last_appid?: number };
+    };
+    const batch = payload.response?.apps ?? [];
+    for (const app of batch) {
+      if (app.appid && app.name?.trim()) apps.push({ appid: app.appid, name: app.name });
+    }
+    if (!payload.response?.have_more_results || !batch.length) break;
+    lastAppId = payload.response.last_appid || batch[batch.length - 1].appid;
+  }
+  return cacheSet("steam-app-list", apps, 6 * 60 * 60 * 1000);
+}
+
+async function catalogIndex() {
+  const cached = cacheGet<CatalogGame[]>("catalog-index");
+  if (cached) return cached;
+  const known = await fromSnapshot();
+  const ids = new Set(known.map((game) => game.steamAppId));
+  const slugs = new Set(known.map((game) => game.slug));
+  let extra: CatalogGame[] = [];
+  try {
+    const apps = await steamAppList();
+    extra = [];
+    for (const app of apps) {
+      const steamAppId = String(app.appid);
+      if (ids.has(steamAppId)) continue;
+      const name = app.name.trim();
+      if (name.length < 2) continue;
+      let slug = slugify(name, steamAppId);
+      if (slugs.has(slug)) slug = `${slug}-${steamAppId}`;
+      slugs.add(slug);
+      ids.add(steamAppId);
+      extra.push({
+        slug,
+        steamAppId,
+        name,
+        alt: name,
+        price: 0,
+        metacritic: 0,
+        steamRating: "",
+        source: "steam",
+      });
+    }
+  } catch (error) {
+    console.error("No se pudo ampliar el catálogo.", error);
+  }
+  return cacheSet("catalog-index", [...known, ...extra], extra.length ? 6 * 60 * 60 * 1000 : 5 * 60 * 1000);
+}
+
+function matchesQuery(
+  game: CatalogGame,
+  rate: number,
+  query: { tab?: string; min?: number; max?: number; stars?: number; q?: string; ceiling: number },
+) {
+  const priceValue = Math.round(game.price * rate * 100) / 100;
+  const onSale = Boolean(game.compareAtPrice && game.compareAtPrice > game.price);
+  const table = game.metacritic >= 90 ? "rated" : onSale ? "deals" : "catalog";
+  if (query.tab === "valorados" && table !== "rated") return false;
+  if (query.tab === "ofertas" && table !== "deals") return false;
+  if (query.tab === "catalogo" && table !== "catalog") return false;
+  if (priceValue < (query.min ?? 0)) return false;
+  if (query.max != null && query.max < query.ceiling && priceValue > query.max) return false;
+  if ((query.stars ?? 0) > 0) {
+    const stars = Math.round((game.metacritic / 100) * 5);
+    if (stars < (query.stars ?? 0)) return false;
+  }
+  if (query.q && !game.name.toLowerCase().includes(query.q)) return false;
+  return true;
+}
+
+export async function loadGamesPage(input: { page?: number; tab?: string; min?: number; max?: number; stars?: number; q?: string }) {
+  const rate = await usdMxnRate();
+  const index = await catalogIndex();
+  const retail = index.map((game) => Math.round(game.price * rate * 100) / 100).filter((price) => price > 0 && price <= 2500);
+  const ceiling = Math.max(400, Math.ceil(Math.max(0, ...retail)));
+  const matched = index.filter((game) => matchesQuery(game, rate, { ...input, ceiling }));
+  const pageCount = Math.max(1, Math.ceil(matched.length / PAGE_SIZE));
+  const page = Math.min(pageCount, Math.max(1, input.page || 1));
+  const games = matched.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map((game) => toPublicWithRate(game, rate));
+  return { games, total: matched.length, page, pageCount, ceiling };
+}
+
+export async function findCatalogGame(slug: string) {
+  const index = await catalogIndex();
+  return index.find((game) => game.slug === slug) ?? null;
+}
+
 export async function loadGames() {
   const cached = cacheGet<GamesCatalog>("games-mxn");
   if (cached) {
@@ -105,8 +220,8 @@ export async function loadGames() {
 }
 
 export async function loadGame(slug: string) {
-  const catalog = await loadGames();
-  const game = catalog.games.find((row) => row.slug === slug);
+  const raw = await findCatalogGame(slug);
+  const game = raw ? toPublicWithRate(raw, await usdMxnRate()) : null;
   if (!game) {
     return null;
   }

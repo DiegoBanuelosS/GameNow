@@ -1,10 +1,13 @@
-import { useEffect, useRef, useState } from "react";
-import { Gamepad2, MessageCircle, Search, Star, UserMinus, UserPlus } from "lucide-react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { Gamepad2, MessageCircle, Search, Star, UserMinus, UserPlus, Users } from "lucide-react";
 import { Link } from "react-router-dom";
+import { AuthRequiredGate } from "../../components/AuthRequiredGate";
 import { SiteNav } from "../Store/SiteNav";
 import { Footer9 } from "../Store/Footer9";
+import { PageLoader } from "../Store/LogoLoader";
 import { apiUrl } from "../../data/api";
 import { useAuth } from "../../data/AuthContext";
+import { ChatModal } from "./ChatModal";
 import "./FriendsPage.css";
 
 type Person = {
@@ -13,6 +16,9 @@ type Person = {
   avatarUrl: string;
   username: string;
   alreadyFriend: boolean;
+  source?: "gamenow" | "steam";
+  miniBackgroundUrl?: string;
+  miniBackgroundVideo?: string;
 };
 
 type Friend = {
@@ -28,6 +34,8 @@ type Friend = {
   favorite: boolean;
   inviteGame: string;
   messages: { text: string; at: number }[];
+  backgroundUrl?: string;
+  backgroundVideo?: string;
 };
 
 function playingCover(appId: string, step = 0) {
@@ -49,9 +57,9 @@ export function FriendsPage() {
   const [friends, setFriends] = useState<Friend[]>([]);
   const [hidden, setHidden] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [openChat, setOpenChat] = useState<string | null>(null);
+  const [openChat, setOpenChat] = useState(false);
+  const [chatFocus, setChatFocus] = useState<string | null>(null);
   const [openInvite, setOpenInvite] = useState<string | null>(null);
-  const [draft, setDraft] = useState("");
   const [friendQuery, setFriendQuery] = useState("");
   const [addQuery, setAddQuery] = useState("");
   const [adding, setAdding] = useState(false);
@@ -66,6 +74,7 @@ export function FriendsPage() {
       return;
     }
     let alive = true;
+    setLoading(true);
     fetch(apiUrl("/api/steam/friends"), { headers: { Authorization: `Bearer ${token}` } })
       .then(async (response) => {
         const data = await response.json();
@@ -109,7 +118,24 @@ export function FriendsPage() {
 
   useEffect(() => {
     if (!adding) return;
-    addInput.current?.focus();
+    const frame = window.requestAnimationFrame(() => addInput.current?.focus());
+    const overflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setAdding(false);
+        setAddQuery("");
+        setPeople([]);
+        setAddNotice("");
+        setSearching(false);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      document.body.style.overflow = overflow;
+      window.removeEventListener("keydown", onKey);
+    };
   }, [adding]);
 
   const closeAdd = () => {
@@ -117,6 +143,7 @@ export function FriendsPage() {
     setAddQuery("");
     setPeople([]);
     setAddNotice("");
+    setSearching(false);
   };
 
   const searchPeople = async () => {
@@ -129,7 +156,7 @@ export function FriendsPage() {
     setSearching(true);
     setAddNotice("");
     try {
-      const response = await fetch(`/api/steam/people?q=${encodeURIComponent(query)}`, {
+      const response = await fetch(apiUrl(`/api/steam/people?q=${encodeURIComponent(query)}`), {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
@@ -140,7 +167,7 @@ export function FriendsPage() {
       }
       const found = (data.people ?? []) as Person[];
       setPeople(found);
-      setAddNotice(found.length ? "" : "No encontramos a nadie con ese usuario o código.");
+      setAddNotice(found.length ? "" : "No encontramos a nadie con ese usuario o nombre.");
     } catch {
       setAddNotice("No se pudo buscar. Revisa tu conexión.");
     } finally {
@@ -151,7 +178,7 @@ export function FriendsPage() {
   const addPerson = async (person: Person) => {
     if (!token || person.alreadyFriend) return;
     setAddNotice("");
-    const response = await fetch("/api/steam/friends", {
+    const response = await fetch(apiUrl("/api/steam/friends"), {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -161,7 +188,7 @@ export function FriendsPage() {
     });
     const data = await response.json();
     if (!response.ok) {
-      setAddNotice(data.error || "No se pudo agregar.");
+      setAddNotice(data.error || "No se pudo enviar la solicitud.");
       return;
     }
     setPeople((current) =>
@@ -183,11 +210,12 @@ export function FriendsPage() {
           favorite: false,
           inviteGame: "",
           messages: [],
+          backgroundUrl: person.miniBackgroundUrl,
         },
         ...current,
       ];
     });
-    setAddNotice(`${person.name} ya está en tus amigos.`);
+    setAddNotice(`Solicitud enviada a ${person.name}.`);
   };
 
   const applyPatch = (steamId: string, body: Record<string, unknown>) => {
@@ -199,6 +227,35 @@ export function FriendsPage() {
       });
     });
   };
+
+  const showLoader = status === "loading" || (status === "authenticated" && loading);
+
+  if (status === "unauthenticated") {
+    return (
+      <div className="friends-page">
+        <SiteNav />
+        <AuthRequiredGate
+          title="Inicia sesión para ver a tus amigos"
+          description="Conecta tu cuenta de GameNow para ver tu lista de amigos, mandar solicitudes y chatear en privado."
+          features={[
+            {
+              icon: <Users size={16} aria-hidden="true" />,
+              label: "Lista de amigos de GameNow y Steam",
+            },
+            {
+              icon: <MessageCircle size={16} aria-hidden="true" />,
+              label: "Chat cifrado entre cuentas",
+            },
+            {
+              icon: <UserPlus size={16} aria-hidden="true" />,
+              label: "Busca y agrega gente por usuario o Steam",
+            },
+          ]}
+        />
+        <Footer9 />
+      </div>
+    );
+  }
 
   return (
     <div className="friends-page">
@@ -224,69 +281,101 @@ export function FriendsPage() {
                 />
               </div>
             </form>
-            {adding ? (
+            {!adding ? (
+              <button type="button" className="friends-add" onClick={() => setAdding(true)}>
+                <UserPlus size={14} aria-hidden="true" />
+                Agregar
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+
+        {adding ? (
+          <div className="friends-add-overlay" role="dialog" aria-modal="true" aria-labelledby="friend-add-title">
+            <button type="button" className="friends-add-scrim" aria-label="Cerrar" onClick={closeAdd} />
+            <div className="friends-add-panel">
+              <h2 id="friend-add-title" className="visually-hidden">
+                Agregar amigo
+              </h2>
               <form
-                className="friends-tool friends-add-swap"
+                className="friends-add-form"
                 onSubmit={(event) => {
                   event.preventDefault();
                   void searchPeople();
                 }}
               >
-                <label htmlFor="friend-add">Usuario o código de amigo</label>
-                <div className="friends-tool-row">
+                <label className="visually-hidden" htmlFor="friend-add">
+                  Usuario GameNow o Steam
+                </label>
+                <div className="friends-tool-row friends-add-input">
                   <Search size={16} aria-hidden="true" />
                   <input
                     ref={addInput}
                     id="friend-add"
                     value={addQuery}
-                    placeholder="Usuario o código de amigo"
+                    placeholder="Usuario, nombre Steam o código"
                     onChange={(event) => setAddQuery(event.target.value)}
                   />
                   <button type="submit" disabled={searching}>
-                    {searching ? "Buscando…" : "Buscar"}
-                  </button>
-                  <button type="button" className="friends-add-close" onClick={closeAdd}>
-                    Cerrar
+                    {searching ? "…" : "Buscar"}
                   </button>
                 </div>
               </form>
-            ) : (
-              <button type="button" className="friends-add" onClick={() => setAdding(true)}>
-                <UserPlus size={16} aria-hidden="true" />
-                Agregar amigo
-              </button>
-            )}
+              <div className="friends-add-results" role="status">
+                {addNotice ? <p>{addNotice}</p> : null}
+                {searching ? <p>Buscando…</p> : null}
+                {people.length > 0 ? (
+                  <ul className="friends-find-list">
+                    {people.map((person, index) => (
+                      <li
+                        key={person.steamId}
+                        className="friends-find-card"
+                        style={{ "--friends-i": index } as CSSProperties}
+                      >
+                        <div className="friends-find-bg" aria-hidden>
+                          {person.miniBackgroundVideo ? (
+                            <video
+                              src={person.miniBackgroundVideo}
+                              poster={person.miniBackgroundUrl || undefined}
+                              autoPlay
+                              muted
+                              loop
+                              playsInline
+                            />
+                          ) : person.miniBackgroundUrl ? (
+                            <img src={person.miniBackgroundUrl} alt="" />
+                          ) : null}
+                          <span className="friends-find-bg-fade" />
+                        </div>
+                        <div className="friends-find-body">
+                          {person.avatarUrl ? (
+                            <img className="friends-find-avatar" src={person.avatarUrl} alt="" />
+                          ) : (
+                            <span className="friends-find-avatar" />
+                          )}
+                          <span className="friends-find-copy">
+                            <strong>{person.name}</strong>
+                            {person.username ? (
+                              <small>@{person.username}</small>
+                            ) : (
+                              <small>{person.source === "steam" ? "Steam" : "GameNow"}</small>
+                            )}
+                          </span>
+                          <button type="button" disabled={person.alreadyFriend} onClick={() => void addPerson(person)}>
+                            {person.alreadyFriend ? "Ya es tu amigo" : "Mandar solicitud de amistad"}
+                          </button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
+            </div>
           </div>
         ) : null}
-        {people.length > 0 || addNotice ? (
-          <div className="friends-results" role="status">
-            {addNotice ? <p>{addNotice}</p> : null}
-            {people.length > 0 ? (
-              <ul>
-                {people.map((person) => (
-                  <li key={person.steamId}>
-                    {person.avatarUrl ? <img src={person.avatarUrl} alt="" /> : <span />}
-                    <span>
-                      <strong>{person.name}</strong>
-                      {person.username ? <small>@{person.username}</small> : null}
-                    </span>
-                    <button type="button" disabled={person.alreadyFriend} onClick={() => void addPerson(person)}>
-                      {person.alreadyFriend ? "Ya es tu amigo" : "Agregar"}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-          </div>
-        ) : null}
-        {status === "loading" || (status === "authenticated" && loading) ? (
-          <p className="friends-empty">Cargando amigos…</p>
-        ) : null}
-        {status === "unauthenticated" ? (
-          <p className="friends-empty">
-            <Link to="/auth#iniciar">Inicia sesión</Link> para ver a tus amigos.
-          </p>
-        ) : null}
+
+        {showLoader ? <PageLoader label="Cargando amigos…" /> : null}
+
         {status === "authenticated" && !loading && !user?.steamId ? (
           <p className="friends-empty">
             Vincula Steam en tu <Link to="/profile">perfil</Link> para traer tu lista de amigos.
@@ -303,8 +392,12 @@ export function FriendsPage() {
         ) : null}
         {visibleFriends.length > 0 ? (
           <ul className="friends-list">
-            {visibleFriends.map((friend) => (
-              <li key={friend.steamId}>
+            {visibleFriends.map((friend, index) => (
+              <li
+                key={friend.steamId}
+                className="friends-list-item"
+                style={{ "--friends-i": index } as CSSProperties}
+              >
                 <div className="friends-row">
                   {/^\d{17}$/.test(friend.steamId) ? (
                     <Link className="friends-person" to={`/perfil/${friend.steamId}`}>
@@ -327,11 +420,11 @@ export function FriendsPage() {
                     <button
                       type="button"
                       className="friends-chat"
-                      aria-pressed={openChat === friend.steamId}
+                      aria-pressed={openChat && chatFocus === friend.steamId}
                       onClick={() => {
                         setOpenInvite(null);
-                        setOpenChat((current) => (current === friend.steamId ? null : friend.steamId));
-                        setDraft("");
+                        setChatFocus(friend.steamId);
+                        setOpenChat(true);
                       }}
                     >
                       <MessageCircle size={16} aria-hidden="true" />
@@ -342,7 +435,8 @@ export function FriendsPage() {
                       className="friends-invite"
                       aria-pressed={openInvite === friend.steamId}
                       onClick={() => {
-                        setOpenChat(null);
+                        setOpenChat(false);
+                        setChatFocus(null);
                         setOpenInvite((current) => (current === friend.steamId ? null : friend.steamId));
                       }}
                     >
@@ -389,27 +483,6 @@ export function FriendsPage() {
                     ) : null}
                   </div>
                 </div>
-                {openChat === friend.steamId ? (
-                  <form
-                    className="friends-panel"
-                    onSubmit={(event) => {
-                      event.preventDefault();
-                      const text = draft.trim();
-                      if (!text) return;
-                      setDraft("");
-                      applyPatch(friend.steamId, { message: text });
-                    }}
-                  >
-                    {friend.messages.map((message) => (
-                      <p key={`${message.at}-${message.text}`}>{message.text}</p>
-                    ))}
-                    <label>
-                      Mensaje
-                      <input value={draft} maxLength={280} onChange={(event) => setDraft(event.target.value)} />
-                    </label>
-                    <button type="submit">Enviar</button>
-                  </form>
-                ) : null}
                 {openInvite === friend.steamId ? (
                   <div className="friends-panel">
                     {friend.inviteGame ? <p>Invitación: {friend.inviteGame}</p> : null}
@@ -441,6 +514,25 @@ export function FriendsPage() {
           </ul>
         ) : null}
       </main>
+      <ChatModal
+        open={openChat}
+        onClose={() => {
+          setOpenChat(false);
+          setChatFocus(null);
+        }}
+        friends={friends.map((friend) => ({
+          steamId: friend.steamId,
+          name: friend.name,
+          avatarUrl: friend.avatarUrl,
+          backgroundUrl: friend.backgroundUrl,
+          backgroundVideo: friend.backgroundVideo,
+          playingGame: friend.playingGame,
+          playingAppId: friend.playingAppId,
+          playingMinutes: friend.playingMinutes,
+          playingSpan: friend.playingSpan,
+        }))}
+        focusFriendId={chatFocus}
+      />
       <Footer9 />
     </div>
   );

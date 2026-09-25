@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Star } from "../../components/Icons";
 import { useAuth } from "../../data/AuthContext";
+import { useAppPanels } from "../../data/AppPanelsContext";
 import { useDownloads } from "../../data/DownloadsContext";
 import { useLaunch } from "../../data/LaunchContext";
 import { apiUrl } from "../../data/api";
@@ -58,6 +59,7 @@ type LibraryDetailProps = {
     taskbarPin?: boolean;
     beta?: string;
     sell?: boolean;
+    remove?: boolean;
     payout?: "wallet" | "card";
   }) => Promise<{ ok: boolean; error?: string }>;
 };
@@ -93,6 +95,7 @@ export function LibraryDetail({
   const [resaleState, setResaleState] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [sold, setSold] = useState<"wallet" | "card" | "">("");
   const { user } = useAuth();
+  const { openHelp } = useAppPanels();
   const cardLast4 = user?.cardLast4 || "";
   const [balanceLabel, setBalanceLabel] = useState("");
 
@@ -256,6 +259,21 @@ export function LibraryDetail({
           }}
         >
           Configurar
+        </button>
+        <button
+          type="button"
+          className="library-detail-help"
+          onClick={() =>
+            openHelp({
+              slug: game.slug,
+              name: game.name,
+              cover: game.cover,
+              purchased: game.purchased,
+              saleStatus: game.saleStatus || "",
+            })
+          }
+        >
+          Ayuda
         </button>
         <div className="library-detail-copy">
           <p className="library-detail-genre">{game.genre}</p>

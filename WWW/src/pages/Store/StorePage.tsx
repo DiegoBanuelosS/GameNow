@@ -5,6 +5,7 @@ import { ConnectionBanner } from "./ConnectionBanner";
 import { Download5 } from "./Download5";
 import { Footer9 } from "./Footer9";
 import { EventOffers } from "./EventOffers";
+import { ReleaseCalendar } from "./ReleaseCalendar";
 import { GameCatalog } from "./GameCatalog";
 import { PageLoader } from "./LogoLoader";
 import { SiteNav } from "./SiteNav";
@@ -12,7 +13,7 @@ import { useStoreEnter } from "./useStoreMotion";
 import "./StorePage.css";
 
 export function StorePage() {
-  const { status, games } = useCatalog();
+  const { status } = useCatalog();
   const ready = status !== "loading";
   const root = useStoreEnter(ready);
   const isApp = useDesktopApp();
@@ -32,7 +33,8 @@ export function StorePage() {
           <>
             <AdStrip />
             <EventOffers />
-            <GameCatalog games={games.games} total={games.total} />
+            <ReleaseCalendar />
+            <GameCatalog />
             {!isApp && <Download5 />}
           </>
         )}

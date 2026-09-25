@@ -408,73 +408,6 @@
     "steamRating": "Extremadamente positivas"
   },
   {
-    "slug": "how-to-fish",
-    "name": "How to fish",
-    "studio": "Claymation Games / GameNow",
-    "alt": "How to fish.",
-    "price": 239.99,
-    "compareAtPrice": 599.99,
-    "currency": "MXN",
-    "sections": {
-      "ad": null,
-      "event": null,
-      "offer": 0
-    },
-    "cover": {
-      "publicId": "gamenow/covers/htf",
-      "resourceType": "image",
-      "local": "/images/events/htf.webp",
-      "hosted": false
-    },
-    "details": {
-      "release": "31 de agosto de 2022",
-      "platforms": "PC (GameNow / Steam), PlayStation 5, Xbox Series X|S",
-      "description": "De los creadores de theHunter: Call of the Wild llega una experiencia de pesca en un majestuoso mundo abierto. Descubre lagos cristalinos y ríos serpenteantes a pie o en barca, perfecciona tus aparejos y disfruta de pesca cooperativa para hasta 12 jugadores.",
-      "requirementsNote": "Optimizado para DirectX 12 con soporte de reflejos dinámicos en agua y ciclo día/noche.",
-      "requirements": [
-        {
-          "label": "SO",
-          "min": "Windows 10 (64 bits)",
-          "max": "Windows 11 (64 bits)"
-        },
-        {
-          "label": "Procesador",
-          "min": "Intel Core i5-6400 / AMD Ryzen 5 1600",
-          "max": "Intel Core i7-7700 / AMD Ryzen 5 2600X"
-        },
-        {
-          "label": "Memoria",
-          "min": "8 GB RAM",
-          "max": "16 GB RAM"
-        },
-        {
-          "label": "Gráficos",
-          "min": "NVIDIA GeForce GTX 780 (3 GB) / AMD Radeon RX 480",
-          "max": "NVIDIA GeForce GTX 1070 (8 GB) / AMD Radeon RX Vega 56"
-        },
-        {
-          "label": "DirectX",
-          "min": "Versión 12",
-          "max": "Versión 12"
-        },
-        {
-          "label": "Almacenamiento",
-          "min": "35 GB",
-          "max": "35 GB SSD"
-        }
-      ]
-    },
-    "screenshots": [
-      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1408610/ss_4b3c3d35f8545f7883cd0764e83dde9cf062968d.1920x1080.jpg?t=1737626002",
-      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1408610/ss_5f16bb8327c57cc3a108f9ab8584bbb7efd0ae08.1920x1080.jpg?t=1737626002",
-      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1408610/ss_1db707ff309b8482a6efde19d5d91126a0cfc494.1920x1080.jpg?t=1737626002",
-      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1408610/ss_298c1e1f971e17a156e3270c4dcbb9a88c1bff55.1920x1080.jpg?t=1737626002",
-      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1408610/ss_cb3747966f6fa616b1f30e74477f06eab637dffd.1920x1080.jpg?t=1737626002"
-    ],
-    "metacritic": 79,
-    "steamRating": "Muy positivas"
-  },
-  {
     "slug": "the-last-of-us-2-remastered",
     "name": "The Last of Us Part II Remastered",
     "studio": "Naughty Dog / PlayStation Publishing",
@@ -546,7 +479,7 @@
     "name": "Cyberpunk 2077: Ultimate Edition",
     "studio": "CD PROJEKT RED",
     "alt": "Cyberpunk 2077.",
-    "price": 519.99,
+    "price": 259.99,
     "compareAtPrice": 1299.99,
     "currency": "MXN",
     "sections": {

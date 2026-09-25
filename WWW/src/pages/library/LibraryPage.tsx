@@ -9,6 +9,8 @@ import { useLaunch } from "../../data/LaunchContext";
 import { apiUrl } from "../../data/api";
 import { useOurCovers } from "../../data/catalog";
 import { StoreArt } from "../../data/StoreArt";
+import { steamMarkupToHtml } from "../../data/steamMarkup";
+import { AuthRequiredGate } from "../../components/AuthRequiredGate";
 import { Cloud, Gamepad2, Newspaper, RefreshCw } from "lucide-react";
 import { MagnifyingGlass, Star } from "../../components/Icons";
 import { LibraryDetail } from "./LibraryDetail";
@@ -54,8 +56,10 @@ interface GameNewsItem {
   title: string;
   author: string;
   date: string;
+  dateTs?: number;
   url: string;
   snippet: string;
+  body?: string;
   image: string;
 }
 
@@ -105,6 +109,8 @@ export function LibraryPage() {
 
   // Noticias reales desde backend
   const [news, setNews] = useState<GameNewsItem[]>([]);
+  const [newsAllOpen, setNewsAllOpen] = useState(false);
+  const [selectedNews, setSelectedNews] = useState<GameNewsItem | null>(null);
   const carouselRef = useRef<HTMLDivElement>(null);
 
   const [isSyncing, setIsSyncing] = useState(false);
@@ -130,21 +136,63 @@ export function LibraryPage() {
     }
   }, [user]);
 
-  // Cargar noticias oficiales de Steam
+  // Cargar novedades de Steam + catálogo para los juegos de la biblioteca
   useEffect(() => {
     let alive = true;
-    fetch(apiUrl("/api/news"))
+    const owned = [...userGames]
+      .filter((game) => game.steamAppId)
+      .sort((a, b) => b.lastPlayedTimestamp - a.lastPlayedTimestamp)
+      .slice(0, 16);
+    const appIds = owned.map((game) => game.steamAppId).filter(Boolean);
+    const names = owned.map((game) => game.name);
+    const slugs = userGames.map((game) => game.slug).filter(Boolean);
+    const params = new URLSearchParams();
+    if (appIds.length) params.set("appIds", appIds.join(","));
+    if (names.length) params.set("names", names.join("|"));
+    if (slugs.length) params.set("slugs", slugs.join(","));
+
+    fetch(apiUrl(`/api/news${params.toString() ? `?${params}` : ""}`))
       .then((res) => (res.ok ? res.json() : []))
       .then((data: GameNewsItem[]) => {
-        if (alive && Array.isArray(data)) {
-          setNews(data);
-        }
+        if (alive && Array.isArray(data)) setNews(data);
       })
-      .catch(() => {});
+      .catch(() => {
+        if (alive) setNews([]);
+      });
     return () => {
       alive = false;
     };
-  }, []);
+  }, [userGames]);
+
+  useEffect(() => {
+    if (!newsAllOpen && !selectedNews) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      if (selectedNews) {
+        setSelectedNews(null);
+        return;
+      }
+      setNewsAllOpen(false);
+    };
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [newsAllOpen, selectedNews]);
+
+  const openNewsDetail = (item: GameNewsItem) => {
+    setSelectedNews(item);
+  };
+
+  const closeNewsDetail = () => setSelectedNews(null);
+
+  const closeNewsAll = () => {
+    setSelectedNews(null);
+    setNewsAllOpen(false);
+  };
 
   const scrollCarousel = (direction: "left" | "right") => {
     if (carouselRef.current) {
@@ -186,19 +234,21 @@ export function LibraryPage() {
     updateGamesState(updated);
   };
 
-  // 6. Noticias exclusivas de los juegos que el usuario tiene en su biblioteca
+  // Novedades de los juegos que el usuario tiene (Steam + catálogo)
   const libraryNews = useMemo(() => {
-    if (userGames.length === 0) return [];
+    if (!news.length) return [];
+    if (userGames.length === 0) return news.slice(0, 12);
     const ownedSlugs = new Set(userGames.map((g) => g.slug));
     const ownedAppIds = new Set(userGames.map((g) => g.steamAppId).filter(Boolean));
+    const ownedNames = userGames.map((g) => g.name.toLowerCase());
 
-    return news.filter((item) => {
-      return (
-        (item.slug && ownedSlugs.has(item.slug)) ||
-        (item.appId && ownedAppIds.has(item.appId)) ||
-        userGames.some((ug) => ug.name.toLowerCase().includes(item.game.toLowerCase()))
-      );
-    });
+    return news
+      .filter((item) => {
+        if (item.appId && ownedAppIds.has(item.appId)) return true;
+        if (item.slug && ownedSlugs.has(item.slug)) return true;
+        return ownedNames.some((name) => name.includes(item.game.toLowerCase()) || item.game.toLowerCase().includes(name));
+      })
+      .sort((a, b) => (b.dateTs || 0) - (a.dateTs || 0));
   }, [news, userGames]);
 
   // Juegos filtrados por búsqueda y categoría
@@ -397,43 +447,24 @@ export function LibraryPage() {
     return (
       <div className="library-page">
         <SiteNav />
-        <main className="library-auth-gate">
-          <div className="library-auth-card">
-            <img
-              src="/logotipes/micrologotipe.svg"
-              alt="GameNow"
-              width="64"
-              height="64"
-              className="library-auth-logo"
-            />
-            <h1 className="library-auth-title">Inicia sesión para acceder a tu biblioteca</h1>
-            <p className="library-auth-desc">
-              Tu biblioteca de juegos está protegida. Inicia sesión con tu cuenta de GameNow para sincronizar tus juegos de Steam, guardar tus favoritos y consultar tus horas jugadas.
-            </p>
-            <div className="library-auth-actions">
-              <Link to="/auth#iniciar" className="library-auth-btn-primary">
-                Iniciar sesión
-              </Link>
-              <Link to="/auth#crear" className="library-auth-btn-secondary">
-                Crear una cuenta nueva
-              </Link>
-            </div>
-            <div className="library-auth-features">
-              <div className="library-auth-feature-item">
-                <Gamepad2 className="library-auth-feature-icon" size={16} aria-hidden="true" />
-                <span>Catálogo personal y partidas guardadas en la nube</span>
-              </div>
-              <div className="library-auth-feature-item">
-                <Cloud className="library-auth-feature-icon" size={16} aria-hidden="true" />
-                <span>Partidas guardadas y catálogo personalizado en la nube</span>
-              </div>
-              <div className="library-auth-feature-item">
-                <Newspaper className="library-auth-feature-icon" size={16} aria-hidden="true" />
-                <span>Novedades y notas de parche exclusivas de tus títulos</span>
-              </div>
-            </div>
-          </div>
-        </main>
+        <AuthRequiredGate
+          title="Inicia sesión para acceder a tu biblioteca"
+          description="Tu biblioteca de juegos está protegida. Inicia sesión con tu cuenta de GameNow para sincronizar tus juegos de Steam, guardar tus favoritos y consultar tus horas jugadas."
+          features={[
+            {
+              icon: <Gamepad2 size={16} aria-hidden="true" />,
+              label: "Catálogo personal y partidas guardadas en la nube",
+            },
+            {
+              icon: <Cloud size={16} aria-hidden="true" />,
+              label: "Partidas guardadas y catálogo personalizado en la nube",
+            },
+            {
+              icon: <Newspaper size={16} aria-hidden="true" />,
+              label: "Novedades y notas de parche exclusivas de tus títulos",
+            },
+          ]}
+        />
       </div>
     );
   }
@@ -626,46 +657,54 @@ export function LibraryPage() {
             <section className="library-news-section" aria-label="Novedades de tus juegos">
               <div className="library-news-head">
                 <h3>Novedades de tus juegos</h3>
-                {libraryNews.length > 3 && (
-                  <div className="library-news-nav">
-                    <button
-                      type="button"
-                      className="library-news-arrow-btn"
-                      onClick={() => scrollCarousel("left")}
-                      aria-label="Ver noticias anteriores"
-                      title="Anterior"
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                        <polyline points="15 18 9 12 15 6" />
-                      </svg>
-                    </button>
-                    <button
-                      type="button"
-                      className="library-news-arrow-btn"
-                      onClick={() => scrollCarousel("right")}
-                      aria-label="Ver siguientes noticias"
-                      title="Siguiente"
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                        <polyline points="9 18 15 12 9 6" />
-                      </svg>
-                    </button>
-                  </div>
-                )}
+                <div className="library-news-head-actions">
+                  <button
+                    type="button"
+                    className="library-news-more-btn"
+                    onClick={() => setNewsAllOpen(true)}
+                  >
+                    Ver más
+                  </button>
+                  {libraryNews.length > 3 && (
+                    <div className="library-news-nav">
+                      <button
+                        type="button"
+                        className="library-news-arrow-btn"
+                        onClick={() => scrollCarousel("left")}
+                        aria-label="Ver noticias anteriores"
+                        title="Anterior"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                          <polyline points="15 18 9 12 15 6" />
+                        </svg>
+                      </button>
+                      <button
+                        type="button"
+                        className="library-news-arrow-btn"
+                        onClick={() => scrollCarousel("right")}
+                        aria-label="Ver siguientes noticias"
+                        title="Siguiente"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                          <polyline points="9 18 15 12 9 6" />
+                        </svg>
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="library-news-carousel" ref={carouselRef}>
                 {libraryNews.map((item) => (
-                  <a
+                  <button
                     key={item.id}
-                    href={item.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                    type="button"
                     className="library-news-card"
                     title={`Leer noticia: ${item.title}`}
+                    onClick={() => openNewsDetail(item)}
                   >
                     <div className="library-news-img-wrap">
-                      <img src={item.image} alt={item.game} className="library-news-img" loading="lazy" />
+                      <img src={item.image} alt="" className="library-news-img" loading="lazy" />
                       <span className="library-news-game-tag">{item.game}</span>
                     </div>
                     <div className="library-news-body">
@@ -675,7 +714,7 @@ export function LibraryPage() {
                       </span>
                       <p className="library-news-snippet">{item.snippet}</p>
                     </div>
-                  </a>
+                  </button>
                 ))}
               </div>
             </section>
@@ -948,6 +987,83 @@ export function LibraryPage() {
           )}
         </section>
       </main>
+
+      {newsAllOpen ? (
+        <div className="library-news-overlay" role="dialog" aria-modal="true" aria-labelledby="library-news-all-title">
+          <div className="library-news-all-panel">
+            <header className="library-news-all-head">
+              <div>
+                <h2 id="library-news-all-title">Todas las novedades</h2>
+                <p>Actualizaciones y notas de parche de tus juegos</p>
+              </div>
+              <button type="button" className="library-news-close-btn" onClick={closeNewsAll}>
+                Cerrar
+              </button>
+            </header>
+            <div className="library-news-all-grid">
+              {libraryNews.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  className="library-news-card library-news-card-grid"
+                  onClick={() => openNewsDetail(item)}
+                  title={`Leer noticia: ${item.title}`}
+                >
+                  <div className="library-news-img-wrap">
+                    <img src={item.image} alt="" className="library-news-img" loading="lazy" />
+                    <span className="library-news-game-tag">{item.game}</span>
+                  </div>
+                  <div className="library-news-body">
+                    <h4 className="library-news-title">{item.title}</h4>
+                    <span className="library-news-meta">
+                      {item.author} • {item.date}
+                    </span>
+                    <p className="library-news-snippet">{item.snippet}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {selectedNews ? (
+        <div
+          className="library-news-overlay library-news-overlay-detail"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="library-news-detail-title"
+        >
+          <article className="library-news-detail-panel">
+            <div className="library-news-detail-banner">
+              <img src={selectedNews.image} alt="" />
+            </div>
+            <div className="library-news-detail-sticky">
+              <header className="library-news-detail-head">
+                <div className="library-news-detail-titles">
+                  <h2 id="library-news-detail-title">{selectedNews.title}</h2>
+                  <p className="library-news-detail-game">{selectedNews.game}</p>
+                </div>
+                <button type="button" className="library-news-close-btn" onClick={closeNewsDetail}>
+                  Cerrar
+                </button>
+              </header>
+              <div className="library-news-detail-subheader">
+                <span>{selectedNews.game}</span>
+                <span>
+                  {selectedNews.author} • {selectedNews.date}
+                </span>
+              </div>
+            </div>
+            <div
+              className="library-news-detail-body library-news-detail-rich"
+              dangerouslySetInnerHTML={{
+                __html: steamMarkupToHtml(selectedNews.body || selectedNews.snippet || ""),
+              }}
+            />
+          </article>
+        </div>
+      ) : null}
     </div>
   );
 }

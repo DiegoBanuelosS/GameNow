@@ -22,7 +22,7 @@ export function GamesTable({
   useGSAP(
     () => {
       const rows = wrapRef.current?.querySelectorAll("tbody tr");
-      if (!rows?.length || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      if (!rows?.length || rows.length > 24 || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
         return;
       }
       gsap.fromTo(
@@ -63,11 +63,11 @@ export function GamesTable({
                     className="games-table-cover"
                     src={game.cover}
                     srcSet={game.coverSrcSet}
-                    sizes="240px"
+                    sizes="108px"
                     fallback={game.coverFallback}
                     alt=""
-                    width={240}
-                    height={112}
+                    width={108}
+                    height={162}
                   />
                 </td>
                 <td>

@@ -47,7 +47,7 @@ export function useStoreEnter(ready: boolean) {
         });
       };
 
-      reveal(".event-offers", ".event-offers h2, .offer-card");
+      reveal(".event-offers", ".event-offers h2");
       reveal(".games-tables", ".games-tables-head, .games-table-wrap");
       reveal(".games-layout", ".games-sidebar, .games-pager");
     },

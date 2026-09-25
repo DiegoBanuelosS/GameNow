@@ -16,29 +16,29 @@ const imagePreset: Record<
   { crop: string; gravity: string; quality: string; widths: number[]; sizes: string }
 > = {
   ad: {
-    crop: "fill",
-    gravity: "auto",
+    crop: "limit",
+    gravity: "center",
     quality: "auto:best",
     widths: [640, 960, 1280, 1600],
     sizes: "(min-width: 1100px) 36vw, 92vw",
   },
   event: {
-    crop: "fill",
-    gravity: "auto",
+    crop: "limit",
+    gravity: "center",
     quality: "auto:good",
     widths: [400, 720, 1080],
     sizes: "(min-width: 1100px) 28vw, 90vw",
   },
   offer: {
-    crop: "fill",
-    gravity: "auto",
+    crop: "limit",
+    gravity: "center",
     quality: "auto:good",
     widths: [280, 480, 720],
     sizes: "(min-width: 1100px) 12vw, 30vw",
   },
   hero: {
-    crop: "fill",
-    gravity: "auto",
+    crop: "limit",
+    gravity: "center",
     quality: "auto:best",
     widths: [720, 1080, 1440],
     sizes: "(min-width: 800px) 720px, 92vw",

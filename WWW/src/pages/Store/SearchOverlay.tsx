@@ -1,8 +1,9 @@
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { MagnifyingGlass } from "../../components/Icons";
 import { Link } from "react-router-dom";
+import { apiUrl } from "../../data/api";
+import type { CatalogGame } from "../../data/catalog";
 import { StoreArt } from "../../data/StoreArt";
-import { useCatalog } from "../../data/CatalogContext";
 import { StarRating } from "./StarRating";
 import { useSearchHits, useSearchMotion } from "./useStoreMotion";
 import "./SearchOverlay.css";
@@ -20,7 +21,7 @@ export function SearchOverlay({
   const overlayRef = useSearchMotion(open);
   const [query, setQuery] = useState("");
   const listRef = useSearchHits(query);
-  const { games } = useCatalog();
+  const [matches, setMatches] = useState<CatalogGame[]>([]);
 
   useEffect(() => {
     if (!open) {
@@ -45,15 +46,28 @@ export function SearchOverlay({
     };
   }, [open, onClose]);
 
-  const matches = useMemo(() => {
-    const needle = query.trim().toLowerCase();
+  useEffect(() => {
+    const needle = query.trim();
     if (!needle) {
-      return [];
+      setMatches([]);
+      return;
     }
-    return games.games
-      .filter((game) => game.name.toLowerCase().includes(needle))
-      .slice(0, 8);
-  }, [games.games, query]);
+    let alive = true;
+    const timer = window.setTimeout(() => {
+      fetch(apiUrl(`/api/games?q=${encodeURIComponent(needle)}&page=1`))
+        .then((response) => (response.ok ? response.json() : { games: [] }))
+        .then((payload: { games?: CatalogGame[] }) => {
+          if (alive) setMatches((payload.games ?? []).slice(0, 8));
+        })
+        .catch(() => {
+          if (alive) setMatches([]);
+        });
+    }, 200);
+    return () => {
+      alive = false;
+      window.clearTimeout(timer);
+    };
+  }, [query]);
 
   if (!open) {
     return null;
@@ -103,11 +117,11 @@ export function SearchOverlay({
                   className="search-overlay-cover"
                   src={game.cover}
                   srcSet={game.coverSrcSet}
-                  sizes="160px"
+                  sizes="64px"
                   fallback={game.coverFallback}
                   alt=""
-                  width={160}
-                  height={76}
+                  width={64}
+                  height={96}
                 />
                 <span>
                   <strong>{game.name}</strong>

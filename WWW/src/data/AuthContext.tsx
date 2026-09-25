@@ -74,6 +74,7 @@ interface AuthContextType {
       taskbarPin?: boolean;
       beta?: string;
       sell?: boolean;
+      remove?: boolean;
       payout?: "wallet" | "card";
     },
   ) => Promise<{ ok: boolean; error?: string }>;
@@ -223,6 +224,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         taskbarPin?: boolean;
         beta?: string;
         sell?: boolean;
+        remove?: boolean;
         payout?: "wallet" | "card";
       },
     ) => {

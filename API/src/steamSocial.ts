@@ -7,7 +7,7 @@ import { loadProducts } from "./catalog.js";
 import { loadGames } from "./games.js";
 import { formatMxn, toMxn } from "./money.js";
 import { purchasePrice, quoteResale, recordTrade } from "./resale.js";
-import { loadSteamVisit, type SteamLibraryGame } from "./steamSync.js";
+import { loadSteamVisit, resolveSteamBackground, resolveSteamMiniBackground, type SteamLibraryGame } from "./steamSync.js";
 
 type Achievement = {
   id: string;
@@ -31,6 +31,8 @@ type Friend = {
   favorite: boolean;
   inviteGame: string;
   messages: { text: string; at: number }[];
+  backgroundUrl?: string;
+  backgroundVideo?: string;
 };
 
 const achievementCache = new Map<string, { at: number; achievements: Achievement[] }>();
@@ -275,6 +277,50 @@ export async function steamFriends(req: Request, res: Response) {
         Number(Boolean(b.playingGame)) - Number(Boolean(a.playingGame)) ||
         a.name.localeCompare(b.name),
     );
+    const steamIds = friends.map((friend) => friend.steamId).filter((id) => /^\d{17}$/.test(id));
+    const localIds = friends
+      .filter((friend) => friend.steamId.startsWith("user:"))
+      .map((friend) => friend.steamId.slice(5));
+    const [localBySteamList, localByIdList] = await Promise.all([
+      steamIds.length
+        ? User.find({ steamId: { $in: steamIds } })
+            .select("steamId steamBackgroundUrl steamBackgroundVideo")
+            .lean()
+        : Promise.resolve([] as { steamId?: string; steamBackgroundUrl?: string; steamBackgroundVideo?: string }[]),
+      localIds.length
+        ? User.find({ _id: { $in: localIds } })
+            .select("_id steamBackgroundUrl steamBackgroundVideo")
+            .lean()
+        : Promise.resolve([] as { _id: unknown; steamBackgroundUrl?: string; steamBackgroundVideo?: string }[]),
+    ]);
+    const localBySteam = new Map(localBySteamList.map((item) => [String(item.steamId), item]));
+    const localById = new Map(localByIdList.map((item) => [String(item._id), item]));
+    await Promise.all(
+      friends.map(async (friend) => {
+        if (friend.steamId.startsWith("user:")) {
+          const local = localById.get(friend.steamId.slice(5));
+          friend.backgroundUrl = local?.steamBackgroundUrl || "";
+          friend.backgroundVideo = local?.steamBackgroundVideo || "";
+          return;
+        }
+        const local = localBySteam.get(friend.steamId);
+        let backgroundUrl = local?.steamBackgroundUrl || "";
+        let backgroundVideo = local?.steamBackgroundVideo || "";
+        if (!backgroundUrl && !backgroundVideo && /^\d{17}$/.test(friend.steamId)) {
+          const background = await resolveSteamBackground(friend.steamId);
+          backgroundUrl = background.image;
+          backgroundVideo = background.video;
+          if ((backgroundUrl || backgroundVideo) && local) {
+            void User.updateOne(
+              { steamId: friend.steamId },
+              { $set: { steamBackgroundUrl: backgroundUrl, steamBackgroundVideo: backgroundVideo } },
+            );
+          }
+        }
+        friend.backgroundUrl = backgroundUrl;
+        friend.backgroundVideo = backgroundVideo;
+      }),
+    );
     res.json({ friends, linked: true, hidden: false });
   } catch (error) {
     console.error("Steam friends:", error instanceof Error ? error.message : error);
@@ -322,6 +368,28 @@ export async function updateLibraryGame(req: Request, res: Response) {
       return;
     }
     set["steamGames.$.beta"] = beta;
+  }
+  if (req.body?.remove === true) {
+    const hasDb = await connectDb();
+    if (!hasDb) {
+      res.status(503).json({ error: "La base de datos no está disponible." });
+      return;
+    }
+    const owner = await User.findById(userId);
+    if (!owner) {
+      res.status(404).json({ error: "Usuario no encontrado." });
+      return;
+    }
+    const before = owner.steamGames.length;
+    owner.steamGames = owner.steamGames.filter((item) => item.slug !== slug);
+    if (owner.steamGames.length === before) {
+      res.status(404).json({ error: "No se encontró el juego en tu biblioteca." });
+      return;
+    }
+    owner.steamGameCount = owner.steamGames.length;
+    await owner.save();
+    res.json({ user: owner.toJSON() });
+    return;
   }
   if (req.body?.sell === true) {
     const hasDb = await connectDb();
@@ -548,8 +616,42 @@ export async function searchPeople(req: Request, res: Response) {
     for (const id of steamFriends) known.add(id);
   }
 
-  const people: { steamId: string; name: string; avatarUrl: string; username: string; alreadyFriend: boolean }[] = [];
-  const steamId = friendKey(query);
+  type PersonResult = {
+    steamId: string;
+    name: string;
+    avatarUrl: string;
+    username: string;
+    alreadyFriend: boolean;
+    source: "gamenow" | "steam";
+    miniBackgroundUrl: string;
+    miniBackgroundVideo: string;
+  };
+  const people: PersonResult[] = [];
+  const seen = new Set<string>();
+
+  const pushPerson = async (person: Omit<PersonResult, "miniBackgroundUrl" | "miniBackgroundVideo">) => {
+    if (seen.has(person.steamId) || (me.steamId && person.steamId === me.steamId)) return;
+    seen.add(person.steamId);
+    let miniBackgroundUrl = "";
+    let miniBackgroundVideo = "";
+    if (/^\d{17}$/.test(person.steamId)) {
+      const mini = await resolveSteamMiniBackground(person.steamId);
+      miniBackgroundUrl = mini.image;
+      miniBackgroundVideo = mini.video;
+    }
+    people.push({ ...person, miniBackgroundUrl, miniBackgroundVideo });
+  };
+
+  let steamId = friendKey(query);
+  if (!steamId && config.steamApiKey && !query.includes(" ")) {
+    const vanity = await steamJson<{ response?: { success?: number; steamid?: string } }>(
+      `https://api.steampowered.com/ISteamUser/ResolveVanityURL/v1/?key=${encodeURIComponent(config.steamApiKey)}&vanityurl=${encodeURIComponent(query)}`,
+    );
+    if (vanity?.response?.success === 1 && vanity.response.steamid) {
+      steamId = vanity.response.steamid;
+    }
+  }
+
   if (/^\d{17}$/.test(steamId) && steamId !== me.steamId) {
     const key = encodeURIComponent(config.steamApiKey);
     const summary = await steamJson<{
@@ -557,12 +659,14 @@ export async function searchPeople(req: Request, res: Response) {
     }>(`https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key=${key}&steamids=${steamId}`);
     const player = summary?.response?.players?.[0];
     if (player) {
-      people.push({
+      const local = await User.findOne({ steamId: player.steamid }).select("username").lean();
+      await pushPerson({
         steamId: player.steamid,
         name: player.personaname || "Jugador de Steam",
         avatarUrl: player.avatarfull || "",
-        username: "",
+        username: local?.username || "",
         alreadyFriend: known.has(player.steamid),
+        source: local ? "gamenow" : "steam",
       });
     }
   }
@@ -570,21 +674,22 @@ export async function searchPeople(req: Request, res: Response) {
   const safe = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const users = await User.find({
     _id: { $ne: userId },
-    username: { $regex: safe, $options: "i" },
+    $or: [{ username: { $regex: safe, $options: "i" } }, { steamName: { $regex: safe, $options: "i" } }],
   })
     .select("username avatarUrl steamId steamName steamAvatarUrl")
-    .limit(8);
+    .limit(10);
   for (const person of users) {
     const id = person.steamId || `user:${person.id}`;
-    if (people.some((item) => item.steamId === id)) continue;
-    people.push({
+    await pushPerson({
       steamId: id,
       name: person.steamName || person.username,
       avatarUrl: person.steamAvatarUrl || person.avatarUrl || "",
       username: person.username,
       alreadyFriend: known.has(id) || Boolean(person.steamId && known.has(person.steamId)),
+      source: "gamenow",
     });
   }
+
   res.json({ people });
 }
 
@@ -828,6 +933,19 @@ export async function steamProfile(req: Request, res: Response) {
       .sort((a, b) => b.lastPlayedTimestamp - a.lastPlayedTimestamp)
       .map(publicGame);
     const totalHours = Math.round(library.reduce((sum, game) => sum + (game.playTimeHours || 0), 0));
+    let backgroundUrl = member.steamBackgroundUrl || "";
+    let backgroundVideo = member.steamBackgroundVideo || "";
+    if (!backgroundUrl && !backgroundVideo) {
+      const background = await resolveSteamBackground(steamId);
+      backgroundUrl = background.image;
+      backgroundVideo = background.video;
+      if (backgroundUrl || backgroundVideo) {
+        void User.updateOne(
+          { _id: member._id },
+          { $set: { steamBackgroundUrl: backgroundUrl, steamBackgroundVideo: backgroundVideo } },
+        );
+      }
+    }
     res.json({
       kind: "gamenow",
       steamId,
@@ -835,8 +953,8 @@ export async function steamProfile(req: Request, res: Response) {
       steamName: member.steamName || "",
       avatarUrl: member.steamAvatarUrl || "",
       frameUrl: member.steamFrameUrl || "",
-      backgroundUrl: member.steamBackgroundUrl || "",
-      backgroundVideo: member.steamBackgroundVideo || "",
+      backgroundUrl,
+      backgroundVideo,
       gameCount: member.steamGameCount || library.length,
       totalHours,
       games,

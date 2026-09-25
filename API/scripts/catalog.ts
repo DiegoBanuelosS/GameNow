@@ -80,17 +80,6 @@ export const products: SeedProduct[] = [
     trailer: resolve(www, "videos/FH6.webm"),
   },
   {
-    slug: "how-to-fish",
-    name: "How to fish",
-    studio: "",
-    alt: "How to fish.",
-    price: 79.99,
-    compareAtPrice: 150.99,
-    sections: { ad: null, event: null, offer: 0 },
-    cover: resolve(www, "images/events/htf.webp"),
-    trailer: resolve(www, "videos/HTF.webm"),
-  },
-  {
     slug: "the-last-of-us-2-remastered",
     name: "The Last of Us 2 Remastered",
     studio: "Naughty Dog",

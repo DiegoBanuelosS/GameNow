@@ -5,9 +5,34 @@ import { StoreArt } from "../../data/StoreArt";
 import { useCatalog } from "../../data/CatalogContext";
 import type { StoreProduct } from "../../data/catalog";
 import { LogoLoader } from "./LogoLoader";
-import { youtubeEmbed } from "../../data/youtube";
+import { youtubeId } from "../../data/youtube";
 import { useHoverVideo } from "./useHoverVideo";
 import "./AdStrip.css";
+
+const LOCAL_TRAILERS: Record<string, string> = {
+  "ace-combat-8": "/videos/ace8.webm",
+  "gta-vi": "/videos/GTAVI.webm",
+  "ark-2": "/videos/ark2.webm",
+  "call-of-duty-modern-warfare-4": "/videos/mw.webm",
+  "f1-2025-2026-season-pack": "/videos/F126.webm",
+  "nba-2k27": "/videos/NBA.webm",
+  "forza-horizon-6": "/videos/FH6.webm",
+  "the-last-of-us-2-remastered": "/videos/lst.webm",
+  "cyberpunk-2077": "/videos/cp.webm",
+  "007-first-light": "/videos/007.webm",
+};
+
+function cardTrailer(ad: StoreProduct) {
+  const local = LOCAL_TRAILERS[ad.slug];
+  if (local) {
+    return local;
+  }
+  const trailer = ad.trailer?.trim() || "";
+  if (!trailer || youtubeId(trailer)) {
+    return "";
+  }
+  return trailer;
+}
 
 function cardPlace(index: number, active: number, total: number) {
   const offset = (index - active + total) % total;
@@ -31,7 +56,7 @@ function AdCard({
   isCenter: boolean;
   onSelect: () => void;
 }) {
-  const preview = useHoverVideo(ad.trailer, { audio: true });
+  const preview = useHoverVideo(cardTrailer(ad), { audio: true });
 
   return (
     <article
@@ -58,8 +83,12 @@ function AdCard({
       >
         <StoreArt
           className="ad-card-art"
-          src={ad.cover}
-          srcSet={ad.coverSrcSet}
+          src={
+            ad.slug === "gta-vi"
+              ? "https://res.cloudinary.com/fj6z6mba/image/upload/f_auto,q_auto:best,c_fill,g_center,w_1600,h_900/gamenow/presskit/gta-vi-vice"
+              : ad.cover
+          }
+          srcSet={ad.slug === "gta-vi" ? undefined : ad.coverSrcSet}
           sizes={ad.coverSizes}
           alt=""
         />
@@ -82,15 +111,6 @@ function AdCard({
           />
         ) : null}
       </button>
-      {preview.enabled && preview.embedId && preview.active ? (
-        <iframe
-          className="ad-card-video is-on"
-          src={youtubeEmbed(preview.embedId, { muted: true, controls: false })}
-          title=""
-          allow="autoplay; encrypted-media"
-          tabIndex={-1}
-        />
-      ) : null}
 
       <div className="ad-card-foot">
         <div className="ad-card-meta">

@@ -16,8 +16,9 @@ export default defineConfig({
     port: 5173,
     proxy: {
       "/api": {
-        target: "http://127.0.0.1:8787",
+        target: "https://gamenow-api.fly.dev",
         changeOrigin: true,
+        secure: true,
         configure: (proxy) => {
           proxy.on("proxyReq", (proxyReq, req) => {
             if (req.headers.host) {

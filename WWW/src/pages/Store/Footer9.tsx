@@ -21,6 +21,7 @@ const columns: {
     links: [
       { label: "Iniciar sesión", to: "/auth" },
       { label: "Mi biblioteca", to: "/library" },
+      { label: "Mensajes", to: "/mensajes" },
       { label: "Carrito", to: "/cart" },
     ],
   },

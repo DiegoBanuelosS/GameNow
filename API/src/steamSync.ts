@@ -39,7 +39,8 @@ export interface SteamAccount {
   steamGames: SteamLibraryGame[];
 }
 
-const STEAM_HOSTS = /(^|\.)steamstatic\.com$|(^|\.)steamusercontent\.com$|(^|\.)akamaihd\.net$/;
+const STEAM_HOSTS =
+  /(^|\.)steamstatic\.com$|(^|\.)steamusercontent\.com$|(^|\.)akamaihd\.net$|(^|\.)steamcommunity\.com$|(^|\.)fastly\.steamstatic\.com$/;
 
 function safeAsset(value: string) {
   try {
@@ -87,6 +88,8 @@ function inferGenre(name: string): SteamGenre {
   if (/gta|auto|assassin|red dead|ark|war|batman/.test(n)) return "Acción";
   return "Aventura";
 }
+
+export { inferGenre };
 
 function gameArt(appId: string) {
   const hd = `https://cdn.akamai.steamstatic.com/steam/apps/${appId}/library_600x900_2x.jpg`;
@@ -136,10 +139,12 @@ function toGame(appId: string, name: string, hours: number, timestamp: number): 
 async function fetchText(url: string) {
   const response = await fetch(url, {
     headers: {
-      "User-Agent": "Mozilla/5.0 (compatible; GameNow/1.0)",
-      "Accept-Language": "en",
+      "User-Agent":
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+      "Accept-Language": "en-US,en;q=0.9",
+      Accept: "text/html,application/xhtml+xml",
     },
-    signal: AbortSignal.timeout(8000),
+    signal: AbortSignal.timeout(12_000),
   });
   if (!response.ok) {
     throw new Error(`Steam respondió ${response.status}`);
@@ -158,20 +163,120 @@ function parseFrame(html: string) {
 }
 
 function parseBackground(html: string) {
+  const animated = html.match(
+    /class="[^"]*profile_animated_background[^"]*"[\s\S]*?<video\b([^>]*)>([\s\S]*?)<\/video>/i,
+  );
+  if (animated) {
+    const poster = animated[1].match(/poster="([^"]+)"/i)?.[1] || "";
+    const webm = animated[2].match(/src="([^"]+\.webm[^"]*)"/i)?.[1] || "";
+    const mp4 = animated[2].match(/src="([^"]+\.mp4[^"]*)"/i)?.[1] || "";
+    return {
+      image: safeAsset(absoluteSteamUrl(poster)),
+      video: safeAsset(absoluteSteamUrl(mp4 || webm)),
+    };
+  }
   const video = html.match(/<video\b[^>]*poster="([^"]+)"[^>]*>([\s\S]*?)<\/video>/i);
   if (video) {
     const webm = video[2].match(/src="([^"]+\.webm[^"]*)"/i)?.[1] || "";
     const mp4 = video[2].match(/src="([^"]+\.mp4[^"]*)"/i)?.[1] || "";
     return {
-      image: safeAsset(video[1]),
-      video: safeAsset(mp4 || webm),
+      image: safeAsset(absoluteSteamUrl(video[1])),
+      video: safeAsset(absoluteSteamUrl(mp4 || webm)),
     };
   }
   const image =
+    html.match(/class="[^"]*profile_background[^"]*"[^>]*src="([^"]+)"/i)?.[1] ||
     html.match(/profile_background[^"]*"[^>]*src="([^"]+)"/i)?.[1] ||
+    html.match(/id="profile_background"[^>]*src="([^"]+)"/i)?.[1] ||
+    html.match(/has_profile_background[\s\S]{0,800}?url\(\s*['"]?([^'")]+)/i)?.[1] ||
     html.match(/background-image:\s*url\(\s*['"]?([^'")]+)/i)?.[1] ||
     "";
-  return { image: safeAsset(image), video: "" };
+  return { image: safeAsset(absoluteSteamUrl(image)), video: "" };
+}
+
+function absoluteSteamUrl(value: string) {
+  const raw = String(value || "").trim().replace(/^['"]|['"]$/g, "");
+  if (!raw) return "";
+  if (raw.startsWith("//")) return `https:${raw}`;
+  if (raw.startsWith("http://") || raw.startsWith("https://")) return raw;
+  if (raw.startsWith("/steamcommunity/public/images/")) {
+    return `https://cdn.cloudflare.steamstatic.com${raw}`;
+  }
+  if (raw.startsWith("images/")) {
+    return `https://cdn.cloudflare.steamstatic.com/steamcommunity/public/${raw}`;
+  }
+  if (raw.startsWith("items/") || raw.startsWith("economy/")) {
+    return `https://cdn.cloudflare.steamstatic.com/steamcommunity/public/images/${raw}`;
+  }
+  if (raw.startsWith("/")) return `https://cdn.cloudflare.steamstatic.com${raw}`;
+  return raw;
+}
+
+type EquippedAsset = {
+  image_large?: string;
+  image_small?: string;
+  movie_mp4?: string;
+  movie_webm?: string;
+  movie_mp4_small?: string;
+  movie_webm_small?: string;
+};
+
+function assetFromEquipped(item?: EquippedAsset) {
+  if (!item || (!item.image_large && !item.image_small && !item.movie_mp4 && !item.movie_webm)) {
+    return { image: "", video: "" };
+  }
+  return {
+    image: safeAsset(absoluteSteamUrl(item.image_large || item.image_small || "")),
+    video: safeAsset(
+      absoluteSteamUrl(item.movie_mp4 || item.movie_webm || item.movie_mp4_small || item.movie_webm_small || ""),
+    ),
+  };
+}
+
+async function fetchEquippedItems(steamId: string) {
+  if (!config.steamApiKey || !/^\d{17}$/.test(steamId)) {
+    return { profile: { image: "", video: "" }, mini: { image: "", video: "" } };
+  }
+  const url = new URL("https://api.steampowered.com/IPlayerService/GetProfileItemsEquipped/v1/");
+  url.searchParams.set("key", config.steamApiKey);
+  url.searchParams.set("steamid", steamId);
+  const response = await fetch(url, { signal: AbortSignal.timeout(10_000) });
+  if (!response.ok) return { profile: { image: "", video: "" }, mini: { image: "", video: "" } };
+  const payload = (await response.json()) as {
+    response?: {
+      profile_background?: EquippedAsset;
+      mini_profile_background?: EquippedAsset;
+    };
+  };
+  return {
+    profile: assetFromEquipped(payload.response?.profile_background),
+    mini: assetFromEquipped(payload.response?.mini_profile_background),
+  };
+}
+
+async function fetchEquippedBackground(steamId: string) {
+  const items = await fetchEquippedItems(steamId);
+  return items.profile;
+}
+
+const miniBackgroundCache = new Map<string, { at: number; image: string; video: string }>();
+
+/** Fondo de miniperfil Steam, con caché corta. */
+export async function resolveSteamMiniBackground(steamId: string) {
+  if (!/^\d{17}$/.test(steamId)) return { image: "", video: "" };
+  const cached = miniBackgroundCache.get(steamId);
+  if (cached && Date.now() - cached.at < 30 * 60 * 1000) {
+    return { image: cached.image, video: cached.video };
+  }
+  try {
+    const items = await fetchEquippedItems(steamId);
+    const mini = items.mini.image || items.mini.video ? items.mini : items.profile;
+    miniBackgroundCache.set(steamId, { at: Date.now(), ...mini });
+    return mini;
+  } catch {
+    miniBackgroundCache.set(steamId, { at: Date.now(), image: "", video: "" });
+    return { image: "", video: "" };
+  }
 }
 
 function parseRecentGames(html: string) {
@@ -265,7 +370,12 @@ export async function loadSteamAccount(steamId: string): Promise<SteamAccount> {
     throw new Error("Steam no publicó el perfil.");
   }
 
-  const background = parseBackground(html);
+  const htmlBackground = parseBackground(html);
+  const equippedBackground = await fetchEquippedBackground(steamId).catch(() => ({ image: "", video: "" }));
+  const background = {
+    image: equippedBackground.image || htmlBackground.image,
+    video: equippedBackground.video || htmlBackground.video,
+  };
   const steamGameCount = parseGameCount(html);
   const [owned, community] = await Promise.all([
     fetchOwnedGames(steamId).catch(() => null),
@@ -303,6 +413,7 @@ export async function loadSteamVisit(steamId: string) {
   }
 
   const background = parseBackground(html);
+  const equippedBackground = await fetchEquippedBackground(steamId).catch(() => ({ image: "", video: "" }));
   return {
     kind: "steam" as const,
     steamId,
@@ -310,10 +421,35 @@ export async function loadSteamVisit(steamId: string) {
     steamName,
     avatarUrl: avatar,
     frameUrl: parseFrame(html),
-    backgroundUrl: background.image,
-    backgroundVideo: background.video,
+    backgroundUrl: equippedBackground.image || background.image,
+    backgroundVideo: equippedBackground.video || background.video,
     gameCount: parseGameCount(html),
     totalHours: 0,
     games: parseRecentGames(html).slice(0, 12),
   };
+}
+
+const backgroundCache = new Map<string, { at: number; image: string; video: string }>();
+
+/** Fondo de perfil Steam (imagen/video), con caché corta. */
+export async function resolveSteamBackground(steamId: string) {
+  if (!/^\d{17}$/.test(steamId)) return { image: "", video: "" };
+  const cached = backgroundCache.get(steamId);
+  if (cached && Date.now() - cached.at < 30 * 60 * 1000) {
+    return { image: cached.image, video: cached.video };
+  }
+  try {
+    const equipped = await fetchEquippedBackground(steamId);
+    if (equipped.image || equipped.video) {
+      backgroundCache.set(steamId, { at: Date.now(), ...equipped });
+      return equipped;
+    }
+    const profile = await loadSteamVisit(steamId);
+    const result = { image: profile.backgroundUrl || "", video: profile.backgroundVideo || "" };
+    backgroundCache.set(steamId, { at: Date.now(), ...result });
+    return result;
+  } catch {
+    backgroundCache.set(steamId, { at: Date.now(), image: "", video: "" });
+    return { image: "", video: "" };
+  }
 }

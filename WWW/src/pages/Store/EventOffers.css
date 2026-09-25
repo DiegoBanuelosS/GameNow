@@ -18,50 +18,135 @@
   scroll-margin-top: 120px;
 }
 
-/* Tablero con proporciones 2:3 y 3:4 para que las carátulas tengan el ancho correcto y no se corten */
-.event-offers-board {
-  display: grid;
-  grid-template-columns: minmax(0, 1.95fr) minmax(0, 1.05fr);
-  grid-template-rows: 1fr;
-  height: clamp(440px, 52vh, 495px);
-  gap: var(--space-4);
-  align-items: stretch;
-  position: relative;
-  overflow: visible;
+.event-offers-stage {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
 }
 
-.offer-featured {
+/* —— Featured Cyberpunk —— */
+.cp-feature {
   display: grid;
   gap: var(--space-4);
+  width: 100%;
+  min-width: 0;
+}
+
+.cp-feature-media {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 21 / 9;
+  min-height: 280px;
+  max-height: min(520px, 56vh);
+  overflow: hidden;
+  isolation: isolate;
+  border-radius: var(--radius-panel);
+  background: #121110;
+  text-decoration: none;
+  color: inherit;
+}
+
+.cp-feature-art {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
   height: 100%;
-  min-height: 0;
+  object-fit: cover;
+  object-position: center 30%;
+  z-index: 0;
+}
+
+.cp-feature-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center center;
+  z-index: 1;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  background: #121110;
+  transition: opacity 220ms var(--ease-out);
+}
+
+.cp-feature-video.is-on {
+  opacity: 1;
+  visibility: visible;
+}
+
+.cp-feature-covers {
+  position: absolute;
+  left: clamp(16px, 2.5vw, 28px);
+  bottom: clamp(16px, 2.5vw, 28px);
+  z-index: 3;
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  pointer-events: none;
+}
+
+.cp-feature-cover {
+  display: block;
+  border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55);
+  background: #181716;
+  object-fit: cover;
+}
+
+.cp-feature-covers .cp-feature-cover:first-of-type {
+  width: clamp(96px, 12vw, 148px);
+  aspect-ratio: 2 / 3;
+  height: auto;
+}
+
+.cp-feature-covers .cp-feature-cover:last-of-type {
+  width: clamp(160px, 22vw, 280px);
+  aspect-ratio: 460 / 215;
+  height: auto;
+}
+
+.cp-feature-plus {
+  align-self: center;
+  color: #fff;
+  font: 700 28px/1 var(--font-sans);
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
+}
+
+.cp-feature-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.cp-feature-name {
+  margin: 0;
+  color: #fff;
+  font: 700 clamp(18px, 2.2vw, 26px) / 1.2 var(--font-sans);
+  letter-spacing: -0.02em;
+}
+
+/* —— Grid de ofertas —— */
+.event-offers-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: var(--space-4);
   margin: 0;
   padding: 0;
   list-style: none;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  position: relative;
-  overflow: visible;
-}
-
-.offer-side {
-  display: grid;
-  gap: var(--space-4);
-  height: 100%;
-  min-height: 0;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  grid-template-rows: 1fr 1fr;
-  position: relative;
-  overflow: visible;
 }
 
 .offer-item {
   position: relative;
   min-width: 0;
   min-height: 0;
-  height: 100%;
+  aspect-ratio: var(--cover-ratio, 2 / 3);
+  list-style: none;
   overflow: visible;
 }
 
@@ -83,7 +168,6 @@
   text-decoration: none;
   color: inherit;
   box-sizing: border-box;
-  /* Sin zoom, solo transicion de borde blanco y resplandor suave */
   transition:
     border-color 220ms var(--ease-out),
     box-shadow 220ms var(--ease-out);
@@ -100,7 +184,6 @@
   outline-offset: 3px;
 }
 
-/* Imagen sin ningun zoom en hover para preservar la maxima nitidez */
 .offer-card-art {
   position: absolute;
   inset: 0;
@@ -112,15 +195,6 @@
   transform: none !important;
 }
 
-.offer-card:has(img[src*="htf"]) .offer-card-art {
-  object-position: center 25%;
-}
-
-.offer-card:has(img[src*="fh6"]) .offer-card-art {
-  object-position: center center;
-}
-
-/* Pie de tarjeta con titulo, precio y badge de descuento */
 .offer-card-foot {
   position: absolute;
   right: 0;
@@ -210,7 +284,7 @@
   font-size: 16px;
 }
 
-/* Info emergente A LA DERECHA FUERA DE LA CARD con transicion suave */
+/* Info emergente a la derecha */
 .offer-popout-info {
   position: absolute;
   left: calc(100% + 14px);
@@ -221,7 +295,7 @@
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: var(--space-5) var(--space-5);
+  padding: var(--space-5);
   background: rgba(16, 15, 14, 0.96);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
@@ -252,16 +326,32 @@
   border-radius: 16px;
 }
 
-/* En la 3ra columna de ofertas (borde derecho), sale hacia la izquierda para no salirse de la pantalla */
-.offer-side li:nth-child(3n) .offer-popout-info {
+.event-offers-grid > .offer-item:nth-child(6n) .offer-popout-info {
   left: auto;
   right: calc(100% + 12px);
   transform: translateX(12px);
 }
 
-.offer-side li:nth-child(3n):hover .offer-popout-info,
-.offer-side li:nth-child(3n):focus-within .offer-popout-info {
+.event-offers-grid > .offer-item:nth-child(6n):hover .offer-popout-info,
+.event-offers-grid > .offer-item:nth-child(6n):focus-within .offer-popout-info {
   transform: translateX(0);
+}
+
+.offer-popout-glass {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+}
+
+.offer-popout-copy {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--space-3);
+  width: 100%;
+  height: 100%;
+  min-height: 0;
 }
 
 .offer-popout-header {
@@ -381,26 +471,41 @@
   transform: translateY(-1px);
 }
 
+@media (max-width: 1280px) {
+  .event-offers-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .event-offers-grid > .offer-item:nth-child(6n) .offer-popout-info {
+    left: calc(100% + 14px);
+    right: auto;
+    transform: translateX(-12px);
+  }
+
+  .event-offers-grid > .offer-item:nth-child(4n) .offer-popout-info {
+    left: auto;
+    right: calc(100% + 12px);
+    transform: translateX(12px);
+  }
+
+  .event-offers-grid > .offer-item:nth-child(4n):hover .offer-popout-info,
+  .event-offers-grid > .offer-item:nth-child(4n):focus-within .offer-popout-info {
+    transform: translateX(0);
+  }
+}
+
 @media (max-width: 991px) {
   .event-offers {
     padding: var(--space-5) var(--space-4) var(--space-7);
   }
 
-  .event-offers-board {
-    grid-template-columns: 1fr;
-    grid-template-rows: none;
-    height: auto;
+  .cp-feature-media {
+    aspect-ratio: 16 / 9;
+    max-height: none;
   }
 
-  .offer-featured {
-    grid-template-columns: repeat(3, 1fr);
-    height: 420px;
-  }
-
-  .offer-side {
-    grid-template-columns: repeat(3, 1fr);
-    grid-template-rows: 1fr 1fr;
-    height: 350px;
+  .event-offers-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .offer-popout-info {
@@ -413,19 +518,22 @@
 }
 
 @media (max-width: 640px) {
-  .offer-featured {
-    grid-template-columns: 1fr;
-    height: auto;
-    gap: var(--space-3);
+  .cp-feature-media {
+    aspect-ratio: 4 / 3;
   }
 
-  .offer-side {
-    grid-template-columns: repeat(2, 1fr);
-    height: auto;
-    gap: var(--space-3);
+  .cp-feature-covers {
+    left: 12px;
+    bottom: 12px;
+    gap: 8px;
   }
 
-  .offer-item {
-    height: 240px;
+  .cp-feature-plus {
+    font-size: 20px;
+  }
+
+  .event-offers-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-3);
   }
 }

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type SyntheticEvent } from "react";
 import "./StoreArt.css";
 
 type StoreArtProps = {
@@ -11,6 +11,7 @@ type StoreArtProps = {
   height?: number;
   fallback?: string;
   fallbacks?: string[];
+  onLoad?: (event: SyntheticEvent<HTMLImageElement>) => void;
 };
 
 export function StoreArt({
@@ -23,6 +24,7 @@ export function StoreArt({
   height,
   fallback,
   fallbacks,
+  onLoad,
 }: StoreArtProps) {
   const [failed, setFailed] = useState(!src);
   const chain = useRef<string[]>([]);
@@ -60,6 +62,7 @@ export function StoreArt({
       width={width}
       height={height}
       decoding="async"
+      onLoad={onLoad}
       onError={(event) => {
         const image = event.currentTarget;
         const next = chain.current.find((url) => url && image.src !== url);

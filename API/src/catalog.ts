@@ -108,9 +108,30 @@ const PRESS_VIDEO_HOSTS = new Set([
   "www.youtube-nocookie.com",
 ]);
 
+function isYoutube(value: string) {
+  return /youtube\.com|youtu\.be|youtube-nocookie/i.test(value);
+}
+
+/** Trailers propios de las cards del inicio. No usan YouTube. */
+const LOCAL_TRAILERS: Record<string, string> = {
+  "ace-combat-8": "/videos/ace8.webm",
+  "gta-vi": "/videos/GTAVI.webm",
+  "ark-2": "/videos/ark2.webm",
+  "call-of-duty-modern-warfare-4": "/videos/mw.webm",
+  "f1-2025-2026-season-pack": "/videos/F126.webm",
+  "nba-2k27": "/videos/NBA.webm",
+  "forza-horizon-6": "/videos/FH6.webm",
+  "the-last-of-us-2-remastered": "/videos/lst.webm",
+  "cyberpunk-2077": "/videos/cp.webm",
+  "007-first-light": "/videos/007.webm",
+};
+
 function playableUrl(value: string) {
   if (value.startsWith("gamenow/press")) {
     return deliverVideo({ publicId: value, resourceType: "video", hosted: true });
+  }
+  if (value.startsWith("/videos/")) {
+    return value;
   }
   try {
     const url = new URL(value);
@@ -133,7 +154,9 @@ function hostedFor(product: ProductDoc) {
 
 async function coverFor(product: ProductDoc, role: "ad" | "event" | "offer" | "hero") {
   const sizes = deliverImage(product.cover, role).sizes;
-  const hosted = hostedFor(product).cover;
+  const hosted = product.slug === "gta-vi" && role === "ad"
+    ? "gamenow/presskit/gta-vi-vice"
+    : hostedFor(product).cover;
   if (hosted?.startsWith("gamenow/press")) {
     return { src: imageUrl(hosted, role), srcSet: "", sizes };
   }
@@ -141,8 +164,24 @@ async function coverFor(product: ProductDoc, role: "ad" | "event" | "offer" | "h
 }
 
 async function trailerFor(product: ProductDoc) {
-  const hosted = hostedFor(product).trailer;
-  return hosted ? playableUrl(hosted) : "";
+  if (product.sections.ad != null) {
+    const local = LOCAL_TRAILERS[product.slug];
+    if (local) {
+      return local;
+    }
+  }
+  const hosted = hostedFor(product);
+  const listed = [hosted.trailer, ...(hosted.videos ?? [])].filter((item): item is string => Boolean(item));
+  for (const item of listed) {
+    if (product.sections.ad != null && isYoutube(item)) {
+      continue;
+    }
+    const src = playableUrl(item);
+    if (src && !(product.sections.ad != null && isYoutube(src))) {
+      return src;
+    }
+  }
+  return "";
 }
 
 function galleryVideos(product: ProductDoc, poster: string) {
@@ -217,7 +256,7 @@ export async function loadProducts(): Promise<ProductDoc[]> {
       if (rows.length) {
         return cacheSet(
           "products-steam",
-          (rows as ProductDoc[]).map((row) => {
+          (rows as ProductDoc[]).filter((row) => row.slug !== "how-to-fish").map((row) => {
             const file = fileBySlug.get(row.slug);
             return {
               ...row,
@@ -235,7 +274,11 @@ export async function loadProducts(): Promise<ProductDoc[]> {
       /* snapshot fallback */
     }
   }
-  return cacheSet("products-steam", snapshot, 30_000);
+  return cacheSet(
+    "products-steam",
+    snapshot.filter((product) => product.slug !== "how-to-fish"),
+    30_000,
+  );
 }
 
 export async function loadProduct(slug: string) {
@@ -293,9 +336,15 @@ export async function loadProduct(slug: string) {
 }
 
 export async function loadStore() {
-  const cached = cacheGet<
-    Awaited<ReturnType<typeof toPublic>> & { authPanel?: string }
-  >("store-mxn");
+  type StorePayload = {
+    ads: Awaited<ReturnType<typeof toPublic>>[];
+    events: Awaited<ReturnType<typeof toPublic>>[];
+    offers: Awaited<ReturnType<typeof toPublic>>[];
+    authPanel?: string;
+    authPanelSrcSet?: string;
+  };
+
+  const cached = cacheGet<StorePayload>("store");
   if (cached) {
     return cached;
   }
@@ -341,7 +390,7 @@ export async function loadStore() {
 
   return cacheSet(
     "store",
-    { ads, events, offers, authPanel, authPanelSrcSet },
+    { ads, events, offers, authPanel, authPanelSrcSet } satisfies StorePayload,
     30_000,
   );
 }

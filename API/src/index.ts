@@ -1,7 +1,9 @@
 import cors from "cors";
 import express from "express";
 import { loadProduct, loadStore } from "./catalog.js";
-import { loadGame, loadGames } from "./games.js";
+import { loadAppTitle, loadReleases } from "./releases.js";
+import { loadSimilar } from "./similar.js";
+import { loadGame, loadGames, loadGamesPage } from "./games.js";
 import { config } from "./config.js";
 import { connectDb } from "./db.js";
 import { fitPc } from "./pcFit.js";
@@ -9,8 +11,11 @@ import { windowsInstallerPath, windowsAppZipPath, windowsPackagePath } from "./d
 import { cachedVideoPath, videoContentType } from "./videoCache.js";
 import { getReviews, addReview, markHelpful } from "./reviews.js";
 import { authRouter } from "./auth.js";
+import { chatRouter } from "./chat.js";
 import { steamCallback, steamRefresh, steamStart, steamUnlink } from "./steamLink.js";
 import { addFriend, purchaseLibrary, resaleQuote, searchPeople, steamAchievements, steamFriends, steamProfile, updateFriend, updateLibraryGame } from "./steamSocial.js";
+import { loadSteamNewsForApps } from "./steamNews.js";
+import { submitSupport } from "./support.js";
 
 const app = express();
 app.use(
@@ -50,6 +55,8 @@ authRouter.get("/steam/start", steamStart);
 authRouter.post("/steam/refresh", steamRefresh);
 authRouter.delete("/steam", steamUnlink);
 
+app.use("/api/chat", chatRouter);
+
 app.get("/api/health", (_req, res) => {
   res.json({ ok: true });
 });
@@ -63,6 +70,7 @@ app.get("/api/library/resale", resaleQuote);
 app.patch("/api/steam/friends", updateFriend);
 app.patch("/api/steam/library", updateLibraryGame);
 app.post("/api/steam/library", purchaseLibrary);
+app.post("/api/support", submitSupport);
 
 app.get("/api/store", async (_req, res) => {
   try {
@@ -74,10 +82,63 @@ app.get("/api/store", async (_req, res) => {
   }
 });
 
-app.get("/api/games", async (_req, res) => {
+app.get("/api/similar/:appId", async (req, res) => {
+  try {
+    res.set("Cache-Control", "public, max-age=300, stale-while-revalidate=900");
+    const genre = typeof req.query.genre === "string" ? req.query.genre : "";
+    res.json({ games: await loadSimilar(req.params.appId, genre) });
+  } catch (error) {
+    res.status(500).json({ error: "No se pudieron cargar juegos parecidos." });
+    console.error(error);
+  }
+});
+
+app.get("/api/title/:appId", async (req, res) => {
+  try {
+    const title = await loadAppTitle(req.params.appId);
+    if (!title) {
+      res.status(404).json({ error: "No está en la tienda." });
+      return;
+    }
+    res.set("Cache-Control", "public, max-age=300, stale-while-revalidate=900");
+    res.json(title);
+  } catch (error) {
+    res.status(500).json({ error: "No se pudo cargar el juego." });
+    console.error(error);
+  }
+});
+
+app.get("/api/releases", async (_req, res) => {
+  try {
+    res.set("Cache-Control", "public, max-age=300, stale-while-revalidate=900");
+    res.json(await loadReleases());
+  } catch (error) {
+    res.status(500).json({ error: "No se pudo cargar el calendario de lanzamientos." });
+    console.error(error);
+  }
+});
+
+app.get("/api/games", async (req, res) => {
   try {
     res.set("Cache-Control", "public, max-age=60, stale-while-revalidate=300");
-    res.json(await loadGames());
+    if (req.query.set === "known") {
+      res.json(await loadGames());
+      return;
+    }
+    const page = Number(req.query.page) || 1;
+    const min = req.query.min == null ? undefined : Number(req.query.min);
+    const max = req.query.max == null ? undefined : Number(req.query.max);
+    const stars = Number(req.query.stars) || 0;
+    res.json(
+      await loadGamesPage({
+        page,
+        tab: typeof req.query.tab === "string" ? req.query.tab : undefined,
+        min: Number.isFinite(min) ? min : undefined,
+        max: Number.isFinite(max) ? max : undefined,
+        stars,
+        q: typeof req.query.q === "string" ? req.query.q.trim().toLowerCase() : undefined,
+      }),
+    );
   } catch (error) {
     res.status(500).json({ error: "No se pudo cargar Nuestros Juegos." });
     console.error(error);
@@ -86,10 +147,9 @@ app.get("/api/games", async (_req, res) => {
 
 app.get("/api/news", async (req, res) => {
   try {
-    res.set("Cache-Control", "public, max-age=300, stale-while-revalidate=600");
-    
-    // Base de noticias reales en español con CAPTURAS DE PANTALLA REALES (no carátulas)
-    const newsCatalog = [
+    res.set("Cache-Control", "public, max-age=120, stale-while-revalidate=300");
+
+    const curated = [
       {
         id: "bg3-patch-7",
         game: "Baldur's Gate 3",
@@ -98,57 +158,14 @@ app.get("/api/news", async (req, res) => {
         title: "Parche 7 ya disponible: Nuevas cinemáticas de finales oscuros y soporte oficial para mods",
         author: "Larian Studios",
         date: "18 de sep 2026",
+        dateTs: Date.parse("2026-09-18") / 1000,
         url: "https://store.steampowered.com/news/app/1086940",
-        snippet: "Larian Studios introduce 13 cinemáticas nuevas para las rutas de conquista absoluta, gestor integrado de mods y pantalla dividida perfeccionada.",
-        image: "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1086940/ss_75e07a34e0a6d59b2075a898b958c8942b036ca6.1920x1080.jpg"
-      },
-      {
-        id: "hl2-anniversary",
-        game: "Half-Life 2",
-        appId: "220",
-        slug: "half-life-2",
-        title: "Actualización del 20.º Aniversario: Episode One y Two unificados y comentarios de los creadores",
-        author: "Valve",
-        date: "28 de ago 2026",
-        url: "https://store.steampowered.com/news/app/220",
-        snippet: "Valve celebra dos décadas de Gordon Freeman unificando Episode One y Two en el cliente base, con 3.5 horas de comentarios inéditos de los creadores.",
-        image: "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/220/ss_628a8d11dc9f0907e1fa16dbb6441eebaa211f44.1920x1080.jpg"
-      },
-      {
-        id: "disco-final-cut",
-        game: "Disco Elysium",
-        appId: "632470",
-        slug: "disco-elysium-the-final-cut",
-        title: "Actualización de rendimiento y expansión de accesibilidad para The Final Cut",
-        author: "ZA/UM",
-        date: "14 de ago 2026",
-        url: "https://store.steampowered.com/news/app/632470",
-        snippet: "ZA/UM optimiza los tiempos de carga en Revachol, mejora el tamaño de las fuentes para alta resolución y soluciona sincronización en la nube.",
-        image: "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/632470/ss_8471131b7cae61448b1d9bfcf7e7d6fa465b05fa.1920x1080.jpg"
-      },
-      {
-        id: "bioshock-remaster",
-        game: "BioShock",
-        appId: "7670",
-        slug: "bioshock",
-        title: "Actualización de estabilidad: Compatibilidad completa con pantallas 21:9 y audio espacial",
-        author: "2K Games",
-        date: "22 de jul 2026",
-        url: "https://store.steampowered.com/news/app/7670",
-        snippet: "Parche correctivo enfocado en la estabilidad de Windows 11, soporte panorámico sin barras negras y balance sonoro en Rapture.",
-        image: "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/7670/0000002447.1920x1080.jpg"
-      },
-      {
-        id: "ace8-clouds",
-        game: "ACE COMBAT 8",
-        appId: "",
-        slug: "ace-combat-8",
-        title: "Informe técnico #3: Simulación meteorológica de alta fidelidad y frentes de tormenta",
-        author: "Bandai Namco Aces",
-        date: "10 de sep 2026",
-        url: "/game/ace-combat-8",
-        snippet: "Project Aces detalla la física aerodinámica de los nuevos cazas de quinta generación y el comportamiento de las nubes volumétricas en combate.",
-        image: "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2288340/a704b72d7c8647b2c6773731fe7a79979674dc70/ss_a704b72d7c8647b2c6773731fe7a79979674dc70.1920x1080.jpg"
+        snippet:
+          "Larian Studios introduce 13 cinemáticas nuevas para las rutas de conquista absoluta, gestor integrado de mods y pantalla dividida perfeccionada.",
+        body:
+          "<p>Larian Studios introduce 13 cinemáticas nuevas para las rutas de conquista absoluta, gestor integrado de mods y pantalla dividida perfeccionada.</p><p>El Parche 7 también amplía el soporte de mods oficiales y mejora la estabilidad en pantallas ultraanchas.</p>",
+        image:
+          "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1086940/ss_75e07a34e0a6d59b2075a898b958c8942b036ca6.1920x1080.jpg",
       },
       {
         id: "cp2077-update",
@@ -158,29 +175,52 @@ app.get("/api/news", async (req, res) => {
         title: "Actualización 2.13: Compatibilidad con AMD FSR 3 e Intel XeSS 1.3",
         author: "CD PROJEKT RED",
         date: "12 de sep 2026",
+        dateTs: Date.parse("2026-09-12") / 1000,
         url: "https://store.steampowered.com/news/app/1091500",
-        snippet: "La última actualización optimiza el rendimiento en trazado de caminos (Path Tracing) e introduce FSR 3 con generación de fotogramas en PC.",
-        image: "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1091500/ss_31ad4c6df7c2cf88c5efb0e008daaeef42617a23.1920x1080.jpg"
-      }
+        snippet:
+          "La última actualización optimiza el rendimiento en trazado de caminos (Path Tracing) e introduce FSR 3 con generación de fotogramas en PC.",
+        body:
+          "<p>La última actualización optimiza el rendimiento en trazado de caminos (Path Tracing) e introduce FSR 3 con generación de fotogramas en PC, además de Intel XeSS 1.3 para mejorar la nitidez en equipos de gama media.</p>",
+        image:
+          "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1091500/ss_31ad4c6df7c2cf88c5efb0e008daaeef42617a23.1920x1080.jpg",
+      },
     ];
 
-    const appIdsParam = req.query.appIds ? String(req.query.appIds).split(",") : null;
-    const slugsParam = req.query.slugs ? String(req.query.slugs).split(",") : null;
+    const appIdsParam = req.query.appIds ? String(req.query.appIds).split(",").map((id) => id.trim()).filter(Boolean) : [];
+    const namesParam = req.query.names ? String(req.query.names).split("|").map((name) => name.trim()) : [];
+    const slugsParam = req.query.slugs ? String(req.query.slugs).split(",").map((id) => id.trim()).filter(Boolean) : [];
 
-    let filtered = newsCatalog;
-    if (appIdsParam || slugsParam) {
-      filtered = newsCatalog.filter(
-        (item) =>
-          (item.appId && appIdsParam?.includes(item.appId)) ||
-          (item.slug && slugsParam?.includes(item.slug))
-      );
-      if (filtered.length === 0) {
-        filtered = newsCatalog;
-      }
+    const apps = appIdsParam.map((appId, index) => ({
+      appId,
+      name: namesParam[index] || `Steam ${appId}`,
+    }));
+
+    const steamNews = apps.length ? await loadSteamNewsForApps(apps, 2, 28) : [];
+
+    const curatedOwned = curated.filter(
+      (item) =>
+        (item.appId && appIdsParam.includes(item.appId)) ||
+        (item.slug && slugsParam.includes(item.slug)),
+    );
+
+    const seen = new Set(steamNews.map((item) => item.id));
+    const merged = [
+      ...steamNews,
+      ...curatedOwned.filter((item) => {
+        if (seen.has(item.id)) return false;
+        seen.add(item.id);
+        return true;
+      }),
+    ].sort((a, b) => (b.dateTs || 0) - (a.dateTs || 0));
+
+    if (merged.length === 0 && appIdsParam.length === 0) {
+      res.json(curated);
+      return;
     }
 
-    res.json(filtered);
+    res.json(merged);
   } catch (error) {
+    console.error("news:", error instanceof Error ? error.message : error);
     res.status(500).json({ error: "No se pudieron obtener las noticias." });
   }
 });

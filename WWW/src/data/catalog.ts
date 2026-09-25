@@ -125,7 +125,7 @@ export async function fetchProduct(slug: string): Promise<StoreProduct | null> {
 }
 
 export async function fetchGames(): Promise<GamesCatalog> {
-  const response = await fetch(apiUrl("/api/games"));
+  const response = await fetch(apiUrl("/api/games?set=known"));
   if (!response.ok) {
     throw new Error("No se pudo cargar Nuestros Juegos.");
   }
@@ -138,7 +138,9 @@ export function useOurCovers() {
   useEffect(() => {
     let alive = true;
     Promise.all([
-      fetchGames().catch(() => null),
+      fetch(apiUrl("/api/games?set=known"))
+        .then((response) => (response.ok ? (response.json() as Promise<GamesCatalog>) : null))
+        .catch(() => null),
       fetchStore().catch(() => null),
     ]).then(([games, store]) => {
       if (!alive) return;
