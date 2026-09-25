@@ -57,9 +57,11 @@ function CyberpunkFeature({ game }: { game: StoreProduct }) {
           onCanPlay={preview.handleCanPlay}
         />
         <div className="cp-feature-covers">
-          <StoreArt className="cp-feature-cover" src={CYBERPUNK_COVER} alt="Carátula de Cyberpunk 2077" />
-          <span className="cp-feature-plus" aria-hidden="true">+</span>
-          <StoreArt className="cp-feature-cover" src={PHANTOM_LIBERTY_COVER} alt="Carátula de Phantom Liberty" />
+          <StoreArt className="cp-feature-cover is-game" src={CYBERPUNK_COVER} alt="Carátula de Cyberpunk 2077" />
+          <span className="cp-feature-plus" aria-hidden="true">
+            +
+          </span>
+          <StoreArt className="cp-feature-cover is-dlc" src={PHANTOM_LIBERTY_COVER} alt="Carátula de Phantom Liberty" />
         </div>
       </Link>
       <div className="cp-feature-meta">
@@ -102,13 +104,6 @@ function GameTile({ game, size }: { game: StoreProduct; size: "large" | "small" 
           srcSet={game.coverSrcSet}
           sizes={game.coverSizes}
           alt={game.name}
-          onLoad={(event) => {
-            const image = event.currentTarget;
-            if (!image.naturalWidth || !image.naturalHeight) return;
-            image
-              .closest<HTMLElement>(".offer-item")
-              ?.style.setProperty("--cover-ratio", `${image.naturalWidth} / ${image.naturalHeight}`);
-          }}
         />
         <div className="offer-card-foot">
           {game.tag ? <p className="offer-card-tag">{game.tag}</p> : null}
@@ -123,7 +118,6 @@ function GameTile({ game, size }: { game: StoreProduct; size: "large" | "small" 
         </div>
       </Link>
 
-      {/* Info emergente a la derecha FUERA de la card con datos completos */}
       <Link
         className={`offer-popout-info is-${size}`}
         to={game.href}
@@ -142,31 +136,31 @@ function GameTile({ game, size }: { game: StoreProduct; size: "large" | "small" 
           }}
         >
           <div className="offer-popout-copy">
-              <div className="offer-popout-header">
-                <div className="offer-popout-tags">
-                  {game.tag ? <span className="offer-popout-tag">{game.tag}</span> : null}
-                  {discount ? <span className="offer-discount-badge">{discount}</span> : null}
-                </div>
-                <h3 className="offer-popout-title">{game.name}</h3>
-                {game.studio ? <p className="offer-popout-studio">{game.studio}</p> : null}
-                {game.description ? <p className="offer-popout-desc">{game.description}</p> : null}
-                {game.platforms ? (
-                  <p className="offer-popout-platforms">
-                    <span>Plataformas:</span> {game.platforms}
-                  </p>
-                ) : null}
+            <div className="offer-popout-header">
+              <div className="offer-popout-tags">
+                {game.tag ? <span className="offer-popout-tag">{game.tag}</span> : null}
+                {discount ? <span className="offer-discount-badge">{discount}</span> : null}
               </div>
-              <div className="offer-popout-footer">
-                <div className="offer-popout-pricing">
-                  {discount ? <span className="offer-discount-badge">{discount}</span> : null}
-                  <div className="offer-popout-price-group">
-                    {game.was ? <s className="offer-popout-was">{game.was}</s> : null}
-                    <span className="offer-popout-price">{game.price}</span>
-                  </div>
-                </div>
-                <span className="offer-popout-btn">Ver ficha completa →</span>
-              </div>
+              <h3 className="offer-popout-title">{game.name}</h3>
+              {game.studio ? <p className="offer-popout-studio">{game.studio}</p> : null}
+              {game.description ? <p className="offer-popout-desc">{game.description}</p> : null}
+              {game.platforms ? (
+                <p className="offer-popout-platforms">
+                  <span>Plataformas:</span> {game.platforms}
+                </p>
+              ) : null}
             </div>
+            <div className="offer-popout-footer">
+              <div className="offer-popout-pricing">
+                {discount ? <span className="offer-discount-badge">{discount}</span> : null}
+                <div className="offer-popout-price-group">
+                  {game.was ? <s className="offer-popout-was">{game.was}</s> : null}
+                  <span className="offer-popout-price">{game.price}</span>
+                </div>
+              </div>
+              <span className="offer-popout-btn">Ver ficha completa →</span>
+            </div>
+          </div>
         </LiquidGlass>
       </Link>
     </li>
@@ -175,30 +169,30 @@ function GameTile({ game, size }: { game: StoreProduct; size: "large" | "small" 
 
 export function EventOffers() {
   const { catalog } = useCatalog();
+  const cyberpunk =
+    catalog.offers.find((game) => game.slug === CYBERPUNK) ||
+    catalog.events.find((game) => game.slug === CYBERPUNK) ||
+    catalog.ads.find((game) => game.slug === CYBERPUNK);
+  const sideGames = [...catalog.ads, ...catalog.events, ...catalog.offers]
+    .filter(
+      (game, index, list) =>
+        game.slug !== "how-to-fish" &&
+        game.slug !== CYBERPUNK &&
+        Boolean(game.cover) &&
+        list.findIndex((item) => item.slug === game.slug) === index,
+    )
+    .slice(0, 9);
 
   return (
     <section className="event-offers" id="eventos" aria-labelledby="event-offers-title">
       <h2 id="event-offers-title">Eventos y Ofertas</h2>
 
       <div className="event-offers-stage">
-        {catalog.offers.find((game) => game.slug === CYBERPUNK) ||
-        catalog.events.find((game) => game.slug === CYBERPUNK) ? (
-          <CyberpunkFeature
-            game={(catalog.offers.find((game) => game.slug === CYBERPUNK) ||
-              catalog.events.find((game) => game.slug === CYBERPUNK))!}
-          />
-        ) : null}
-        <ul className="event-offers-grid" aria-label="Eventos y ofertas">
-          {[...catalog.events, ...catalog.offers]
-            .filter(
-              (game) =>
-                game.slug !== "how-to-fish" &&
-                game.slug !== CYBERPUNK &&
-                Boolean(game.cover),
-            )
-            .map((game) => (
-              <GameTile key={game.slug} game={game} size="large" />
-            ))}
+        {cyberpunk ? <CyberpunkFeature game={cyberpunk} /> : null}
+        <ul className="event-offers-grid" aria-label="Ofertas">
+          {sideGames.map((game) => (
+            <GameTile key={game.slug} game={game} size="small" />
+          ))}
         </ul>
       </div>
     </section>

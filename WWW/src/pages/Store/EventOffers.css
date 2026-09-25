@@ -18,36 +18,51 @@
   scroll-margin-top: 120px;
 }
 
+/* Cyberpunk izquierda + cuadrícula 3x3 derecha */
 .event-offers-stage {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-6);
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(320px, 1fr);
+  gap: var(--space-4);
+  align-items: stretch;
+  height: clamp(460px, 54vh, 560px);
+  position: relative;
+  overflow: visible;
 }
 
-/* —— Featured Cyberpunk —— */
 .cp-feature {
-  display: grid;
-  gap: var(--space-4);
-  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
   min-width: 0;
+  min-height: 0;
+  height: 100%;
 }
 
 .cp-feature-media {
   position: relative;
   display: block;
-  width: 100%;
-  aspect-ratio: 21 / 9;
-  min-height: 280px;
-  max-height: min(520px, 56vh);
+  flex: 1;
+  min-height: 0;
   overflow: hidden;
   isolation: isolate;
   border-radius: var(--radius-panel);
+  border: 2px solid transparent;
   background: #121110;
   text-decoration: none;
   color: inherit;
+  transition:
+    border-color 220ms var(--ease-out),
+    box-shadow 220ms var(--ease-out);
 }
 
-.cp-feature-art {
+.cp-feature:hover .cp-feature-media,
+.cp-feature:focus-within .cp-feature-media {
+  border-color: #ffffff;
+  box-shadow: 0 0 24px rgba(255, 255, 255, 0.28), 0 14px 36px rgba(0, 0, 0, 0.75);
+}
+
+.cp-feature-art,
+.cp-feature-video {
   position: absolute;
   inset: 0;
   display: block;
@@ -55,21 +70,14 @@
   height: 100%;
   object-fit: cover;
   object-position: center 30%;
-  z-index: 0;
+  background: #121110;
 }
 
 .cp-feature-video {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center center;
   z-index: 1;
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
-  background: #121110;
   transition: opacity 220ms var(--ease-out);
 }
 
@@ -78,74 +86,78 @@
   visibility: visible;
 }
 
+/* Juego + DLC arriba a la derecha */
 .cp-feature-covers {
   position: absolute;
-  left: clamp(16px, 2.5vw, 28px);
-  bottom: clamp(16px, 2.5vw, 28px);
+  top: 16px;
+  right: 16px;
   z-index: 3;
   display: flex;
-  align-items: flex-end;
-  gap: 12px;
+  align-items: center;
+  gap: 8px;
   pointer-events: none;
 }
 
 .cp-feature-cover {
   display: block;
-  border-radius: 10px;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55);
-  background: #181716;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.55);
+  background: #121110;
   object-fit: cover;
 }
 
-.cp-feature-covers .cp-feature-cover:first-of-type {
-  width: clamp(96px, 12vw, 148px);
-  aspect-ratio: 2 / 3;
-  height: auto;
+.cp-feature-cover.is-game {
+  width: 78px;
+  height: 116px;
 }
 
-.cp-feature-covers .cp-feature-cover:last-of-type {
-  width: clamp(160px, 22vw, 280px);
-  aspect-ratio: 460 / 215;
-  height: auto;
+.cp-feature-cover.is-dlc {
+  width: 160px;
+  height: 75px;
 }
 
 .cp-feature-plus {
-  align-self: center;
-  color: #fff;
+  color: #ffffff;
   font: 700 28px/1 var(--font-sans);
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
 }
 
 .cp-feature-meta {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
+  align-items: flex-end;
   justify-content: space-between;
   gap: var(--space-3);
+  flex-shrink: 0;
 }
 
 .cp-feature-name {
   margin: 0;
-  color: #fff;
-  font: 700 clamp(18px, 2.2vw, 26px) / 1.2 var(--font-sans);
+  color: #ffffff;
+  font: 700 clamp(20px, 2vw, 28px) / 1.15 var(--font-sans);
   letter-spacing: -0.02em;
 }
 
-/* —— Grid de ofertas —— */
 .event-offers-grid {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: repeat(3, minmax(0, 1fr));
   gap: var(--space-4);
   margin: 0;
   padding: 0;
   list-style: none;
+  height: 100%;
+  min-height: 0;
+  position: relative;
+  overflow: visible;
 }
 
 .offer-item {
   position: relative;
   min-width: 0;
   min-height: 0;
-  aspect-ratio: var(--cover-ratio, 2 / 3);
+  height: 100%;
   list-style: none;
   overflow: visible;
 }
@@ -201,7 +213,7 @@
   bottom: 0;
   left: 0;
   z-index: 2;
-  padding: var(--space-6) var(--space-4) var(--space-3);
+  padding: var(--space-4) var(--space-3) var(--space-3);
   background: linear-gradient(
     to top,
     rgb(0 0 0 / 0.95) 0%,
@@ -209,10 +221,6 @@
     transparent 100%
   );
   transition: opacity 240ms var(--ease-out);
-}
-
-.offer-card.is-small .offer-card-foot {
-  padding: var(--space-4) var(--space-3) var(--space-3);
 }
 
 .offer-item:hover .offer-card-foot,
@@ -232,12 +240,8 @@
 .offer-card-name {
   margin: 0;
   color: #ffffff;
-  font: 700 16px/1.2 var(--font-sans);
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
-}
-
-.offer-card.is-small .offer-card-name {
   font: 600 13px/1.2 var(--font-sans);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -280,34 +284,30 @@
   font: 700 14px/1 var(--font-sans);
 }
 
-.offer-card.is-large .offer-card-price-current {
-  font-size: 16px;
-}
-
-/* Info emergente a la derecha */
 .offer-popout-info {
   position: absolute;
-  left: calc(100% + 14px);
+  left: auto;
+  right: calc(100% + 12px);
   top: 0;
   bottom: 0;
-  width: 290px;
+  width: 240px;
   z-index: 60;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: var(--space-5);
+  padding: var(--space-4);
   background: rgba(16, 15, 14, 0.96);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
   border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: var(--radius-panel);
+  border-radius: 16px;
   box-shadow: 0 24px 50px rgba(0, 0, 0, 0.9), 0 0 1px rgba(255, 255, 255, 0.3);
   text-decoration: none;
   color: inherit;
   box-sizing: border-box;
   pointer-events: none;
   opacity: 0;
-  transform: translateX(-12px);
+  transform: translateX(12px);
   transition:
     opacity 280ms cubic-bezier(0.22, 1, 0.36, 1),
     transform 280ms cubic-bezier(0.22, 1, 0.36, 1);
@@ -320,20 +320,15 @@
   transform: translateX(0);
 }
 
-.offer-popout-info.is-small {
-  width: 240px;
-  padding: var(--space-4);
-  border-radius: 16px;
+/* Primera columna del 3x3: popout a la derecha para no tapar Cyberpunk */
+.event-offers-grid > .offer-item:nth-child(3n + 1) .offer-popout-info {
+  left: calc(100% + 12px);
+  right: auto;
+  transform: translateX(-12px);
 }
 
-.event-offers-grid > .offer-item:nth-child(6n) .offer-popout-info {
-  left: auto;
-  right: calc(100% + 12px);
-  transform: translateX(12px);
-}
-
-.event-offers-grid > .offer-item:nth-child(6n):hover .offer-popout-info,
-.event-offers-grid > .offer-item:nth-child(6n):focus-within .offer-popout-info {
+.event-offers-grid > .offer-item:nth-child(3n + 1):hover .offer-popout-info,
+.event-offers-grid > .offer-item:nth-child(3n + 1):focus-within .offer-popout-info {
   transform: translateX(0);
 }
 
@@ -381,13 +376,9 @@
 
 .offer-popout-title {
   margin: 0;
-  font: 700 19px/1.2 var(--font-sans);
+  font: 700 14px/1.2 var(--font-sans);
   color: #ffffff;
   letter-spacing: -0.02em;
-}
-
-.offer-popout-info.is-small .offer-popout-title {
-  font: 700 14px/1.2 var(--font-sans);
 }
 
 .offer-popout-studio {
@@ -399,16 +390,11 @@
 .offer-popout-desc {
   margin: var(--space-2) 0 0;
   color: #c8c2b7;
-  font: 400 12px/1.4 var(--font-sans);
+  font: 400 11px/1.4 var(--font-sans);
   display: -webkit-box;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-}
-
-.offer-popout-info.is-small .offer-popout-desc {
-  -webkit-line-clamp: 2;
-  font-size: 11px;
 }
 
 .offer-popout-platforms {
@@ -471,41 +457,31 @@
   transform: translateY(-1px);
 }
 
-@media (max-width: 1280px) {
-  .event-offers-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-
-  .event-offers-grid > .offer-item:nth-child(6n) .offer-popout-info {
-    left: calc(100% + 14px);
-    right: auto;
-    transform: translateX(-12px);
-  }
-
-  .event-offers-grid > .offer-item:nth-child(4n) .offer-popout-info {
-    left: auto;
-    right: calc(100% + 12px);
-    transform: translateX(12px);
-  }
-
-  .event-offers-grid > .offer-item:nth-child(4n):hover .offer-popout-info,
-  .event-offers-grid > .offer-item:nth-child(4n):focus-within .offer-popout-info {
-    transform: translateX(0);
-  }
-}
-
 @media (max-width: 991px) {
   .event-offers {
     padding: var(--space-5) var(--space-4) var(--space-7);
   }
 
+  .event-offers-stage {
+    grid-template-columns: 1fr;
+    height: auto;
+  }
+
   .cp-feature-media {
+    min-height: 240px;
     aspect-ratio: 16 / 9;
-    max-height: none;
+    flex: none;
   }
 
   .event-offers-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-rows: none;
+    height: auto;
+  }
+
+  .offer-item {
+    aspect-ratio: 2 / 3;
+    height: auto;
   }
 
   .offer-popout-info {
@@ -518,22 +494,32 @@
 }
 
 @media (max-width: 640px) {
-  .cp-feature-media {
-    aspect-ratio: 4 / 3;
+  .event-offers-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-3);
   }
 
   .cp-feature-covers {
-    left: 12px;
-    bottom: 12px;
-    gap: 8px;
+    top: 12px;
+    right: 12px;
+    gap: 6px;
+  }
+
+  .cp-feature-cover.is-game {
+    width: 58px;
+    height: 86px;
+  }
+
+  .cp-feature-cover.is-dlc {
+    width: 110px;
+    height: 52px;
   }
 
   .cp-feature-plus {
     font-size: 20px;
   }
 
-  .event-offers-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: var(--space-3);
+  .cp-feature-name {
+    font-size: 20px;
   }
 }
