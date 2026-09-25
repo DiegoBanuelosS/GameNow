@@ -1,4 +1,6 @@
+import Hls from "hls.js";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { youtubeId } from "../../data/youtube";
 
 function usePrefersReducedMotion() {
   const [reduced, setReduced] = useState(false);
@@ -22,9 +24,10 @@ export function useHoverVideo(src?: string, options?: { audio?: boolean }) {
   const [ratio, setRatio] = useState<number | null>(null);
   const reducedMotion = usePrefersReducedMotion();
   const source = src?.trim() || "";
+  const embedId = youtubeId(source);
   const withAudio = Boolean(options?.audio);
   const enabled = Boolean(source) && !reducedMotion && !failed;
-  const loading = enabled && active && !ready;
+  const loading = enabled && active && !ready && !embedId;
 
   useEffect(() => {
     setFailed(false);
@@ -34,14 +37,14 @@ export function useHoverVideo(src?: string, options?: { audio?: boolean }) {
   }, [source]);
 
   useEffect(() => {
-    const video = videoRef.current;
-    if (!video || !enabled) {
+    if (embedId) {
+      setRatio(16 / 9);
       return;
     }
 
-    if (video.getAttribute("src") !== source) {
-      video.src = source;
-      video.load();
+    const video = videoRef.current;
+    if (!video || !enabled) {
+      return;
     }
 
     if (!active) {
@@ -53,6 +56,25 @@ export function useHoverVideo(src?: string, options?: { audio?: boolean }) {
       return;
     }
 
+    const stream = source.includes(".m3u8");
+    let hls: Hls | null = null;
+    if (stream && Hls.isSupported()) {
+      video.removeAttribute("src");
+      hls = new Hls({ capLevelToPlayerSize: true });
+      hls.loadSource(source);
+      hls.attachMedia(video);
+      hls.on(Hls.Events.ERROR, (_event, data) => {
+        if (data.fatal) {
+          setFailed(true);
+          setActive(false);
+          setReady(false);
+        }
+      });
+    } else if (video.getAttribute("src") !== source) {
+      video.src = source;
+      video.load();
+    }
+
     video.muted = !withAudio;
     video.volume = withAudio ? 1 : 0;
     void video.play().catch(() => {
@@ -62,7 +84,11 @@ export function useHoverVideo(src?: string, options?: { audio?: boolean }) {
       video.muted = true;
       void video.play().catch(() => undefined);
     });
-  }, [active, enabled, source, withAudio]);
+
+    return () => {
+      hls?.destroy();
+    };
+  }, [active, embedId, enabled, source, withAudio]);
 
   const start = useCallback(() => {
     if (!enabled) {
@@ -90,6 +116,9 @@ export function useHoverVideo(src?: string, options?: { audio?: boolean }) {
   }, []);
 
   const handleError = useCallback(() => {
+    if (source.includes(".m3u8")) {
+      return;
+    }
     const video = videoRef.current;
     if (!video?.getAttribute("src")) {
       return;
@@ -98,7 +127,7 @@ export function useHoverVideo(src?: string, options?: { audio?: boolean }) {
     setActive(false);
     setReady(false);
     setRatio(null);
-  }, []);
+  }, [source]);
 
   const handleMeta = useCallback(() => {
     const video = videoRef.current;
@@ -127,6 +156,7 @@ export function useHoverVideo(src?: string, options?: { audio?: boolean }) {
 
   return {
     videoRef,
+    embedId,
     active,
     ready,
     loading,

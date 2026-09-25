@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { apiUrl } from "../../data/api";
 import { ThumbsUp } from "lucide-react";
 import { Star } from "../../components/Icons";
 import { StarRating } from "../Store/StarRating";
@@ -14,7 +15,7 @@ type Review = {
 };
 
 async function fetchReviews(slug: string): Promise<Review[]> {
-  const res = await fetch(`/api/reviews/${slug}`);
+  const res = await fetch(apiUrl(`/api/reviews/${slug}`));
   if (!res.ok) throw new Error("error");
   return res.json() as Promise<Review[]>;
 }
@@ -25,7 +26,7 @@ async function postReview(
   rating: number,
   text: string,
 ): Promise<Review> {
-  const res = await fetch(`/api/reviews/${slug}`, {
+  const res = await fetch(apiUrl(`/api/reviews/${slug}`), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ author, rating, text }),
@@ -35,7 +36,7 @@ async function postReview(
 }
 
 async function markHelpful(slug: string, id: string): Promise<void> {
-  await fetch(`/api/reviews/${slug}/${id}/helpful`, {
+  await fetch(apiUrl(`/api/reviews/${slug}/${id}/helpful`), {
     method: "PATCH",
   });
 }

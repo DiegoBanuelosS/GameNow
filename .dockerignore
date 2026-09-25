@@ -1,0 +1,7 @@
+**/.git
+**/node_modules
+APP
+SETUP
+WWW/dist
+WWW/public/videos
+WWW/node_modules

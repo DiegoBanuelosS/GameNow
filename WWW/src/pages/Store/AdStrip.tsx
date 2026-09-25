@@ -5,6 +5,7 @@ import { StoreArt } from "../../data/StoreArt";
 import { useCatalog } from "../../data/CatalogContext";
 import type { StoreProduct } from "../../data/catalog";
 import { LogoLoader } from "./LogoLoader";
+import { youtubeEmbed } from "../../data/youtube";
 import { useHoverVideo } from "./useHoverVideo";
 import "./AdStrip.css";
 
@@ -67,7 +68,7 @@ function AdCard({
             <LogoLoader />
           </div>
         ) : null}
-        {preview.enabled ? (
+        {preview.enabled && !preview.embedId ? (
           <video
             ref={preview.videoRef}
             className={`ad-card-video${preview.active && preview.ready ? " is-on" : ""}`}
@@ -81,6 +82,15 @@ function AdCard({
           />
         ) : null}
       </button>
+      {preview.enabled && preview.embedId && preview.active ? (
+        <iframe
+          className="ad-card-video is-on"
+          src={youtubeEmbed(preview.embedId, { muted: true, controls: false })}
+          title=""
+          allow="autoplay; encrypted-media"
+          tabIndex={-1}
+        />
+      ) : null}
 
       <div className="ad-card-foot">
         <div className="ad-card-meta">

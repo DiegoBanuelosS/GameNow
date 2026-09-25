@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { MagnifyingGlass, ShoppingCart, X } from "../../components/Icons";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { SearchOverlay } from "./SearchOverlay";
+import { apiUrl } from "../../data/api";
 import { useDesktopApp } from "../../data/useDesktopApp";
 import { useAuth } from "../../data/AuthContext";
 import "./SiteNav.css";
@@ -30,13 +31,8 @@ export function SiteNav() {
   return (
     <header className="site-header">
       <div className="site-header-bar">
-        <Link className="site-brand" to="/">
-          <img
-            src="/logotipes/logotipe-mark.svg"
-            alt="GameNow"
-            width="341"
-            height="294"
-          />
+        <Link className="site-brand" to="/" aria-label="GameNow">
+          <img src="/logotipes/logotipe-mark-clean.svg" alt="GameNow" />
         </Link>
         <nav className="site-nav" aria-label="Principal">
           <NavLink to="/" end>
@@ -162,7 +158,7 @@ export function SiteNav() {
           )}
           {!isApp && (
             <a
-              href="/api/download/windows"
+              href={apiUrl("/api/download/windows")}
               download="GameNow-Setup.exe"
               className="site-nav-download"
               title="Descargar instalador de GameNow para Windows"

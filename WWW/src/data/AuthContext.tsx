@@ -7,6 +7,7 @@ import {
   useState,
   ReactNode,
 } from "react";
+import { apiUrl } from "./api";
 
 export interface SteamLibraryGame {
   slug: string;
@@ -101,7 +102,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const verifyToken = useCallback(async (authToken: string) => {
     try {
-      const response = await fetch("/api/auth/me", {
+      const response = await fetch(apiUrl("/api/auth/me"), {
         headers: {
           Authorization: `Bearer ${authToken}`,
         },
@@ -133,7 +134,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = useCallback(
     async (email: string, password: string) => {
       try {
-        const response = await fetch("/api/auth/login", {
+        const response = await fetch(apiUrl("/api/auth/login"), {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -171,7 +172,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { ok: false, error: "Inicia sesión en GameNow antes de vincular Steam." };
     }
     try {
-      const response = await fetch("/api/auth/steam/start", {
+      const response = await fetch(apiUrl("/api/auth/steam/start"), {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
@@ -188,7 +189,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const refreshSteam = useCallback(async () => {
     if (!token) return { ok: false, error: "No autorizado." };
     try {
-      const response = await fetch("/api/auth/steam/refresh", {
+      const response = await fetch(apiUrl("/api/auth/steam/refresh"), {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -218,7 +219,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     ) => {
       if (!token) return { ok: false, error: "No autorizado." };
       try {
-        const response = await fetch("/api/steam/library", {
+        const response = await fetch(apiUrl("/api/steam/library"), {
           method: "PATCH",
           headers: {
             Authorization: `Bearer ${token}`,
@@ -243,7 +244,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     async (slugs: string[]) => {
       if (!token) return { ok: false, error: "No autorizado." };
       try {
-        const response = await fetch("/api/steam/library", {
+        const response = await fetch(apiUrl("/api/steam/library"), {
           method: "POST",
           headers: {
             Authorization: `Bearer ${token}`,
@@ -267,7 +268,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const unlinkSteam = useCallback(async () => {
     if (!token) return { ok: false, error: "No autorizado." };
     try {
-      const response = await fetch("/api/auth/steam", {
+      const response = await fetch(apiUrl("/api/auth/steam"), {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -296,7 +297,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const register = useCallback(
     async (username: string, email: string, password: string) => {
       try {
-        const response = await fetch("/api/auth/register", {
+        const response = await fetch(apiUrl("/api/auth/register"), {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

@@ -1,6 +1,7 @@
 import { useCatalog } from "../../data/CatalogContext";
 import { useDesktopApp } from "../../data/useDesktopApp";
 import { AdStrip } from "./AdStrip";
+import { ConnectionBanner } from "./ConnectionBanner";
 import { Download5 } from "./Download5";
 import { Footer9 } from "./Footer9";
 import { EventOffers } from "./EventOffers";
@@ -22,6 +23,11 @@ export function StorePage() {
       <main aria-label="Tienda" aria-busy={status === "loading"}>
         {status === "loading" ? (
           <PageLoader label="Cargando tienda…" />
+        ) : status === "error" ? (
+          <ConnectionBanner
+            title="Tuvimos un problema al conectarte"
+            detail="La tienda no respondió. Espera un momento y vuelve a cargar la página."
+          />
         ) : (
           <>
             <AdStrip />

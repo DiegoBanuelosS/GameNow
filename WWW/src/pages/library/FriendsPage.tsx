@@ -3,6 +3,7 @@ import { Gamepad2, MessageCircle, Star, UserMinus } from "lucide-react";
 import { Link } from "react-router-dom";
 import { SiteNav } from "../Store/SiteNav";
 import { Footer9 } from "../Store/Footer9";
+import { apiUrl } from "../../data/api";
 import { useAuth } from "../../data/AuthContext";
 import "./FriendsPage.css";
 
@@ -50,7 +51,7 @@ export function FriendsPage() {
       return;
     }
     let alive = true;
-    fetch("/api/steam/friends", { headers: { Authorization: `Bearer ${token}` } })
+    fetch(apiUrl("/api/steam/friends"), { headers: { Authorization: `Bearer ${token}` } })
       .then(async (response) => {
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || "amigos");
@@ -72,7 +73,7 @@ export function FriendsPage() {
 
   const patchFriend = async (steamId: string, body: Record<string, unknown>) => {
     if (!token) return null;
-    const response = await fetch("/api/steam/friends", {
+    const response = await fetch(apiUrl("/api/steam/friends"), {
       method: "PATCH",
       headers: {
         Authorization: `Bearer ${token}`,

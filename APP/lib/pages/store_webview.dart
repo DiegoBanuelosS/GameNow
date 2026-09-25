@@ -76,7 +76,7 @@ class _StoreWebViewPageState extends State<StoreWebViewPage> {
     if (targetUrl == null) {
       if (!mounted) return;
       setState(() {
-        _error = 'No se pudo conectar con la tienda. Revisa que el servidor web de GameNow (Vite en el puerto 5173) esté corriendo.';
+        _error = 'No se pudo conectar con la tienda. Revisa tu conexión a internet.';
       });
       return;
     }

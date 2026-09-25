@@ -98,7 +98,7 @@ export function Footer9() {
           <motion.div className="footer-9-aside" variants={item}>
             <div className="footer-9-card">
               <div className="footer-9-card-media">
-                <img src="/logotipes/logotipe-mark.svg" alt="" width="341" height="294" />
+                <img src="/logotipes/logotipe-mark-clean.svg" alt="" width="2217" height="405" />
               </div>
               <h2>Novedades de la tienda</h2>
               <p>Ofertas y lanzamientos, dos veces al mes. Sin ruido.</p>

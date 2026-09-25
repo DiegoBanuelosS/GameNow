@@ -34,7 +34,7 @@ export function PcFitCard({ slug }: { slug: string }) {
       <h2>¿Corre en tu PC?</h2>
       {status === "loading" ? <p>Comprobando tu equipo…</p> : null}
       {status === "error" ? (
-        <p role="alert">No pudimos comprobar tu PC. Revisa que la API esté en marcha.</p>
+        <p role="alert">No pudimos comprobar tu equipo en este momento.</p>
       ) : null}
       {status === "ready" && fit ? (
         <>

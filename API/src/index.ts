@@ -328,8 +328,8 @@ app.patch("/api/reviews/:slug/:id/helpful", async (req, res) => {
 });
 
 
-app.listen(config.port, "127.0.0.1", () => {
-  console.log(`GameNow API http://127.0.0.1:${config.port}`);
+app.listen(config.port, "0.0.0.0", () => {
+  console.log(`GameNow API http://0.0.0.0:${config.port}`);
   connectDb()
     .then((connected) => {
       console.log(connected ? "MongoDB Atlas pool listo" : "Usando snapshot local hasta configurar MONGODB_URI");

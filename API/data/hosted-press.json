@@ -1,0 +1,171 @@
+{
+  "ace-combat-8": {
+    "cover": "gamenow/press/ace-combat-8-cover",
+    "trailer": "https://www.youtube.com/watch?v=cW6zBuO7sb4",
+    "videos": [
+      "https://www.youtube.com/watch?v=cW6zBuO7sb4",
+      "https://www.youtube.com/watch?v=DcphpBvdt28",
+      "https://www.youtube.com/watch?v=70-qgnDyMZs",
+      "https://www.youtube.com/watch?v=BG7DLLdQf1k"
+    ],
+    "shots": [
+      "gamenow/press/ace-combat-8-shot-1",
+      "gamenow/press/ace-combat-8-shot-2",
+      "gamenow/press/ace-combat-8-shot-3"
+    ]
+  },
+  "gta-vi": {
+    "cover": "gamenow/presskit/gta-vi-cover",
+    "trailer": "https://www.youtube.com/watch?v=VQRLujxTm3c",
+    "videos": [
+      "https://www.youtube.com/watch?v=tJbzMqJGH4k",
+      "https://www.youtube.com/watch?v=VQRLujxTm3c",
+      "https://www.youtube.com/watch?v=QdBZY2fkU-0",
+      "gamenow/presskit/gta-vi-cover-art",
+      "gamenow/presskit/gta-vi-jason",
+      "gamenow/presskit/gta-vi-lucia",
+      "gamenow/presskit/gta-vi-cal",
+      "gamenow/presskit/gta-vi-boobie",
+      "gamenow/presskit/gta-vi-drequan",
+      "gamenow/presskit/gta-vi-dimez",
+      "gamenow/presskit/gta-vi-raul",
+      "gamenow/presskit/gta-vi-brian"
+    ],
+    "shots": [
+      "gamenow/presskit/gta-vi-vice",
+      "gamenow/presskit/gta-vi-keys",
+      "gamenow/presskit/gta-vi-port",
+      "gamenow/presskit/gta-vi-grass",
+      "gamenow/presskit/gta-vi-kalaga",
+      "gamenow/presskit/gta-vi-ambrosia"
+    ]
+  },
+  "ark-2": {
+    "cover": "gamenow/presskit/ark2-cover",
+    "trailer": "https://www.youtube.com/watch?v=JHJ_VxRzT5M",
+    "videos": [
+      "https://www.youtube.com/watch?v=JHJ_VxRzT5M"
+    ],
+    "shots": []
+  },
+  "f1-2025-2026-season-pack": {
+    "cover": "gamenow/presskit/f1-2025-2026-season-pack-cover",
+    "trailer": "https://www.youtube.com/watch?v=tL2nzLFIcXg",
+    "videos": [
+      "https://www.youtube.com/watch?v=tL2nzLFIcXg"
+    ],
+    "shots": [
+      "gamenow/presskit/f1-shot-1",
+      "gamenow/presskit/f1-shot-2",
+      "gamenow/presskit/f1-shot-3",
+      "gamenow/presskit/f1-shot-4"
+    ]
+  },
+  "nba-2k27": {
+    "cover": "gamenow/press/nba-2k27-cover",
+    "trailer": "gamenow/presskit/nba-2k27-trailer",
+    "videos": [
+      "gamenow/presskit/nba-2k27-trailer",
+      "https://www.youtube.com/watch?v=vQ2jNNbh1TU"
+    ],
+    "shots": [
+      "gamenow/press/nba-2k27-shot-1",
+      "gamenow/press/nba-2k27-shot-2",
+      "gamenow/press/nba-2k27-shot-3"
+    ]
+  },
+  "forza-horizon-6": {
+    "cover": "gamenow/press/forza-horizon-6-cover",
+    "trailer": "https://www.youtube.com/watch?v=pWw-UENvdTw",
+    "videos": [
+      "https://www.youtube.com/watch?v=pWw-UENvdTw",
+      "https://www.youtube.com/watch?v=VXedKqX5Wa4",
+      "https://www.youtube.com/watch?v=ZUhPv2eF5n4",
+      "https://www.youtube.com/watch?v=tbPUfnpHF-M"
+    ],
+    "shots": [
+      "gamenow/press/forza-horizon-6-shot-1",
+      "gamenow/presskit/fh6-shot-2",
+      "gamenow/presskit/fh6-shot-3",
+      "gamenow/presskit/fh6-shot-4",
+      "gamenow/presskit/fh6-shot-5"
+    ]
+  },
+  "how-to-fish": {
+    "cover": "gamenow/presskit/how-to-fish-cover",
+    "trailer": "https://www.youtube.com/watch?v=-QnxwKppyGo",
+    "videos": [
+      "https://www.youtube.com/watch?v=-QnxwKppyGo",
+      "https://www.youtube.com/watch?v=GDmIz8vZ34Y"
+    ],
+    "shots": [
+      "gamenow/presskit/angler-3",
+      "gamenow/presskit/angler-4"
+    ]
+  },
+  "the-last-of-us-2-remastered": {
+    "cover": "gamenow/presskit/the-last-of-us-2-remastered-cover",
+    "trailer": "https://www.youtube.com/watch?v=Ye3st9z6jQY",
+    "videos": [
+      "https://www.youtube.com/watch?v=Ye3st9z6jQY",
+      "https://www.youtube.com/watch?v=kmy8I6xvFIU"
+    ],
+    "shots": [
+      "gamenow/presskit/tlou-shot-1",
+      "gamenow/presskit/tlou-shot-2"
+    ]
+  },
+  "cyberpunk-2077": {
+    "cover": "gamenow/press/cyberpunk-2077-cover",
+    "trailer": "https://www.youtube.com/watch?v=qIcTM8WXFjk",
+    "videos": [
+      "https://www.youtube.com/watch?v=qIcTM8WXFjk"
+    ],
+    "shots": [
+      "gamenow/press/cyberpunk-2077-shot-1",
+      "gamenow/press/cyberpunk-2077-shot-2",
+      "gamenow/press/cyberpunk-2077-shot-3",
+      "gamenow/presskit/cp-home",
+      "gamenow/presskit/cp-liberty"
+    ]
+  },
+  "call-of-duty-modern-warfare-4": {
+    "cover": "gamenow/presskit/mw4-cover",
+    "trailer": "https://www.youtube.com/watch?v=jLbst85USN8",
+    "videos": [
+      "https://www.youtube.com/watch?v=jLbst85USN8",
+      "https://www.youtube.com/watch?v=yLFRQaQT0qM"
+    ],
+    "shots": [
+      "gamenow/presskit/mw4-shot-1",
+      "gamenow/presskit/mw4-shot-2"
+    ]
+  },
+  "arc-raiders": {
+    "cover": "gamenow/presskit/arc-raiders-cover",
+    "trailer": "https://www.youtube.com/watch?v=XE0y_K8-iSQ",
+    "videos": [
+      "https://www.youtube.com/watch?v=XE0y_K8-iSQ"
+    ],
+    "shots": [
+      "gamenow/press/arc-raiders-shot-1",
+      "gamenow/press/arc-raiders-shot-2",
+      "gamenow/press/arc-raiders-shot-3",
+      "gamenow/presskit/arc-feature",
+      "gamenow/presskit/arc-feature-1"
+    ]
+  },
+  "007-first-light": {
+    "cover": "gamenow/press/007-first-light-cover",
+    "trailer": "https://www.youtube.com/watch?v=jfRZRwu4aEc",
+    "videos": [
+      "https://www.youtube.com/watch?v=jfRZRwu4aEc",
+      "https://www.youtube.com/watch?v=i-fgtpwEMPM"
+    ],
+    "shots": [
+      "gamenow/presskit/007-shot-1",
+      "gamenow/presskit/007-shot-2",
+      "gamenow/presskit/007-shot-3"
+    ]
+  }
+}

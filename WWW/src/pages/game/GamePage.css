@@ -12,6 +12,8 @@
 .game-media {
   position: sticky;
   top: 128px;
+  z-index: 1;
+  align-self: start;
 }
 
 .game-hero {
@@ -22,11 +24,13 @@
 }
 
 .game-hero-art,
-.game-hero video {
+.game-hero video,
+.game-hero iframe {
   display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
+  border: 0;
 }
 
 .game-thumbs {

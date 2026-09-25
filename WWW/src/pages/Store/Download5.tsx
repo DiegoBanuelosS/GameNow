@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { apiUrl } from "../../data/api";
 import { motion } from "motion/react";
 import "./Download5.css";
 
@@ -53,7 +54,7 @@ export function Download5() {
           {windows ? (
             <motion.a
               id="descargar-windows"
-              href="/api/download/windows"
+              href={apiUrl("/api/download/windows")}
               download="GameNow-Setup.exe"
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
