@@ -155,12 +155,13 @@
   overflow: visible;
 }
 
+/* Ratio fijo 2:3 (capsula library / primeras 3); el resto se normaliza al mismo marco */
 .offer-item {
   position: relative;
   min-width: 0;
   width: 100%;
   height: auto;
-  aspect-ratio: var(--cover-ratio, 2 / 3);
+  aspect-ratio: 2 / 3;
   list-style: none;
   overflow: visible;
   border-radius: var(--radius-panel);
@@ -206,9 +207,9 @@
   display: block;
   width: 100%;
   height: 100%;
-  /* Ancho completo; alto lo marca la fila / ratio; las más altas se contienen */
-  object-fit: contain;
-  object-position: center top;
+  /* Llena el marco 2:3; assets distintos se recortan al ratio de referencia */
+  object-fit: cover;
+  object-position: center;
   transform: none !important;
   background: #121110;
 }
@@ -326,15 +327,18 @@
   transform: translateX(0);
 }
 
-/* Primera columna: popout a la derecha para no tapar Cyberpunk */
-.event-offers-grid > .offer-item:nth-child(3n + 1) .offer-popout-info {
+/* Columna 1 y media: popout a la derecha */
+.event-offers-grid > .offer-item:nth-child(3n + 1) .offer-popout-info,
+.event-offers-grid > .offer-item:nth-child(3n + 2) .offer-popout-info {
   left: calc(100% + 12px);
   right: auto;
   transform: translateX(-12px);
 }
 
 .event-offers-grid > .offer-item:nth-child(3n + 1):hover .offer-popout-info,
-.event-offers-grid > .offer-item:nth-child(3n + 1):focus-within .offer-popout-info {
+.event-offers-grid > .offer-item:nth-child(3n + 1):focus-within .offer-popout-info,
+.event-offers-grid > .offer-item:nth-child(3n + 2):hover .offer-popout-info,
+.event-offers-grid > .offer-item:nth-child(3n + 2):focus-within .offer-popout-info {
   transform: translateX(0);
 }
 
@@ -503,7 +507,7 @@
   }
 
   .offer-item {
-    aspect-ratio: var(--cover-ratio, 2 / 3);
+    aspect-ratio: 2 / 3;
     height: auto;
   }
 
