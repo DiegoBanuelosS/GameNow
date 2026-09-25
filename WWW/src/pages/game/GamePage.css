@@ -54,7 +54,7 @@
 }
 
 .game-thumbs button:focus-visible,
-.game-buy:focus-visible,
+.game-edition-buy:focus-visible,
 .game-crumb a:focus-visible {
   outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
@@ -112,40 +112,87 @@
   font: var(--body-small);
 }
 
-.game-price {
+.game-editions {
   display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
+  flex-direction: column;
   gap: var(--space-3);
   margin: 0 0 var(--space-5);
-  font: var(--heading-m);
+  padding: 0;
+  list-style: none;
 }
 
-.game-price s {
+.game-edition {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 72px;
+  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-2);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-panel);
+  background: var(--color-bg-surface);
+  box-sizing: border-box;
+}
+
+.game-edition-cover,
+.game-edition-cover.store-art-missing {
+  display: block;
+  width: 48px;
+  height: 72px;
+  flex-shrink: 0;
+  object-fit: cover;
+  border-radius: var(--radius-control);
+  background: #121110;
+}
+
+.game-edition-name {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  color: var(--color-fg-default);
+  font: 600 14px/1.25 var(--font-sans);
+}
+
+.game-edition-price {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  flex-shrink: 0;
+  line-height: 1.15;
+}
+
+.game-edition-price s {
   color: var(--color-fg-muted);
-  font: var(--body-small);
+  font: 400 11px/1 var(--font-sans);
+  text-decoration: line-through;
 }
 
-button.game-buy {
+.game-edition-price span {
+  color: var(--color-fg-default);
+  font: 700 15px/1 var(--font-sans);
+  white-space: nowrap;
+}
+
+button.game-edition-buy {
   border: 0;
   cursor: pointer;
-  font: var(--caption);
 }
 
-.game-buy {
+.game-edition-buy {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 44px;
-  padding: 0 var(--space-5);
+  flex-shrink: 0;
+  min-height: 40px;
+  padding: 0 var(--space-4);
   border-radius: var(--radius-button);
   background: var(--color-accent-primary);
   color: var(--color-accent-on-primary);
-  font: var(--caption);
+  font: 600 13px/1 var(--font-sans);
   text-decoration: none;
 }
 
-.game-buy:hover {
+.game-edition-buy:hover {
   filter: brightness(1.08);
 }
 
@@ -277,10 +324,22 @@ button.game-buy {
   .game-page {
     padding: var(--space-5) var(--space-4) var(--space-8);
   }
+
+  .game-edition {
+    flex-wrap: wrap;
+  }
+
+  .game-edition-name {
+    flex: 1 1 calc(100% - 64px);
+  }
+
+  .game-edition-price {
+    margin-left: auto;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .game-buy:hover {
+  .game-edition-buy:hover {
     filter: none;
   }
 }

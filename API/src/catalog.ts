@@ -248,7 +248,7 @@ export async function loadProduct(slug: string) {
   const base = await toPublic(match);
   const steam = await matchingSteam(match);
   const hostedShots = (hostedFor(match).shots ?? []).map((id) => imageUrl(id, "hero"));
-  const screenshotItems = [...hostedShots, ...(hostedShots.length ? [] : steam?.screenshots ?? [])].slice(0, 8).map((url, i) => ({
+  const screenshotItems = [...hostedShots, ...(hostedShots.length ? [] : steam?.screenshots ?? [])].slice(0, 12).map((url, i) => ({
     type: "image" as const,
     src: url,
     srcSet: undefined,
