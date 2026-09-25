@@ -2,7 +2,7 @@ import 'dart:io';
 
 const _builtIn = String.fromEnvironment(
   'STORE_URL',
-  defaultValue: 'http://localhost:5173',
+  defaultValue: 'https://gamenow-549.pages.dev',
 );
 
 List<String> candidateStoreUrls() {
@@ -10,10 +10,6 @@ List<String> candidateStoreUrls() {
   final bases = [
     if (fromEnv != null && fromEnv.isNotEmpty) fromEnv,
     _builtIn,
-    'http://localhost:5173',
-    'http://127.0.0.1:5173',
-    'http://localhost:5174',
-    'http://127.0.0.1:5174',
   ];
 
   final results = <String>[];

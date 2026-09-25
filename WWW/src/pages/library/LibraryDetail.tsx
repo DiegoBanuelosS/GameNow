@@ -3,6 +3,7 @@ import { Star } from "../../components/Icons";
 import { useAuth } from "../../data/AuthContext";
 import { useDownloads } from "../../data/DownloadsContext";
 import { useLaunch } from "../../data/LaunchContext";
+import { apiUrl } from "../../data/api";
 import { StoreArt } from "../../data/StoreArt";
 
 type Achievement = {
@@ -144,7 +145,7 @@ export function LibraryDetail({
     }
     let alive = true;
     setAchievementState("loading");
-    fetch(`/api/steam/achievements/${game.steamAppId}`, {
+    fetch(apiUrl(`/api/steam/achievements/${game.steamAppId}`), {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(async (response) => {

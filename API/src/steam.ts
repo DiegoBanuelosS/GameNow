@@ -3,9 +3,11 @@ import { cacheGet, cacheSet } from "./cache.js";
 const UA = "GameNow/1.0 (https://github.com/GameNow; store details)";
 
 export type SteamExtras = {
+  name: string;
   description: string;
   developers: string[];
   release: string;
+  header: string;
   requirements: {
     minimum?: string;
     recommended?: string;
@@ -43,7 +45,7 @@ export async function loadSteamExtras(appId: string): Promise<SteamExtras | null
   if (!appId) {
     return null;
   }
-  const key = `steam-v3-${appId}`;
+  const key = `steam-v5-${appId}`;
   const cached = cacheGet<SteamExtras | null>(key);
   if (cached !== undefined) {
     return cached;
@@ -63,8 +65,10 @@ export async function loadSteamExtras(appId: string): Promise<SteamExtras | null
       {
         success?: boolean;
         data?: {
+          name?: string;
           short_description?: string;
           developers?: string[];
+          header_image?: string;
           release_date?: { date?: string };
           pc_requirements?: { minimum?: string; recommended?: string };
           screenshots?: { path_full?: string }[];
@@ -77,14 +81,18 @@ export async function loadSteamExtras(appId: string): Promise<SteamExtras | null
         };
       }
     >;
-    const entry = payload[appId];
+    const entry =
+      payload[appId] ??
+      Object.values(payload).find((item) => item?.success && item.data);
     if (!entry?.success || !entry.data) {
       return cacheSet(key, null, 10 * 60 * 1000);
     }
     const data = entry.data;
     const extras: SteamExtras = {
+      name: data.name || "",
       description: plain(data.short_description || ""),
       developers: data.developers ?? [],
+      header: (data.header_image || "").replace(/^http:/, "https:"),
       release: data.release_date?.date || "",
       requirements: {
         minimum: data.pc_requirements?.minimum

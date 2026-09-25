@@ -2,13 +2,10 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { cacheGet, cacheSet } from "./cache.js";
 import { config } from "./config.js";
-import { loadProducts, type ProductDoc } from "./catalog.js";
-import { deliverImage, steamCover } from "./media.js";
-import { formatMxn, toMxn, usdMxnRate } from "./money.js";
+import { steamCover } from "./media.js";
+import { formatMxn, usdMxnRate } from "./money.js";
 import { requirementTable } from "./requirements.js";
 import { loadSteamExtras } from "./steam.js";
-
-const FEATURED_SLUGS = ["ace-combat-8", "gta-vi", "ark-2"];
 
 export type CatalogGame = {
   slug: string;
@@ -53,33 +50,6 @@ async function toPublic(game: CatalogGame) {
   return toPublicWithRate(game, rate);
 }
 
-async function fromFeatured(product: ProductDoc) {
-  const cover = deliverImage(product.cover, "offer");
-  const onSale = Boolean(product.compareAtPrice && product.compareAtPrice > product.price);
-  const currency = product.currency || "MXN";
-  const priceValue = await toMxn(product.price, currency);
-  const compare = product.compareAtPrice
-    ? await toMxn(product.compareAtPrice, currency)
-    : undefined;
-  return {
-    slug: product.slug,
-    steamAppId: "",
-    name: product.name,
-    alt: product.alt,
-    href: `/game/${product.slug}`,
-    price: formatMxn(priceValue),
-    priceValue,
-    was: compare ? formatMxn(compare) : undefined,
-    metacritic: null,
-    steamRating: "",
-    cover: cover.src,
-    coverSrcSet: cover.srcSet,
-    coverSizes: "120px",
-    coverFallback: product.cover.local,
-    table: onSale ? ("deals" as const) : ("catalog" as const),
-  };
-}
-
 async function fromSnapshot(): Promise<CatalogGame[]> {
   if (config.mongoUri) {
     try {
@@ -118,17 +88,7 @@ export async function loadGames() {
   }
   const rate = await usdMxnRate();
   const rawSnapshot = await fromSnapshot();
-  const snapshot = rawSnapshot.map((game) => toPublicWithRate(game, rate));
-  const featured = await Promise.all(
-    (await loadProducts())
-      .filter((product) => FEATURED_SLUGS.includes(product.slug))
-      .sort((a, b) => FEATURED_SLUGS.indexOf(a.slug) - FEATURED_SLUGS.indexOf(b.slug))
-      .map(fromFeatured),
-  );
-  const games = [
-    ...featured,
-    ...snapshot.filter((game) => !FEATURED_SLUGS.includes(game.slug)),
-  ];
+  const games = rawSnapshot.map((game) => toPublicWithRate(game, rate));
   return cacheSet(
     "games",
     {

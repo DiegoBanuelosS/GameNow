@@ -1,12 +1,16 @@
+import { readFileSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { cacheGet, cacheSet } from "./cache.js";
 import {
   deliverImage,
+  deliverVideo,
+  imageUrl,
   type CloudAsset,
 } from "./media.js";
 import { config } from "./config.js";
 import { formatMxn, toMxn } from "./money.js";
+import { loadPressAssets } from "./press.js";
 import { type RequirementRow } from "./requirements.js";
 import { loadSteamExtras } from "./steam.js";
 
@@ -43,19 +47,44 @@ export type ProductDoc = {
   };
 };
 
-function steamAppIdOf(product: ProductDoc) {
-  for (const url of product.screenshots ?? []) {
-    const id = url.match(/\/apps\/(\d+)\//)?.[1];
-    if (id) {
-      return id;
-    }
-  }
-  return "";
+function steamAppIdOf(url: string) {
+  return url.match(/\/apps\/(\d+)\//)?.[1] || "";
 }
 
-async function steamTrailer(product: ProductDoc) {
-  const extras = await loadSteamExtras(steamAppIdOf(product));
-  return extras?.videos[0]?.src || "";
+function compactTitle(value: string) {
+  return value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "");
+}
+
+function sameTitle(productName: string, steamName: string) {
+  const product = compactTitle(productName);
+  const steam = compactTitle(steamName);
+  if (product.length < 3 || steam.length < 3) {
+    return false;
+  }
+  if (product === steam) {
+    return true;
+  }
+  const extra = product.startsWith(steam)
+    ? product.slice(steam.length)
+    : steam.startsWith(product)
+      ? steam.slice(product.length)
+      : "";
+  return /^(remastered|remaster|ultimateedition|ultimate|definitiveedition|definitive|completeedition|complete|gameoftheyear|goty|deluxeedition|deluxe)/.test(extra);
+}
+
+async function matchingSteam(product: ProductDoc) {
+  const ids = [...new Set((product.screenshots ?? []).map(steamAppIdOf).filter(Boolean))];
+  for (const id of ids) {
+    const extras = await loadSteamExtras(id);
+    if (extras?.name && sameTitle(product.name, extras.name)) {
+      return extras;
+    }
+  }
+  return null;
 }
 
 function roleFor(product: ProductDoc) {
@@ -68,10 +97,74 @@ function roleFor(product: ProductDoc) {
   return "offer" as const;
 }
 
+type HostedPress = { cover?: string; trailer?: string; shots?: string[]; videos?: string[] };
+
+const PRESS_VIDEO_HOSTS = new Set([
+  "media-rockstargames-com.akamaized.net",
+  "www.rockstargames.com",
+  "www.youtube.com",
+  "youtube.com",
+  "youtu.be",
+  "www.youtube-nocookie.com",
+]);
+
+function playableUrl(value: string) {
+  if (value.startsWith("gamenow/press")) {
+    return deliverVideo({ publicId: value, resourceType: "video", hosted: true });
+  }
+  try {
+    const url = new URL(value);
+    if (!PRESS_VIDEO_HOSTS.has(url.hostname)) {
+      return "";
+    }
+    return value;
+  } catch {
+    return "";
+  }
+}
+
+const hostedPress = JSON.parse(
+  readFileSync(resolve(process.cwd(), "data/hosted-press.json"), "utf8"),
+) as Record<string, HostedPress>;
+
+function hostedFor(product: ProductDoc) {
+  return hostedPress[product.slug] ?? {};
+}
+
+async function coverFor(product: ProductDoc, role: "ad" | "event" | "offer" | "hero") {
+  const sizes = deliverImage(product.cover, role).sizes;
+  const hosted = hostedFor(product).cover;
+  if (hosted?.startsWith("gamenow/press")) {
+    return { src: imageUrl(hosted, role), srcSet: "", sizes };
+  }
+  return { src: "", srcSet: "", sizes };
+}
+
+async function trailerFor(product: ProductDoc) {
+  const hosted = hostedFor(product).trailer;
+  return hosted ? playableUrl(hosted) : "";
+}
+
+function galleryVideos(product: ProductDoc, poster: string) {
+  const hosted = hostedFor(product);
+  const listed = hosted.videos?.length ? hosted.videos : hosted.trailer ? [hosted.trailer] : [];
+  return listed.flatMap((item, index) => {
+    const src = playableUrl(item);
+    if (!src) {
+      return [];
+    }
+    return [{
+      type: "video" as const,
+      src,
+      poster,
+      alt: `Tráiler ${index + 1} de ${product.name}`,
+    }];
+  });
+}
+
 async function toPublic(product: ProductDoc) {
   const role = roleFor(product);
-  const cover = deliverImage(product.cover, role);
-  const logo = deliverImage(product.studioLogo, "logo");
+  const cover = await coverFor(product, role);
   const currency = product.currency || "MXN";
   const priceValue = await toMxn(product.price, currency);
   const compare = product.compareAtPrice
@@ -89,9 +182,9 @@ async function toPublic(product: ProductDoc) {
     cover: cover.src,
     coverSrcSet: cover.srcSet,
     coverSizes: cover.sizes,
-    studioLogo: logo.src,
-    studioLogoSrcSet: logo.srcSet,
-    trailer: await steamTrailer(product),
+    studioLogo: "",
+    studioLogoSrcSet: "",
+    trailer: await trailerFor(product),
     tag: product.sections.event != null ? "Evento" : undefined,
     description: product.details?.description || "",
     release: product.details?.release || "",
@@ -128,8 +221,9 @@ export async function loadProducts(): Promise<ProductDoc[]> {
             const file = fileBySlug.get(row.slug);
             return {
               ...row,
-              details: row.details ?? file?.details,
-              trailer: undefined,
+              details: file?.details ?? row.details,
+              sections: file?.sections ?? row.sections,
+              trailer: row.trailer ?? file?.trailer,
               screenshots: file?.screenshots?.length ? file.screenshots : row.screenshots,
               youtubeTrailers: [],
             };
@@ -150,19 +244,18 @@ export async function loadProduct(slug: string) {
   if (!match) {
     return null;
   }
-  const cover = deliverImage(match.cover, "hero");
+  const cover = await coverFor(match, "hero");
   const base = await toPublic(match);
-  const steam = await loadSteamExtras(steamAppIdOf(match));
-  const steamShots = (steam?.screenshots ?? []).filter(
-    (url) => !(match.screenshots ?? []).includes(url),
-  );
-  const screenshotItems = [...(match.screenshots ?? []), ...steamShots].slice(0, 8).map((url, i) => ({
+  const steam = await matchingSteam(match);
+  const hostedShots = (hostedFor(match).shots ?? []).map((id) => imageUrl(id, "hero"));
+  const screenshotItems = [...hostedShots, ...(hostedShots.length ? [] : steam?.screenshots ?? [])].slice(0, 8).map((url, i) => ({
     type: "image" as const,
     src: url,
     srcSet: undefined,
     sizes: "(min-width: 900px) 56vw, 92vw",
     alt: `${match.name} – captura ${i + 1}`,
   }));
+  const pressVideos = galleryVideos(match, cover.src);
   const gallery = [
     {
       type: "image" as const,
@@ -171,13 +264,15 @@ export async function loadProduct(slug: string) {
       sizes: cover.sizes,
       alt: match.alt,
     },
-    ...(steam?.videos ?? []).slice(0, 2).map((video, index) => ({
-      type: "video" as const,
-      src: video.src,
-      sources: video.sources,
-      poster: video.poster || cover.src,
-      alt: `Tráiler ${index + 1} de ${match.name}`,
-    })),
+    ...(pressVideos.length
+      ? pressVideos
+      : (steam?.videos ?? []).slice(0, 2).map((video, index) => ({
+          type: "video" as const,
+          src: video.src,
+          sources: video.sources,
+          poster: video.poster || cover.src,
+          alt: `Tráiler ${index + 1} de ${match.name}`,
+        }))),
     ...screenshotItems,
   ];
   const details = match.details;

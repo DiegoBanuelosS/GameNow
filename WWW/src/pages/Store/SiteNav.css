@@ -1,7 +1,7 @@
 .site-header {
   position: sticky;
   top: 0;
-  z-index: 25;
+  z-index: 80;
   background: var(--color-bg-canvas);
 }
 
@@ -21,7 +21,7 @@
 
 .site-brand img {
   display: block;
-  height: 88px;
+  height: calc(16px * 1.05);
   width: auto;
   transition: transform 420ms var(--ease-out);
 }
@@ -150,7 +150,7 @@
   }
 
   .site-brand img {
-    height: 36px;
+    height: calc(14px * 1.05);
   }
 
   .site-nav {

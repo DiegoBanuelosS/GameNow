@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 
 const apiBase = String.fromEnvironment(
   'GAMENOW_API',
-  defaultValue: 'http://127.0.0.1:8787',
+  defaultValue: 'https://gamenow-api.fly.dev',
 );
 
 Future<Map<String, dynamic>> _get(String path) async {

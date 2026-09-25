@@ -6,6 +6,7 @@ import { SiteNav } from "../Store/SiteNav";
 import { useAuth } from "../../data/AuthContext";
 import { useDownloads } from "../../data/DownloadsContext";
 import { useLaunch } from "../../data/LaunchContext";
+import { apiUrl } from "../../data/api";
 import { useOurCovers } from "../../data/catalog";
 import { StoreArt } from "../../data/StoreArt";
 import { Cloud, Gamepad2, Newspaper, RefreshCw } from "lucide-react";
@@ -132,7 +133,7 @@ export function LibraryPage() {
   // Cargar noticias oficiales de Steam
   useEffect(() => {
     let alive = true;
-    fetch("/api/news")
+    fetch(apiUrl("/api/news"))
       .then((res) => (res.ok ? res.json() : []))
       .then((data: GameNewsItem[]) => {
         if (alive && Array.isArray(data)) {

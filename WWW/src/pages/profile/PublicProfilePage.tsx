@@ -3,6 +3,7 @@ import { Gamepad2, MessageCircle, Star, UserMinus } from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { SiteNav } from "../Store/SiteNav";
 import { Footer9 } from "../Store/Footer9";
+import { apiUrl } from "../../data/api";
 import { useAuth } from "../../data/AuthContext";
 import { useOurCovers } from "../../data/catalog";
 import { StoreArt } from "../../data/StoreArt";
@@ -65,7 +66,7 @@ export function PublicProfilePage() {
     let active = true;
     setLoading(true);
     setError("");
-    fetch(`/api/steam/profile/${steamId}`, {
+    fetch(apiUrl(`/api/steam/profile/${steamId}`), {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(async (response) => {
@@ -92,7 +93,7 @@ export function PublicProfilePage() {
 
   const patchFriend = async (body: Record<string, unknown>) => {
     if (!token) return;
-    const response = await fetch("/api/steam/friends", {
+    const response = await fetch(apiUrl("/api/steam/friends"), {
       method: "PATCH",
       headers: {
         Authorization: `Bearer ${token}`,

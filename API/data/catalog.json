@@ -142,11 +142,11 @@
     "slug": "ark-2",
     "name": "ARK 2",
     "studio": "Studio Wildcard",
-    "alt": "Anuncio de ARK 2.",
+    "alt": "ARK 2.",
     "price": 999.99,
     "currency": "MXN",
     "sections": {
-      "ad": 2,
+      "ad": null,
       "event": null,
       "offer": null
     },
@@ -612,14 +612,14 @@
     "slug": "call-of-duty-modern-warfare-4",
     "name": "Call of Duty: Modern Warfare 4",
     "studio": "Activision / Infinity Ward",
-    "alt": "Call of Duty: Modern Warfare 4.",
+    "alt": "Anuncio de Call of Duty: Modern Warfare 4.",
     "price": 639.99,
     "compareAtPrice": 1599.99,
     "currency": "MXN",
     "sections": {
-      "ad": null,
+      "ad": 2,
       "event": null,
-      "offer": 3
+      "offer": null
     },
     "cover": {
       "publicId": "gamenow/covers/mw",

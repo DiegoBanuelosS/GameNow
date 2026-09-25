@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { apiUrl } from "./api";
 
 export type StoreProduct = {
   slug: string;
@@ -87,31 +88,48 @@ const empty: StoreCatalog = {
   authPanel: "",
 };
 
+function pointAtApi<T>(value: T): T {
+  if (typeof value === "string") {
+    return apiUrl(value) as T;
+  }
+  if (Array.isArray(value)) {
+    return value.map((item) => pointAtApi(item)) as T;
+  }
+  if (value && typeof value === "object") {
+    const next: Record<string, unknown> = {};
+    for (const [key, item] of Object.entries(value)) {
+      next[key] = pointAtApi(item);
+    }
+    return next as T;
+  }
+  return value;
+}
+
 export async function fetchStore(): Promise<StoreCatalog> {
-  const response = await fetch("/api/store");
+  const response = await fetch(apiUrl("/api/store"));
   if (!response.ok) {
     throw new Error("No se pudo cargar el catálogo.");
   }
-  return (await response.json()) as StoreCatalog;
+  return pointAtApi((await response.json()) as StoreCatalog);
 }
 
 export async function fetchProduct(slug: string): Promise<StoreProduct | null> {
-  const response = await fetch(`/api/products/${slug}`);
+  const response = await fetch(apiUrl(`/api/products/${slug}`));
   if (response.status === 404) {
     return null;
   }
   if (!response.ok) {
     throw new Error("No se pudo cargar el producto.");
   }
-  return (await response.json()) as StoreProduct;
+  return pointAtApi((await response.json()) as StoreProduct);
 }
 
 export async function fetchGames(): Promise<GamesCatalog> {
-  const response = await fetch("/api/games");
+  const response = await fetch(apiUrl("/api/games"));
   if (!response.ok) {
     throw new Error("No se pudo cargar Nuestros Juegos.");
   }
-  return (await response.json()) as GamesCatalog;
+  return pointAtApi((await response.json()) as GamesCatalog);
 }
 
 export function useOurCovers() {
@@ -160,7 +178,7 @@ export async function fetchPcFit(
   slug: string,
   pc: { os?: string; cpu?: string; gpu?: string; ramGb?: number | null },
 ): Promise<PcFit> {
-  const response = await fetch("/api/pc-fit", {
+  const response = await fetch(apiUrl("/api/pc-fit"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ slug, ...pc }),

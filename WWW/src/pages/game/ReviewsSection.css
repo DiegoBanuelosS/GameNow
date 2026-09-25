@@ -1,6 +1,10 @@
 .rv-section {
+  grid-column: 1 / -1;
+  position: relative;
+  z-index: 2;
   margin-top: 3rem;
   padding-top: 2rem;
+  background: #000;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 

@@ -4,6 +4,8 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { useCart } from "../../data/CartContext";
 import { fetchProduct, type StoreProduct } from "../../data/catalog";
 import { StoreArt } from "../../data/StoreArt";
+import { youtubeEmbed, youtubeId, youtubePoster } from "../../data/youtube";
+import { ConnectionBanner } from "../Store/ConnectionBanner";
 import { Footer9 } from "../Store/Footer9";
 import { PageLoader } from "../Store/LogoLoader";
 import { SiteNav } from "../Store/SiteNav";
@@ -101,7 +103,10 @@ export function GamePage() {
       <main className="game-page">
         {status === "loading" ? <PageLoader label="Cargando ficha…" /> : null}
         {status === "error" ? (
-          <p role="alert">No se pudo cargar este juego. Inténtalo de nuevo.</p>
+          <ConnectionBanner
+            title="No pudimos abrir este juego"
+            detail="La ficha no está disponible ahora. Vuelve a la tienda en unos minutos."
+          />
         ) : null}
         {status === "missing" ? <p>No encontramos ese título.</p> : null}
         {status === "ready" && product ? (
@@ -109,7 +114,16 @@ export function GamePage() {
             {current ? (
               <section className="game-media" aria-label="Medios">
                 <div className="game-hero">
-                  {current.type === "video" ? (
+                  {current.type === "video" && youtubeId(current.src) ? (
+                    <iframe
+                      key={current.src}
+                      className="game-hero-frame"
+                      src={youtubeEmbed(youtubeId(current.src), { muted: true, controls: true })}
+                      title={current.alt}
+                      allow="autoplay; encrypted-media; picture-in-picture"
+                      allowFullScreen
+                    />
+                  ) : current.type === "video" ? (
                     <video
                       key={current.src}
                       ref={heroVideoRef}
@@ -149,7 +163,9 @@ export function GamePage() {
                           aria-label={item.alt}
                           onClick={() => setActive(index)}
                         >
-                          {item.type === "video" && item.src.includes(".m3u8") && item.poster ? (
+                          {item.type === "video" && youtubeId(item.src) ? (
+                            <img className="game-thumb-preview" src={youtubePoster(youtubeId(item.src))} alt="" />
+                          ) : item.type === "video" && item.src.includes(".m3u8") && item.poster ? (
                             <img className="game-thumb-preview" src={item.poster} alt="" />
                           ) : item.type === "video" ? (
                             <video

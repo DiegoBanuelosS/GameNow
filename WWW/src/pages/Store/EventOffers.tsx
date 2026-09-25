@@ -78,17 +78,11 @@ function GameTile({ game, size }: { game: StoreProduct; size: "large" | "small" 
 }
 
 export function EventOffers() {
-  const { catalog, status } = useCatalog();
+  const { catalog } = useCatalog();
 
   return (
     <section className="event-offers" id="eventos" aria-labelledby="event-offers-title">
       <h2 id="event-offers-title">Eventos y Ofertas</h2>
-
-      {status === "error" ? (
-        <p className="store-status" role="alert">
-          No se pudo cargar el catálogo. Revisa que la API esté en marcha.
-        </p>
-      ) : null}
 
       <div className="event-offers-board">
         <ul className="offer-featured" aria-label="Eventos">

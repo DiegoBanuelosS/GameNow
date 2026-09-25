@@ -147,14 +147,7 @@ export function localFileHasAudio(publicPath: string) {
 
 export function videoSources(asset?: CloudAsset | null) {
   const sources: { src: string; type: string }[] = [];
-  const audible = Boolean(asset?.local && localFileHasAudio(asset.local));
-  if (asset?.local && audible) {
-    sources.push({
-      src: asset.local,
-      type: asset.local.endsWith(".webm") ? "video/webm" : "video/mp4",
-    });
-  }
-  if (asset?.hosted && asset.publicId && audible) {
+  if (asset?.hosted && asset.publicId) {
     sources.push({ src: videoCachePath(asset.publicId), type: "video/mp4" });
   }
   return sources;

@@ -9,3 +9,5 @@ WWW/src
 WWW/node_modules
 API/cache
 **/*.log
+WWW/dist
+WWW/public/videos
