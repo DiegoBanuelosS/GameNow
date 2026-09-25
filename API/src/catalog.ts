@@ -292,10 +292,16 @@ export async function loadProduct(slug: string) {
   };
 }
 
-export async function loadStore() {
-  const cached = cacheGet<
-    Awaited<ReturnType<typeof toPublic>> & { authPanel?: string }
-  >("store-mxn");
+type StorePayload = {
+  ads: Awaited<ReturnType<typeof toPublic>>[];
+  events: Awaited<ReturnType<typeof toPublic>>[];
+  offers: Awaited<ReturnType<typeof toPublic>>[];
+  authPanel: string;
+  authPanelSrcSet: string;
+};
+
+export async function loadStore(): Promise<StorePayload> {
+  const cached = cacheGet<StorePayload>("store");
   if (cached) {
     return cached;
   }
@@ -341,7 +347,7 @@ export async function loadStore() {
 
   return cacheSet(
     "store",
-    { ads, events, offers, authPanel, authPanelSrcSet },
+    { ads, events, offers, authPanel, authPanelSrcSet } satisfies StorePayload,
     30_000,
   );
 }

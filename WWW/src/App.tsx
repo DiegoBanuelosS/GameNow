@@ -14,6 +14,7 @@ import { GamePage } from "./pages/game/GamePage";
 import { LibraryPage } from "./pages/library/LibraryPage";
 import { FriendsPage } from "./pages/library/FriendsPage";
 import { GamesPage } from "./pages/Store/GamesPage";
+import { ReleasePage } from "./pages/Store/ReleasePage";
 import { StorePage } from "./pages/Store/StorePage";
 import { ProfilePage } from "./pages/profile/ProfilePage";
 import { PublicProfilePage } from "./pages/profile/PublicProfilePage";
@@ -69,6 +70,7 @@ function AppRoutes() {
       <Route path="/profile" element={<ProfilePage />} />
       <Route path="/perfil/:steamId" element={<PublicProfilePage />} />
       <Route path="/game/:id" element={<GamePage />} />
+      <Route path="/lanzamiento/:appId" element={<ReleasePage />} />
     </Routes>
   );
 }

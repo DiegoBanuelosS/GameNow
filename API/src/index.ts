@@ -2,6 +2,8 @@ import cors from "cors";
 import express from "express";
 import { loadProduct, loadStore } from "./catalog.js";
 import { loadGame, loadGames } from "./games.js";
+import { loadAppTitle, loadReleases } from "./releases.js";
+import { loadSimilar } from "./similar.js";
 import { config } from "./config.js";
 import { connectDb } from "./db.js";
 import { fitPc } from "./pcFit.js";
@@ -60,6 +62,42 @@ app.get("/api/store", async (_req, res) => {
     res.json(await loadStore());
   } catch (error) {
     res.status(500).json({ error: "No se pudo cargar la tienda." });
+    console.error(error);
+  }
+});
+
+app.get("/api/similar/:appId", async (req, res) => {
+  try {
+    res.set("Cache-Control", "public, max-age=300, stale-while-revalidate=900");
+    const genre = typeof req.query.genre === "string" ? req.query.genre : "";
+    res.json({ games: await loadSimilar(req.params.appId, genre) });
+  } catch (error) {
+    res.status(500).json({ error: "No se pudieron cargar juegos parecidos." });
+    console.error(error);
+  }
+});
+
+app.get("/api/title/:appId", async (req, res) => {
+  try {
+    const title = await loadAppTitle(req.params.appId);
+    if (!title) {
+      res.status(404).json({ error: "No está en la tienda." });
+      return;
+    }
+    res.set("Cache-Control", "public, max-age=300, stale-while-revalidate=900");
+    res.json(title);
+  } catch (error) {
+    res.status(500).json({ error: "No se pudo cargar el juego." });
+    console.error(error);
+  }
+});
+
+app.get("/api/releases", async (_req, res) => {
+  try {
+    res.set("Cache-Control", "public, max-age=300, stale-while-revalidate=900");
+    res.json(await loadReleases());
+  } catch (error) {
+    res.status(500).json({ error: "No se pudo cargar el calendario de lanzamientos." });
     console.error(error);
   }
 });

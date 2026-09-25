@@ -161,7 +161,7 @@ function rateLimitAuth(req: Request, res: Response, next: NextFunction): void {
     }
     record.count++;
   } else {
-    ipAttempts.set(ip, { count: 1, resetAt: now + 15 * 60 * 1000 }); // 15 minutos
+    ipAttempts.set(ip, { count: 1, resetAt: now + 60 * 1000 }); // 60 segundos
   }
 
   next();
@@ -321,9 +321,9 @@ authRouter.post("/login", async (req: Request, res: Response): Promise<void> => 
 
     // Comprobar bloqueo temporal de cuenta por demasiados intentos
     if (user.lockUntil && user.lockUntil.getTime() > Date.now()) {
-      const waitMinutes = Math.ceil((user.lockUntil.getTime() - Date.now()) / (60 * 1000));
+      const waitSeconds = Math.ceil((user.lockUntil.getTime() - Date.now()) / 1000);
       res.status(423).json({
-        error: `Tu cuenta ha sido bloqueada temporalmente por seguridad tras varios intentos fallidos. Intenta nuevamente en ${waitMinutes} minutos.`,
+        error: `Tu cuenta ha sido bloqueada temporalmente por seguridad tras varios intentos fallidos. Intenta nuevamente en ${waitSeconds} segundos.`,
       });
       return;
     }
@@ -333,9 +333,9 @@ authRouter.post("/login", async (req: Request, res: Response): Promise<void> => 
     if (!isValid) {
       user.failedLoginAttempts = (user.failedLoginAttempts || 0) + 1;
 
-      // Bloquear 15 minutos tras 5 intentos fallidos consecutivos
+      // Bloquear 60 segundos tras 5 intentos fallidos consecutivos
       if (user.failedLoginAttempts >= 5) {
-        user.lockUntil = new Date(Date.now() + 15 * 60 * 1000);
+        user.lockUntil = new Date(Date.now() + 60 * 1000);
       }
 
       await user.save();

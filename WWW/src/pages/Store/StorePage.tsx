@@ -5,6 +5,7 @@ import { ConnectionBanner } from "./ConnectionBanner";
 import { Download5 } from "./Download5";
 import { Footer9 } from "./Footer9";
 import { EventOffers } from "./EventOffers";
+import { ReleaseCalendar } from "./ReleaseCalendar";
 import { GameCatalog } from "./GameCatalog";
 import { PageLoader } from "./LogoLoader";
 import { SiteNav } from "./SiteNav";
@@ -32,6 +33,7 @@ export function StorePage() {
           <>
             <AdStrip />
             <EventOffers />
+            <ReleaseCalendar />
             <GameCatalog games={games.games} total={games.total} />
             {!isApp && <Download5 />}
           </>

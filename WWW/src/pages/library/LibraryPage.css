@@ -525,14 +525,6 @@
   padding-right: 4px;
 }
 
-.library-game-list::-webkit-scrollbar {
-  width: 4px;
-}
-
-.library-game-list::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 4px;
-}
 
 .library-game-row {
   background: transparent;
@@ -732,12 +724,6 @@
   scroll-snap-type: x mandatory;
   scroll-behavior: smooth;
   padding-bottom: 6px;
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE */
-}
-
-.library-news-carousel::-webkit-scrollbar {
-  display: none; /* Chrome/Safari */
 }
 
 /* Cada tarjeta ocupa exactamente un tercio del ancho menos los dos huecos de 16px */
