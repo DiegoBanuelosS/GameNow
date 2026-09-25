@@ -86,7 +86,8 @@ async function saveSteamLink(userId: string, steamId: string) {
     return null;
   }
   const account = await loadSteamAccount(steamId);
-  const previous = await User.findById(userId).select("steamGames");
+  const previous = await User.findById(userId).select("steamGames hiddenLibraryKeys");
+  const hidden = new Set((previous?.hiddenLibraryKeys ?? []).filter(Boolean));
   const kept = new Map(
     (previous?.steamGames ?? []).map((game) => [
       game.steamAppId || game.slug,
@@ -105,26 +106,35 @@ async function saveSteamLink(userId: string, steamId: string) {
       },
     ]),
   );
-  account.steamGames = account.steamGames.map((game) => {
-    const saved = kept.get(game.steamAppId) || kept.get(game.slug);
-    if (!saved) return game;
-    return {
-      ...game,
-      isInstalled: Boolean(saved.isInstalled),
-      isFavorite: Boolean(saved.isFavorite),
-      ...(saved.userRating ? { userRating: saved.userRating } : {}),
-      ...(saved.userNote ? { userNote: saved.userNote } : {}),
-      ...(saved.purchased ? { purchased: true } : {}),
-      ...(typeof saved.paidPrice === "number" && saved.paidPrice > 0 ? { paidPrice: saved.paidPrice } : {}),
-      ...(saved.saleStatus === "pending" ? { saleStatus: "pending" as const, salePayout: saved.salePayout } : {}),
-      ...(saved.desktopShortcut ? { desktopShortcut: true } : {}),
-      ...(saved.taskbarPin ? { taskbarPin: true } : {}),
-      ...(saved.beta ? { beta: saved.beta } : {}),
-    };
-  });
+  account.steamGames = account.steamGames
+    .filter((game) => !hidden.has(game.slug) && !hidden.has(game.steamAppId || ""))
+    .map((game) => {
+      const saved = kept.get(game.steamAppId) || kept.get(game.slug);
+      if (!saved) return game;
+      return {
+        ...game,
+        isInstalled: Boolean(saved.isInstalled),
+        isFavorite: Boolean(saved.isFavorite),
+        ...(saved.userRating ? { userRating: saved.userRating } : {}),
+        ...(saved.userNote ? { userNote: saved.userNote } : {}),
+        ...(saved.purchased ? { purchased: true } : {}),
+        ...(typeof saved.paidPrice === "number" && saved.paidPrice > 0 ? { paidPrice: saved.paidPrice } : {}),
+        ...(saved.saleStatus === "pending" ? { saleStatus: "pending" as const, salePayout: saved.salePayout } : {}),
+        ...(saved.desktopShortcut ? { desktopShortcut: true } : {}),
+        ...(saved.taskbarPin ? { taskbarPin: true } : {}),
+        ...(saved.beta ? { beta: saved.beta } : {}),
+      };
+    });
   const present = new Set(account.steamGames.flatMap((game) => [game.slug, game.steamAppId || ""]));
-  const bought = (previous?.steamGames ?? []).filter((game) => game.purchased && !present.has(game.slug));
+  const bought = (previous?.steamGames ?? []).filter(
+    (game) =>
+      game.purchased &&
+      !present.has(game.slug) &&
+      !hidden.has(game.slug) &&
+      !hidden.has(game.steamAppId || ""),
+  );
   account.steamGames = [...bought, ...account.steamGames];
+  account.steamGameCount = account.steamGames.length;
   return User.findByIdAndUpdate(userId, { $set: account }, { new: true });
 }
 

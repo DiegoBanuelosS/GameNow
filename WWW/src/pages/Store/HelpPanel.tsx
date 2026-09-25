@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { Check } from "lucide-react";
 import { X } from "../../components/Icons";
 import { apiUrl } from "../../data/api";
@@ -53,6 +53,9 @@ export function HelpPanel() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState("");
   const [actionNotice, setActionNotice] = useState("");
+  const [confirmRemove, setConfirmRemove] = useState(false);
+  const confirmRemoveRef = useRef(false);
+  confirmRemoveRef.current = confirmRemove;
 
   useEffect(() => {
     if (!open) return;
@@ -64,8 +67,14 @@ export function HelpPanel() {
     setError("");
     setBusy("");
     setActionNotice("");
+    setConfirmRemove(false);
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") closePanels();
+      if (event.key !== "Escape") return;
+      if (confirmRemoveRef.current) {
+        setConfirmRemove(false);
+        return;
+      }
+      closePanels();
     };
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -117,11 +126,16 @@ export function HelpPanel() {
 
   const removeGame = async () => {
     if (!helpGame) return;
-    if (!window.confirm(`¿Eliminar «${helpGame.name}» de tu cuenta en GameNow?`)) return;
+    if (!token) {
+      setActionNotice("Inicia sesión para eliminar el juego.");
+      setConfirmRemove(false);
+      return;
+    }
     setBusy("remove");
     setActionNotice("");
     const result = await updateLibraryGame(helpGame.slug, { remove: true });
     setBusy("");
+    setConfirmRemove(false);
     if (!result.ok) {
       setActionNotice(result.error || "No se pudo eliminar el juego.");
       return;
@@ -274,15 +288,49 @@ export function HelpPanel() {
               </div>
 
               <div className="help-game-actions">
-                {actionNotice ? <p className="help-action-notice">{actionNotice}</p> : null}
-                <button
-                  type="button"
-                  className="help-action-btn danger"
-                  disabled={busy === "remove"}
-                  onClick={() => void removeGame()}
-                >
-                  {busy === "remove" ? "Eliminando…" : "Eliminar juego de mi cuenta"}
-                </button>
+                {actionNotice ? (
+                  <p className={`help-action-notice${actionNotice.includes("No se pudo") || actionNotice.includes("Inicia") ? " is-error" : ""}`}>
+                    {actionNotice}
+                  </p>
+                ) : null}
+                {confirmRemove ? (
+                  <div className="help-confirm" role="alertdialog" aria-labelledby="help-confirm-title" aria-describedby="help-confirm-desc">
+                    <strong id="help-confirm-title">Eliminar de tu cuenta</strong>
+                    <p id="help-confirm-desc">
+                      ¿Quitar «{helpGame.name}» de tu biblioteca en GameNow? El juego dejará de verse aquí; en Steam no se borra.
+                    </p>
+                    <div className="help-confirm-actions">
+                      <button
+                        type="button"
+                        className="app-panel-secondary"
+                        disabled={busy === "remove"}
+                        onClick={() => setConfirmRemove(false)}
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        type="button"
+                        className="help-confirm-danger"
+                        disabled={busy === "remove"}
+                        onClick={() => void removeGame()}
+                      >
+                        {busy === "remove" ? "Eliminando…" : "Eliminar"}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    className="help-action-btn danger"
+                    disabled={Boolean(busy)}
+                    onClick={() => {
+                      setActionNotice("");
+                      setConfirmRemove(true);
+                    }}
+                  >
+                    Eliminar juego de mi cuenta
+                  </button>
+                )}
                 {helpGame.purchased && helpGame.saleStatus !== "pending" ? (
                   <>
                     <button

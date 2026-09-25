@@ -380,12 +380,22 @@ export async function updateLibraryGame(req: Request, res: Response) {
       res.status(404).json({ error: "Usuario no encontrado." });
       return;
     }
-    const before = owner.steamGames.length;
-    owner.steamGames = owner.steamGames.filter((item) => item.slug !== slug);
-    if (owner.steamGames.length === before) {
+    const target = owner.steamGames.find(
+      (item) => item.slug === slug || (item.steamAppId && item.steamAppId === slug),
+    );
+    if (!target) {
       res.status(404).json({ error: "No se encontró el juego en tu biblioteca." });
       return;
     }
+    // Guardar claves ocultas para que Steam sync no lo vuelva a meter
+    const hideKeys = [target.slug, target.steamAppId, slug].filter(
+      (key): key is string => Boolean(key && String(key).trim()),
+    );
+    const hidden = new Set([...(owner.hiddenLibraryKeys ?? []), ...hideKeys]);
+    owner.hiddenLibraryKeys = [...hidden];
+    owner.steamGames = owner.steamGames.filter(
+      (item) => item.slug !== target.slug && item.steamAppId !== target.steamAppId,
+    );
     owner.steamGameCount = owner.steamGames.length;
     await owner.save();
     res.json({ user: owner.toJSON() });

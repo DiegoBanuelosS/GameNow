@@ -17,6 +17,8 @@ export interface IUser extends Document {
   balance: number;
   cardLast4: string;
   steamGames: SteamLibraryGame[];
+  /** Slugs / steamAppIds ocultos en GameNow (no vuelven al sincronizar Steam) */
+  hiddenLibraryKeys: string[];
   friendPrefs: {
     steamId: string;
     favorite?: boolean;
@@ -119,6 +121,10 @@ const userSchema = new Schema<IUser>(
       ],
       default: [],
     },
+    hiddenLibraryKeys: {
+      type: [String],
+      default: [],
+    },
     friendPrefs: {
       type: [
         new Schema(
@@ -161,6 +167,7 @@ const userSchema = new Schema<IUser>(
         delete (ret as Record<string, unknown>).passwordHash;
         delete (ret as Record<string, unknown>).failedLoginAttempts;
         delete (ret as Record<string, unknown>).lockUntil;
+        delete (ret as Record<string, unknown>).hiddenLibraryKeys;
         delete (ret as Record<string, unknown>).__v;
         return ret;
       },
