@@ -440,8 +440,9 @@ chatRouter.delete("/rooms/:id", async (req, res) => {
     res.json({ ok: true, deleted: true });
     return;
   }
-  room.memberIds = room.memberIds.filter((id) => String(id) !== userId);
-  room.wrappedKeys = room.wrappedKeys.filter((item) => String(item.userId) !== userId);
+  room.memberIds = room.memberIds.filter((id) => String(id) !== userId) as typeof room.memberIds;
+  const remainingKeys = room.wrappedKeys.filter((item) => String(item.userId) !== userId);
+  room.wrappedKeys.splice(0, room.wrappedKeys.length, ...remainingKeys);
   if (room.memberIds.length < 2) {
     await ChatMessage.deleteMany({ roomId: room._id });
     await room.deleteOne();

@@ -768,7 +768,7 @@ export async function addFriend(req: Request, res: Response) {
   let name = "";
   let avatarUrl = "";
   let username = "";
-  let targetUser: Awaited<ReturnType<typeof User.findById>> | null = null;
+  let targetUser: any = null;
 
   if (!steamId && typeof req.body?.username === "string") {
     targetUser = await User.findOne({ username: req.body.username.trim() }).select(
@@ -832,7 +832,7 @@ export async function addFriend(req: Request, res: Response) {
   // Cuenta GameNow: solicitud pendiente (aceptar / rechazar)
   if (targetUser) {
     const theirIncoming = targetUser.incomingFriendRequests ?? [];
-    if (theirIncoming.some((item) => item.fromUserId === userId || item.steamId === myKey)) {
+    if (theirIncoming.some((item: { fromUserId?: string; steamId?: string }) => item.fromUserId === userId || item.steamId === myKey)) {
       res.status(409).json({ error: "Ya enviaste una solicitud a esa persona." });
       return;
     }
