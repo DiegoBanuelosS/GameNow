@@ -24,18 +24,6 @@ function cardBrand(value: string) {
   return "";
 }
 
-type DemoCard = {
-  id: string;
-  label: string;
-  name: string;
-  number: string;
-  expiry: string;
-  cvv: string;
-  address: string;
-  city: string;
-  postal: string;
-};
-
 type DemoAddress = {
   id: string;
   label: string;
@@ -44,32 +32,7 @@ type DemoAddress = {
   postal: string;
 };
 
-/** Tarjetas y direcciones de prueba (solo frontend, no se envían completas al servidor) */
-const DEMO_CARDS: DemoCard[] = [
-  {
-    id: "visa-x",
-    label: "Visa X",
-    name: "Diego Banuelos",
-    number: "4242424242424242",
-    expiry: "12/28",
-    cvv: "123",
-    address: "Av. Insurgentes Sur 1458",
-    city: "Ciudad de México",
-    postal: "03100",
-  },
-  {
-    id: "mc-x",
-    label: "Mastercard X",
-    name: "Diego Banuelos",
-    number: "5555555555554444",
-    expiry: "09/29",
-    cvv: "321",
-    address: "Calle Morelos 220",
-    city: "Guadalajara",
-    postal: "44100",
-  },
-];
-
+/** Direcciones de prueba (solo frontend) */
 const DEMO_ADDRESSES: DemoAddress[] = [
   {
     id: "cdmx",
@@ -179,17 +142,6 @@ export function PayPage() {
     setCvv("");
     setExpiry("");
     clear();
-  };
-
-  const fillDemoCard = (demo: DemoCard) => {
-    setName(demo.name);
-    setCard(demo.number);
-    setExpiry(demo.expiry);
-    setCvv(demo.cvv);
-    setAddress(demo.address);
-    setCity(demo.city);
-    setPostal(demo.postal);
-    setError("");
   };
 
   const fillDemoAddress = (demo: DemoAddress) => {
@@ -365,26 +317,8 @@ export function PayPage() {
                         <CardMark brand="" />
                       </button>
                     ) : (
-                      <p className="pay-note">Aún no tienes una tarjeta guardada. Usa una de prueba o llena el formulario.</p>
+                      <p className="pay-note">Aún no tienes una tarjeta guardada. Llena el formulario para guardar una.</p>
                     )}
-                    <p className="pay-saved-title">Tarjetas X de prueba</p>
-                    <div className="pay-saved-row">
-                      {DEMO_CARDS.map((demo) => (
-                        <button
-                          key={demo.id}
-                          type="button"
-                          className="pay-saved-card"
-                          disabled={paying}
-                          onClick={() => fillDemoCard(demo)}
-                        >
-                          <span>
-                            <strong>{demo.label}</strong>
-                            <small>•••• {demo.number.slice(-4)}</small>
-                          </span>
-                          <CardMark brand={cardBrand(demo.number)} />
-                        </button>
-                      ))}
-                    </div>
                     <p className="pay-saved-title">Direcciones X</p>
                     <div className="pay-saved-row">
                       {DEMO_ADDRESSES.map((demo) => (
