@@ -275,6 +275,118 @@
   line-height: 1;
 }
 
+.pay-saved {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 4px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.pay-saved-title {
+  margin: 4px 0 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #a39c93;
+}
+
+.pay-saved-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pay-saved-card {
+  flex: 1 1 160px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 56px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  background: #141312;
+  color: #f3efe8;
+  text-align: left;
+  cursor: pointer;
+}
+
+.pay-saved-card:hover:not(:disabled) {
+  border-color: rgba(255, 255, 255, 0.28);
+  background: #1a1816;
+}
+
+.pay-saved-card.is-primary {
+  border-color: rgba(255, 255, 255, 0.28);
+  background: #1c1a18;
+}
+
+.pay-saved-card:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.pay-saved-card strong,
+.pay-saved-card small {
+  display: block;
+}
+
+.pay-saved-card strong {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.pay-saved-card small {
+  margin-top: 2px;
+  font-size: 12px;
+  color: #a39c93;
+}
+
+.pay-saved-card .pay-card-mark {
+  position: static;
+  transform: none;
+  flex-shrink: 0;
+}
+
+.pay-saved-chip {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  background: transparent;
+  color: #ece7de;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.pay-saved-chip:hover:not(:disabled) {
+  border-color: rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.pay-saved-chip:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.pay-save-toggle {
+  flex-direction: row !important;
+  align-items: center;
+  gap: 10px !important;
+  color: #ece7de !important;
+  font-size: 13px !important;
+  cursor: pointer;
+}
+
+.pay-save-toggle input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: #c4bdb4;
+}
+
 .pay-note,
 .pay-error {
   margin: 0;

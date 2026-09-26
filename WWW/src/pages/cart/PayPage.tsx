@@ -24,6 +24,76 @@ function cardBrand(value: string) {
   return "";
 }
 
+type DemoCard = {
+  id: string;
+  label: string;
+  name: string;
+  number: string;
+  expiry: string;
+  cvv: string;
+  address: string;
+  city: string;
+  postal: string;
+};
+
+type DemoAddress = {
+  id: string;
+  label: string;
+  address: string;
+  city: string;
+  postal: string;
+};
+
+/** Tarjetas y direcciones de prueba (solo frontend, no se envían completas al servidor) */
+const DEMO_CARDS: DemoCard[] = [
+  {
+    id: "visa-x",
+    label: "Visa X",
+    name: "Diego Banuelos",
+    number: "4242424242424242",
+    expiry: "12/28",
+    cvv: "123",
+    address: "Av. Insurgentes Sur 1458",
+    city: "Ciudad de México",
+    postal: "03100",
+  },
+  {
+    id: "mc-x",
+    label: "Mastercard X",
+    name: "Diego Banuelos",
+    number: "5555555555554444",
+    expiry: "09/29",
+    cvv: "321",
+    address: "Calle Morelos 220",
+    city: "Guadalajara",
+    postal: "44100",
+  },
+];
+
+const DEMO_ADDRESSES: DemoAddress[] = [
+  {
+    id: "cdmx",
+    label: "CDMX",
+    address: "Av. Insurgentes Sur 1458",
+    city: "Ciudad de México",
+    postal: "03100",
+  },
+  {
+    id: "gdl",
+    label: "Guadalajara",
+    address: "Calle Morelos 220",
+    city: "Guadalajara",
+    postal: "44100",
+  },
+  {
+    id: "mty",
+    label: "Monterrey",
+    address: "Av. Constitución 500",
+    city: "Monterrey",
+    postal: "64000",
+  },
+];
+
 function CardMark({ brand }: { brand: string }) {
   if (brand === "visa") {
     return (
@@ -79,11 +149,13 @@ export function PayPage() {
   const [downloadNote, setDownloadNote] = useState("");
   const [paying, setPaying] = useState(false);
   const [paidWith, setPaidWith] = useState<"wallet" | "card" | "">("");
+  const [saveCard, setSaveCard] = useState(true);
 
   const games = order ?? items;
   const total = games.reduce((sum, item) => sum + item.priceValue, 0);
   const balance = user?.balance || 0;
   const walletCovers = balance + 0.001 >= total && total > 0;
+  const savedLast4 = /^\d{4}$/.test(user?.cardLast4 || "") ? user!.cardLast4! : "";
 
   const finish = async (payment: { method: "wallet" | "card"; cardLast4?: string }) => {
     if (!token) {
@@ -109,6 +181,24 @@ export function PayPage() {
     clear();
   };
 
+  const fillDemoCard = (demo: DemoCard) => {
+    setName(demo.name);
+    setCard(demo.number);
+    setExpiry(demo.expiry);
+    setCvv(demo.cvv);
+    setAddress(demo.address);
+    setCity(demo.city);
+    setPostal(demo.postal);
+    setError("");
+  };
+
+  const fillDemoAddress = (demo: DemoAddress) => {
+    setAddress(demo.address);
+    setCity(demo.city);
+    setPostal(demo.postal);
+    setError("");
+  };
+
   const payWithWallet = () => {
     if (items.length === 0 || paying) return;
     if (!walletCovers) {
@@ -116,6 +206,11 @@ export function PayPage() {
       return;
     }
     void finish({ method: "wallet" });
+  };
+
+  const payWithSavedCard = () => {
+    if (items.length === 0 || paying || !savedLast4) return;
+    void finish({ method: "card", cardLast4: savedLast4 });
   };
 
   const pay = async (event: FormEvent) => {
@@ -143,7 +238,8 @@ export function PayPage() {
       setError("Completa la dirección.");
       return;
     }
-    await finish({ method: "card", cardLast4: card.slice(-4) });
+    const last4 = card.slice(-4);
+    await finish({ method: "card", cardLast4: saveCard ? last4 : undefined });
   };
 
   const beginDownload = async (item: CartItem) => {
@@ -177,7 +273,13 @@ export function PayPage() {
               <Check size={28} aria-hidden="true" />
             </span>
             <h1>Pago listo</h1>
-            <p>{paidWith === "wallet" ? "Se descontó de tu cartera." : "Tu pedido quedó registrado. Los datos de la tarjeta no se guardan."}</p>
+            <p>
+              {paidWith === "wallet"
+                ? "Se descontó de tu cartera."
+                : saveCard || savedLast4
+                  ? "Tu pedido quedó registrado. Guardamos la terminación de tu tarjeta para la próxima compra."
+                  : "Tu pedido quedó registrado."}
+            </p>
             <button type="button" className="pay-download" onClick={() => void downloadContent()}>
               Descargar tu contenido
             </button>
@@ -212,110 +314,169 @@ export function PayPage() {
           </section>
         ) : (
           <>
-        <h1>Pago</h1>
-        <p className="cart-lead">
-          <Link className="cart-back" to="/cart">
-            Volver al carrito
-          </Link>
-        </p>
-        {games.length === 0 ? (
-          <p className="cart-empty">
-            No hay juegos para pagar. <Link to="/juegos">Ver la tienda</Link>
-          </p>
-        ) : (
-          <div className="pay-layout">
-            <section aria-label="Juegos del pedido">
-              <ul className="pay-grid">
-                {games.map((item) => (
-                  <li key={item.slug}>
-                    <StoreArt className="cart-cover" src={item.cover} alt="" />
-                    <strong>{item.name}</strong>
-                    <small>{item.price}</small>
-                  </li>
-                ))}
-              </ul>
-              <p className="cart-lead">Total {formatMxn(total)}</p>
-            </section>
-            <div className="pay-methods">
-            {balance > 0 ? (
-              <div className="pay-wallet-box">
-                <p>Saldo en tu cartera: {formatMxn(balance)}</p>
-                <button type="button" className="pay-wallet" disabled={!walletCovers || paying} onClick={payWithWallet}>
-                  Pagar con tu saldo
-                </button>
-                {walletCovers ? null : <p className="pay-note">Tu saldo no alcanza para este pedido.</p>}
-              </div>
-            ) : null}
-            <form className="pay-form" onSubmit={pay}>
-                <label>
-                  Nombre en la tarjeta
-                  <input autoComplete="cc-name" value={name} onChange={(event) => setName(event.target.value)} />
-                </label>
-                <label>
-                  Tarjeta
-                  <span className="pay-card-field">
-                    <input
-                      inputMode="numeric"
-                      autoComplete="cc-number"
-                      value={cardLabel(card)}
-                      onChange={(event) => setCard(digits(event.target.value, 19))}
-                    />
-                    <CardMark brand={cardBrand(card)} />
-                  </span>
-                </label>
-                <div className="pay-row">
-                  <label>
-                    Vencimiento
-                    <input
-                      inputMode="numeric"
-                      autoComplete="cc-exp"
-                      placeholder="MM/AA"
-                      value={expiry}
-                      onChange={(event) => {
-                        const next = digits(event.target.value, 4);
-                        setExpiry(next.length > 2 ? `${next.slice(0, 2)}/${next.slice(2)}` : next);
-                      }}
-                    />
-                  </label>
-                  <label>
-                    CVV
-                    <span className="pay-cvv-field">
-                      <input
-                        type={showCvv ? "text" : "password"}
-                        inputMode="numeric"
-                        autoComplete="cc-csc"
-                        value={cvv}
-                        onChange={(event) => setCvv(digits(event.target.value, 4))}
-                      />
-                      <button type="button" onClick={() => setShowCvv((open) => !open)}>
-                        {showCvv ? "Ocultar" : "Mostrar"}
+            <h1>Pago</h1>
+            <p className="cart-lead">
+              <Link className="cart-back" to="/cart">
+                Volver al carrito
+              </Link>
+            </p>
+            {games.length === 0 ? (
+              <p className="cart-empty">
+                No hay juegos para pagar. <Link to="/juegos">Ver la tienda</Link>
+              </p>
+            ) : (
+              <div className="pay-layout">
+                <section aria-label="Juegos del pedido">
+                  <ul className="pay-grid">
+                    {games.map((item) => (
+                      <li key={item.slug}>
+                        <StoreArt className="cart-cover" src={item.cover} alt="" />
+                        <strong>{item.name}</strong>
+                        <small>{item.price}</small>
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="cart-lead">Total {formatMxn(total)}</p>
+                </section>
+                <div className="pay-methods">
+                  {balance > 0 ? (
+                    <div className="pay-wallet-box">
+                      <p>Saldo en tu cartera: {formatMxn(balance)}</p>
+                      <button type="button" className="pay-wallet" disabled={!walletCovers || paying} onClick={payWithWallet}>
+                        Pagar con tu saldo
                       </button>
-                    </span>
-                  </label>
+                      {walletCovers ? null : <p className="pay-note">Tu saldo no alcanza para este pedido.</p>}
+                    </div>
+                  ) : null}
+
+                  <div className="pay-saved" aria-label="Tarjetas guardadas">
+                    <p className="pay-saved-title">Tarjeta guardada</p>
+                    {savedLast4 ? (
+                      <button
+                        type="button"
+                        className="pay-saved-card is-primary"
+                        disabled={paying}
+                        onClick={payWithSavedCard}
+                      >
+                        <span>
+                          <strong>Pagar con la última tarjeta</strong>
+                          <small>Terminación {savedLast4}</small>
+                        </span>
+                        <CardMark brand="" />
+                      </button>
+                    ) : (
+                      <p className="pay-note">Aún no tienes una tarjeta guardada. Usa una de prueba o llena el formulario.</p>
+                    )}
+                    <p className="pay-saved-title">Tarjetas X de prueba</p>
+                    <div className="pay-saved-row">
+                      {DEMO_CARDS.map((demo) => (
+                        <button
+                          key={demo.id}
+                          type="button"
+                          className="pay-saved-card"
+                          disabled={paying}
+                          onClick={() => fillDemoCard(demo)}
+                        >
+                          <span>
+                            <strong>{demo.label}</strong>
+                            <small>•••• {demo.number.slice(-4)}</small>
+                          </span>
+                          <CardMark brand={cardBrand(demo.number)} />
+                        </button>
+                      ))}
+                    </div>
+                    <p className="pay-saved-title">Direcciones X</p>
+                    <div className="pay-saved-row">
+                      {DEMO_ADDRESSES.map((demo) => (
+                        <button
+                          key={demo.id}
+                          type="button"
+                          className="pay-saved-chip"
+                          disabled={paying}
+                          onClick={() => fillDemoAddress(demo)}
+                        >
+                          {demo.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <form className="pay-form" onSubmit={pay}>
+                    <label>
+                      Nombre en la tarjeta
+                      <input autoComplete="cc-name" value={name} onChange={(event) => setName(event.target.value)} />
+                    </label>
+                    <label>
+                      Tarjeta
+                      <span className="pay-card-field">
+                        <input
+                          inputMode="numeric"
+                          autoComplete="cc-number"
+                          value={cardLabel(card)}
+                          onChange={(event) => setCard(digits(event.target.value, 19))}
+                        />
+                        <CardMark brand={cardBrand(card)} />
+                      </span>
+                    </label>
+                    <div className="pay-row">
+                      <label>
+                        Vencimiento
+                        <input
+                          inputMode="numeric"
+                          autoComplete="cc-exp"
+                          placeholder="MM/AA"
+                          value={expiry}
+                          onChange={(event) => {
+                            const next = digits(event.target.value, 4);
+                            setExpiry(next.length > 2 ? `${next.slice(0, 2)}/${next.slice(2)}` : next);
+                          }}
+                        />
+                      </label>
+                      <label>
+                        CVV
+                        <span className="pay-cvv-field">
+                          <input
+                            type={showCvv ? "text" : "password"}
+                            inputMode="numeric"
+                            autoComplete="cc-csc"
+                            value={cvv}
+                            onChange={(event) => setCvv(digits(event.target.value, 4))}
+                          />
+                          <button type="button" onClick={() => setShowCvv((open) => !open)}>
+                            {showCvv ? "Ocultar" : "Mostrar"}
+                          </button>
+                        </span>
+                      </label>
+                    </div>
+                    <label>
+                      Dirección
+                      <input autoComplete="street-address" value={address} onChange={(event) => setAddress(event.target.value)} />
+                    </label>
+                    <label>
+                      Ciudad
+                      <input autoComplete="address-level2" value={city} onChange={(event) => setCity(event.target.value)} />
+                    </label>
+                    <label>
+                      Código postal
+                      <input
+                        inputMode="numeric"
+                        autoComplete="postal-code"
+                        value={postal}
+                        onChange={(event) => setPostal(digits(event.target.value, 5))}
+                      />
+                    </label>
+                    <label className="pay-save-toggle">
+                      <input type="checkbox" checked={saveCard} onChange={(event) => setSaveCard(event.target.checked)} />
+                      <span>Guardar esta tarjeta para la próxima compra</span>
+                    </label>
+                    {error ? <p className="pay-error">{error}</p> : <p className="pay-note">Solo guardamos la terminación (últimos 4 dígitos).</p>}
+                    <button type="submit" disabled={paying}>
+                      Pagar {formatMxn(total)}
+                    </button>
+                  </form>
                 </div>
-                <label>
-                  Dirección
-                  <input autoComplete="street-address" value={address} onChange={(event) => setAddress(event.target.value)} />
-                </label>
-                <label>
-                  Ciudad
-                  <input autoComplete="address-level2" value={city} onChange={(event) => setCity(event.target.value)} />
-                </label>
-                <label>
-                  Código postal
-                  <input
-                    inputMode="numeric"
-                    autoComplete="postal-code"
-                    value={postal}
-                    onChange={(event) => setPostal(digits(event.target.value, 5))}
-                  />
-                </label>
-                {error ? <p className="pay-error">{error}</p> : <p className="pay-note">La tarjeta solo se usa en esta pantalla.</p>}
-                <button type="submit" disabled={paying}>Pagar {formatMxn(total)}</button>
-              </form>
-            </div>
-          </div>
-        )}
+              </div>
+            )}
           </>
         )}
       </main>
