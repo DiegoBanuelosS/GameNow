@@ -78,18 +78,18 @@ String installDir() {
 /// Descarga o carga el paquete comprimido de la aplicación GameNow
 Future<List<int>> _downloadAppPayload({
   required void Function(double progress, String status) onProgress,
+  bool preferRemote = false,
 }) async {
-  // 1. Intentar cargar primero el paquete local empaquetado con el instalador
-  onProgress(0.08, 'Cargando componentes de GameNow...');
-
-  final localCandidates = [
-    p.join(p.dirname(Platform.resolvedExecutable), 'data', 'flutter_assets', 'assets', 'payload.zip'),
-    p.join(Directory.current.path, 'assets', 'payload.zip'),
-    p.join(Directory.current.path, 'data', 'flutter_assets', 'assets', 'payload.zip'),
-  ];
-  for (final candidate in localCandidates) {
-    final f = File(candidate);
-    if (f.existsSync()) {
+  Future<List<int>?> tryLocal() async {
+    onProgress(0.08, 'Cargando componentes de GameNow...');
+    final localCandidates = [
+      p.join(p.dirname(Platform.resolvedExecutable), 'data', 'flutter_assets', 'assets', 'payload.zip'),
+      p.join(Directory.current.path, 'assets', 'payload.zip'),
+      p.join(Directory.current.path, 'data', 'flutter_assets', 'assets', 'payload.zip'),
+    ];
+    for (final candidate in localCandidates) {
+      final f = File(candidate);
+      if (!f.existsSync()) continue;
       try {
         final bytes = f.readAsBytesSync();
         if (bytes.isNotEmpty) {
@@ -98,71 +98,88 @@ Future<List<int>> _downloadAppPayload({
         }
       } catch (_) {}
     }
-  }
 
-  try {
-    final localBundle = await rootBundle.load('assets/payload.zip');
-    final bytes = localBundle.buffer.asUint8List(
-      localBundle.offsetInBytes,
-      localBundle.lengthInBytes,
-    );
-    if (bytes.isNotEmpty) {
-      onProgress(0.50, 'Paquete de instalación cargado.');
-      return bytes;
-    }
-  } catch (_) {}
-
-  // 2. Si no viene en local, intentar con el servidor de descargas
-  final candidateUrls = [
-    if (Platform.environment['GAMENOW_APP_URL'] != null)
-      Platform.environment['GAMENOW_APP_URL']!,
-    'http://127.0.0.1:8787/api/download/app',
-    'http://localhost:8787/api/download/app',
-    'http://127.0.0.1:8787/api/download/windows?target=app',
-    'http://localhost:8787/api/download/windows?target=app',
-    'http://127.0.0.1:5173/downloads/GameNow-Windows.zip',
-    'http://localhost:5173/downloads/GameNow-Windows.zip',
-  ];
-
-  final client = HttpClient();
-  client.connectionTimeout = const Duration(seconds: 4);
-
-  for (final url in candidateUrls) {
     try {
-      onProgress(0.06, 'Conectando con el servidor de descargas...');
-      final uri = Uri.parse(url);
-      final request = await client.getUrl(uri);
-      final response = await request.close();
-
-      if (response.statusCode == 200) {
-        final totalBytes = response.contentLength;
-        final builder = BytesBuilder(copy: false);
-        int downloaded = 0;
-
-        await for (final chunk in response) {
-          builder.add(chunk);
-          downloaded += chunk.length;
-
-          if (totalBytes > 0) {
-            final double dlFraction = (downloaded / totalBytes).clamp(0.0, 1.0);
-            final double overall = 0.08 + (dlFraction * 0.50);
-            final String mbDown = (downloaded / (1024 * 1024)).toStringAsFixed(1);
-            final String mbTotal = (totalBytes / (1024 * 1024)).toStringAsFixed(1);
-            onProgress(overall, 'Descargando GameNow ($mbDown MB / $mbTotal MB)...');
-          } else {
-            final String mbDown = (downloaded / (1024 * 1024)).toStringAsFixed(1);
-            onProgress(0.30, 'Descargando GameNow ($mbDown MB)...');
-          }
-        }
-        client.close();
-        final bytes = builder.takeBytes();
-        if (bytes.isNotEmpty) {
-          return bytes;
-        }
+      final localBundle = await rootBundle.load('assets/payload.zip');
+      final bytes = localBundle.buffer.asUint8List(
+        localBundle.offsetInBytes,
+        localBundle.lengthInBytes,
+      );
+      if (bytes.isNotEmpty) {
+        onProgress(0.50, 'Paquete de instalación cargado.');
+        return bytes;
       }
     } catch (_) {}
+    return null;
   }
-  client.close();
+
+  Future<List<int>?> tryRemote() async {
+    final candidateUrls = [
+      if (Platform.environment['GAMENOW_APP_URL'] != null)
+        Platform.environment['GAMENOW_APP_URL']!,
+      'https://gamenow-api.fly.dev/api/download/app',
+      'https://gamenow-api.fly.dev/api/download/windows?target=app',
+      'http://127.0.0.1:8787/api/download/app',
+      'http://localhost:8787/api/download/app',
+      'http://127.0.0.1:8787/api/download/windows?target=app',
+      'http://localhost:8787/api/download/windows?target=app',
+      'http://127.0.0.1:5173/downloads/GameNow-Windows.zip',
+      'http://localhost:5173/downloads/GameNow-Windows.zip',
+    ];
+
+    final client = HttpClient();
+    client.connectionTimeout = const Duration(seconds: preferRemote ? 20 : 4);
+
+    for (final url in candidateUrls) {
+      try {
+        onProgress(0.06, 'Conectando con el servidor de descargas...');
+        final uri = Uri.parse(url);
+        final request = await client.getUrl(uri);
+        final response = await request.close();
+
+        if (response.statusCode == 200) {
+          final totalBytes = response.contentLength;
+          final builder = BytesBuilder(copy: false);
+          var downloaded = 0;
+
+          await for (final chunk in response) {
+            builder.add(chunk);
+            downloaded += chunk.length;
+
+            if (totalBytes > 0) {
+              final dlFraction = (downloaded / totalBytes).clamp(0.0, 1.0);
+              final overall = 0.08 + (dlFraction * 0.50);
+              final mbDown = (downloaded / (1024 * 1024)).toStringAsFixed(1);
+              final mbTotal = (totalBytes / (1024 * 1024)).toStringAsFixed(1);
+              onProgress(overall, 'Descargando GameNow ($mbDown MB / $mbTotal MB)...');
+            } else {
+              final mbDown = (downloaded / (1024 * 1024)).toStringAsFixed(1);
+              onProgress(0.30, 'Descargando GameNow ($mbDown MB)...');
+            }
+          }
+          final bytes = builder.takeBytes();
+          if (bytes.isNotEmpty) {
+            client.close();
+            return bytes;
+          }
+        }
+      } catch (_) {}
+    }
+    client.close();
+    return null;
+  }
+
+  if (preferRemote) {
+    final remote = await tryRemote();
+    if (remote != null) return remote;
+    final local = await tryLocal();
+    if (local != null) return local;
+  } else {
+    final local = await tryLocal();
+    if (local != null) return local;
+    final remote = await tryRemote();
+    if (remote != null) return remote;
+  }
 
   throw const SocketException(
     'No se pudo encontrar el paquete de instalación de GameNow. Verifica la conexión o vuelve a empaquetar.',
@@ -172,13 +189,14 @@ Future<List<int>> _downloadAppPayload({
 Future<InstallResult> installGameNow({
   String? targetDir,
   required bool desktopShortcut,
+  bool preferRemote = false,
   void Function(double progress, String status)? onProgress,
 }) async {
   final destinationPath = targetDir != null && targetDir.trim().isNotEmpty
       ? targetDir.trim()
       : installDir();
 
-  onProgress?.call(0.03, 'Preparando carpetas de instalación...');
+  onProgress?.call(0.03, preferRemote ? 'Buscando la versión más reciente...' : 'Preparando carpetas de instalación...');
   await Future.delayed(const Duration(milliseconds: 100));
 
   // Cerrar GameNow si ya está ejecutándose para evitar bloqueos
@@ -196,6 +214,7 @@ Future<InstallResult> installGameNow({
 
   // 1. Descarga u obtención del paquete
   final bytes = await _downloadAppPayload(
+    preferRemote: preferRemote,
     onProgress: (prog, text) => onProgress?.call(prog, text),
   );
 

@@ -103,6 +103,9 @@ class _MaintenancePageState extends State<MaintenancePage> {
       case 'repair':
         await _runRepair();
         return;
+      case 'update':
+        await _runUpdate();
+        return;
     }
   }
 
@@ -237,6 +240,89 @@ class _MaintenancePageState extends State<MaintenancePage> {
       await _push({
         'mode': 'repair',
         'title': 'No se pudo reparar GameNow',
+        'reason': _failureReason(e),
+        'error': true,
+        'done': true,
+        'percent': 100,
+      });
+    } finally {
+      _busy = false;
+    }
+  }
+
+  Future<void> _runUpdate() async {
+    if (_busy) return;
+    final install = _existing;
+    if (install == null) {
+      await _push({
+        'mode': 'update',
+        'title': 'GameNow no está instalado',
+        'reason': 'No encontramos una instalación de GameNow en este equipo.',
+        'error': true,
+        'done': true,
+        'percent': 100,
+      });
+      return;
+    }
+    _busy = true;
+    final files = installedFileNames(install.appDir);
+    var fileCursor = 0;
+    try {
+      for (var step = 0; step < 4; step++) {
+        final name = files.isEmpty ? 'GameNow' : files[fileCursor % files.length];
+        fileCursor++;
+        await _push({
+          'mode': 'update',
+          'percent': (step / 4 * 12).round(),
+          'title': 'Buscando actualizaciones',
+          'status': 'Comprobando $name',
+        });
+        await Future<void>.delayed(const Duration(milliseconds: 180));
+      }
+
+      await installGameNow(
+        targetDir: install.appDir,
+        desktopShortcut: true,
+        preferRemote: true,
+        onProgress: (progress, status) {
+          final scaled = 0.12 + (progress * 0.88);
+          final title = scaled < 0.45
+              ? 'Descargando la nueva versión'
+              : scaled < 0.85
+                  ? 'Instalando archivos'
+                  : 'Finalizando';
+          final file = files.isEmpty ? 'GameNow' : files[fileCursor % files.length];
+          if (title == 'Descargando la nueva versión' || title == 'Instalando archivos') {
+            fileCursor++;
+          }
+          final detail = status.contains('\\') || status.contains('/')
+              ? status
+              : title == 'Descargando la nueva versión'
+                  ? 'Descargando $file'
+                  : title == 'Instalando archivos'
+                      ? 'Instalando $file'
+                      : status;
+          _push({
+            'mode': 'update',
+            'percent': (scaled * 100).round().clamp(0, 100),
+            'title': title,
+            'status': detail.startsWith('Extrayendo:')
+                ? detail.replaceFirst('Extrayendo:', 'Instalando')
+                : detail,
+          });
+        },
+      );
+      _existing = ExistingInstall(appDir: install.appDir, exePath: install.exePath);
+      await _push({
+        'mode': 'update',
+        'percent': 100,
+        'title': 'GameNow se actualizó correctamente',
+        'done': true,
+      });
+    } catch (e) {
+      await _push({
+        'mode': 'update',
+        'title': 'No se pudo actualizar GameNow',
         'reason': _failureReason(e),
         'error': true,
         'done': true,

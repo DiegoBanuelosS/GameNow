@@ -45,6 +45,13 @@ Get-ChildItem $stage -Filter *.pdb -ErrorAction SilentlyContinue | Remove-Item -
 Compress-Archive -Path (Join-Path $stage "*") -DestinationPath $payload
 Remove-Item -Recurse -Force $stage
 
+$destDir = Join-Path $root "WWW/public/downloads"
+New-Item -ItemType Directory -Force -Path $destDir | Out-Null
+$appZip = Join-Path $destDir "GameNow-Windows.zip"
+if (Test-Path $appZip) { Remove-Item -Force $appZip }
+Copy-Item -Force $payload $appZip
+Write-Output "Paquete de app generado en: $appZip"
+
 Push-Location $setup
 try {
   & $flutter build windows --release
@@ -55,8 +62,6 @@ try {
   Pop-Location
 }
 
-$destDir = Join-Path $root "WWW/public/downloads"
-New-Item -ItemType Directory -Force -Path $destDir | Out-Null
 $destExe = Join-Path $destDir "GameNow-Setup.exe"
 
 # 1. Comprimir los archivos del instalador con interfaz propia (SETUP)

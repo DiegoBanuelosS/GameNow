@@ -85,7 +85,7 @@ class GameNowSetupApp extends StatelessWidget {
 
 enum InstallerStep { welcome, location, maintenance, progress, error }
 
-enum _ProgressMode { install, repair, uninstall }
+enum _ProgressMode { install, repair, update, uninstall }
 
 class InstallerWindow extends StatefulWidget {
   const InstallerWindow({super.key});
@@ -160,6 +160,12 @@ class _InstallerWindowState extends State<InstallerWindow>
 
   Future<void> _startRepair() async {
     _progressMode = _ProgressMode.repair;
+    _pathController.text = _existingAppDir;
+    await _startInstallation();
+  }
+
+  Future<void> _startUpdate() async {
+    _progressMode = _ProgressMode.update;
     _pathController.text = _existingAppDir;
     await _startInstallation();
   }
@@ -250,7 +256,7 @@ class _InstallerWindowState extends State<InstallerWindow>
   Future<void> _startInstallation() async {
     if (_busy) return;
     _busy = true;
-    if (_progressMode != _ProgressMode.repair) {
+    if (_progressMode != _ProgressMode.repair && _progressMode != _ProgressMode.update) {
       _progressMode = _ProgressMode.install;
     }
     _goToStep(InstallerStep.progress);
@@ -258,13 +264,16 @@ class _InstallerWindowState extends State<InstallerWindow>
       _progress = 0.0;
       _statusText = _progressMode == _ProgressMode.repair
           ? 'Reparando la instalación...'
-          : 'Preparando espacio y archivos...';
+          : _progressMode == _ProgressMode.update
+              ? 'Buscando actualizaciones...'
+              : 'Preparando espacio y archivos...';
     });
 
     try {
       final result = await installGameNow(
         targetDir: _pathController.text.trim(),
         desktopShortcut: _desktopShortcut,
+        preferRemote: _progressMode == _ProgressMode.update,
         onProgress: (prog, text) {
           if (!mounted) return;
           setState(() {
@@ -520,6 +529,7 @@ class _InstallerWindowState extends State<InstallerWindow>
         return _StepMaintenance(
           key: const ValueKey('step-maintenance'),
           onUninstall: _startUninstall,
+          onUpdate: _startUpdate,
           onRepair: _startRepair,
           onClose: _closeWindow,
         );
@@ -532,10 +542,14 @@ class _InstallerWindowState extends State<InstallerWindow>
               ? 'Desinstalando GameNow...'
               : _progressMode == _ProgressMode.repair
                   ? 'Reparando GameNow...'
-                  : 'Instalando GameNow...',
+                  : _progressMode == _ProgressMode.update
+                      ? 'Actualizando GameNow...'
+                      : 'Instalando GameNow...',
           doneTitle: _progressMode == _ProgressMode.uninstall
               ? 'GameNow se desinstaló'
-              : 'GameNow ya está instalado',
+              : _progressMode == _ProgressMode.update
+                  ? 'GameNow se actualizó'
+                  : 'GameNow ya está instalado',
           finishLabel: _progressMode == _ProgressMode.uninstall ? 'Cerrar' : 'Abrir GameNow',
           onFinish: () async {
             if (_progressMode != _ProgressMode.uninstall && _installedExePath.isNotEmpty) {
@@ -610,11 +624,13 @@ class _StepMaintenance extends StatelessWidget {
   const _StepMaintenance({
     super.key,
     required this.onUninstall,
+    required this.onUpdate,
     required this.onRepair,
     required this.onClose,
   });
 
   final VoidCallback onUninstall;
+  final VoidCallback onUpdate;
   final VoidCallback onRepair;
   final VoidCallback onClose;
 
@@ -647,14 +663,19 @@ class _StepMaintenance extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 36),
+        _PrimaryActionButton(
+          label: 'Actualizar',
+          onPressed: onUpdate,
+        ),
+        const SizedBox(height: 12),
+        _SecondaryActionButton(
+          label: 'Reparar',
+          onPressed: onRepair,
+        ),
+        const SizedBox(height: 12),
         _SecondaryActionButton(
           label: 'Desinstalar',
           onPressed: onUninstall,
-        ),
-        const SizedBox(height: 12),
-        _PrimaryActionButton(
-          label: 'Reparar',
-          onPressed: onRepair,
         ),
         const SizedBox(height: 12),
         _SecondaryActionButton(

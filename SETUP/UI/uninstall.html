@@ -34,13 +34,17 @@
         <section class="installer-step active animate-in" id="step-menu">
           <h1 class="installer-title">¿En qué te podemos ayudar?</h1>
           <div class="step-actions uninstall-options">
+            <button type="button" class="btn-primary" id="btn-update">
+              <i data-lucide="download" aria-hidden="true"></i>
+              Actualizar
+            </button>
+            <button type="button" class="btn-secondary" id="btn-repair">
+              <i data-lucide="wrench" aria-hidden="true"></i>
+              Reparar
+            </button>
             <button type="button" class="btn-danger" id="btn-uninstall">
               <i data-lucide="trash-2" aria-hidden="true"></i>
               Desinstalar
-            </button>
-            <button type="button" class="btn-primary" id="btn-repair">
-              <i data-lucide="wrench" aria-hidden="true"></i>
-              Reparar
             </button>
             <button type="button" class="btn-secondary" id="btn-close">
               <i data-lucide="x" aria-hidden="true"></i>
@@ -127,6 +131,31 @@
             "data\\flutter_assets\\AssetManifest.bin",
           ],
         },
+        update: {
+          image: "assets/672904.jpg",
+          status: "Buscando actualizaciones",
+          done: "GameNow se actualizó correctamente",
+          phases: [
+            "Buscando actualizaciones",
+            "Descargando la nueva versión",
+            "Instalando archivos",
+            "Finalizando",
+          ],
+          reviewFiles: [
+            "gamenow.exe",
+            "flutter_windows.dll",
+            "data\\icudtl.dat",
+            "data\\app.so",
+            "data\\flutter_assets\\AssetManifest.bin",
+          ],
+          downloadFiles: [
+            "gamenow.exe",
+            "flutter_windows.dll",
+            "data\\icudtl.dat",
+            "data\\flutter_assets\\kernel_blob.bin",
+            "data\\flutter_assets\\AssetManifest.bin",
+          ],
+        },
       };
 
       function swapText(el, text) {
@@ -151,7 +180,7 @@
       }
 
       function beginHostFlow(nextMode) {
-        mode = nextMode === "repair" ? "repair" : "uninstall";
+        mode = nextMode === "repair" ? "repair" : nextMode === "update" ? "update" : "uninstall";
         const flow = flows[mode];
         heroImage.src = flow.image;
         progressBar.style.width = "0%";
@@ -276,12 +305,22 @@
               swapText(progressTitle, flow.phases[index]);
             }
 
-            const downloading = index === flow.phases.length - 1;
+            const downloading =
+              mode === "update"
+                ? index >= 1
+                : index === flow.phases.length - 1;
             const files = downloading ? flow.downloadFiles : flow.reviewFiles;
             const nextSlot = Math.floor(percent / 8) % files.length;
             if (nextSlot !== fileSlot) {
               fileSlot = nextSlot;
-              const label = downloading ? "Descargando" : "Revisando";
+              const label =
+                mode === "update"
+                  ? downloading
+                    ? "Descargando"
+                    : "Comprobando"
+                  : downloading
+                    ? "Descargando"
+                    : "Revisando";
               swapText(progressStatus, label + " " + files[nextSlot]);
             }
           }
@@ -302,6 +341,12 @@
       document.getElementById("btn-uninstall").addEventListener("click", () => {
         mode = "uninstall";
         if (notify("uninstall")) return;
+        startFlow();
+      });
+
+      document.getElementById("btn-update").addEventListener("click", () => {
+        mode = "update";
+        if (notify("update")) return;
         startFlow();
       });
 
