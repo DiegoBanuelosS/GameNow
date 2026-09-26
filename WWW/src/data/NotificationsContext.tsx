@@ -43,6 +43,11 @@ export type MessageToast = {
 
 export type AppToast = FriendRequestToast | GameToast | MessageToast;
 
+type ToastInput =
+  | (Omit<FriendRequestToast, "id"> & { id?: string })
+  | (Omit<GameToast, "id"> & { id?: string })
+  | (Omit<MessageToast, "id"> & { id?: string });
+
 type NotificationsContextType = {
   items: AppToast[];
   dismiss: (id: string) => void;
@@ -84,7 +89,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const push = useCallback(
-    (toast: Omit<AppToast, "id"> & { id?: string }) => {
+    (toast: ToastInput) => {
       const id = toast.id || uid(toast.kind);
       let added = true;
       setItems((current) => {
@@ -92,8 +97,8 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
           const exists = current.some(
             (item) =>
               item.kind === "friend-request" &&
-              item.steamId === (toast as FriendRequestToast).steamId &&
-              item.fromUserId === (toast as FriendRequestToast).fromUserId,
+              item.steamId === toast.steamId &&
+              item.fromUserId === toast.fromUserId,
           );
           if (exists) {
             added = false;
@@ -102,7 +107,10 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
         }
         if (toast.kind === "game-downloaded" || toast.kind === "game-ready") {
           const exists = current.some(
-            (item) => item.kind === toast.kind && item.slug === (toast as GameToast).slug,
+            (item) =>
+              (item.kind === "game-downloaded" || item.kind === "game-ready") &&
+              item.kind === toast.kind &&
+              item.slug === toast.slug,
           );
           if (exists) {
             added = false;
