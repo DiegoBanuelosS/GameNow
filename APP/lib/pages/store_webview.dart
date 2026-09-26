@@ -5,12 +5,12 @@ import 'dart:io';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:local_notifier/local_notifier.dart';
 import 'package:webview_windows/webview_windows.dart';
 
 import '../store_url.dart';
 import '../theme.dart';
 import '../widgets/app_title_bar.dart';
+import '../widgets/custom_toasts.dart';
 
 class StoreWebViewPage extends StatefulWidget {
   const StoreWebViewPage({super.key});
@@ -21,6 +21,7 @@ class StoreWebViewPage extends StatefulWidget {
 
 class _StoreWebViewPageState extends State<StoreWebViewPage> {
   final WebviewController _controller = WebviewController();
+  final CustomToastController _toasts = CustomToastController();
   StreamSubscription<dynamic>? _webMessageSub;
   bool _ready = false;
   String? _error;
@@ -28,12 +29,19 @@ class _StoreWebViewPageState extends State<StoreWebViewPage> {
   @override
   void initState() {
     super.initState();
+    _toasts.addListener(_onToastsChanged);
     unawaited(_openStore());
+  }
+
+  void _onToastsChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
   void dispose() {
     unawaited(_webMessageSub?.cancel() ?? Future<void>.value());
+    _toasts.removeListener(_onToastsChanged);
+    _toasts.dispose();
     try {
       if (_controller.value.isInitialized) {
         _controller.dispose();
@@ -67,23 +75,6 @@ class _StoreWebViewPageState extends State<StoreWebViewPage> {
     return null;
   }
 
-  Future<void> _showWindowsNotification({
-    required String title,
-    required String body,
-  }) async {
-    final trimmedTitle = title.trim().isEmpty ? 'GameNow' : title.trim();
-    final trimmedBody = body.trim();
-    if (trimmedBody.isEmpty) return;
-    try {
-      final notification = LocalNotification(
-        identifier: 'gamenow-${DateTime.now().millisecondsSinceEpoch}',
-        title: trimmedTitle,
-        body: trimmedBody,
-      );
-      await notification.show();
-    } catch (_) {}
-  }
-
   Future<void> _onWebMessage(dynamic message) async {
     Map<String, dynamic>? data;
     if (message is Map) {
@@ -97,12 +88,27 @@ class _StoreWebViewPageState extends State<StoreWebViewPage> {
       } catch (_) {}
     }
     if (data == null) return;
-    if (data['action'] == 'notify') {
-      await _showWindowsNotification(
-        title: '${data['title'] ?? 'GameNow'}',
-        body: '${data['body'] ?? ''}',
-      );
+    if (data['action'] != 'notify') return;
+
+    final raw = data['toast'];
+    Map<String, dynamic>? toastMap;
+    if (raw is Map) {
+      toastMap = raw.map((key, value) => MapEntry('$key', value));
     }
+    if (toastMap == null) return;
+    _toasts.push(AppToastData.fromMap(toastMap));
+  }
+
+  Future<void> _respondFriend(String id, String action) async {
+    _toasts.dismiss(id);
+    if (!_controller.value.isInitialized) return;
+    final safeId = id.replaceAll(r'\', r'\\').replaceAll("'", r"\'");
+    final safeAction = action == 'accept' ? 'accept' : 'reject';
+    try {
+      await _controller.executeScript(
+        "window.__gamenowRespondFriend && window.__gamenowRespondFriend('$safeId', '$safeAction');",
+      );
+    } catch (_) {}
   }
 
   Future<void> _openStore() async {
@@ -211,10 +217,10 @@ class _StoreWebViewPageState extends State<StoreWebViewPage> {
     WebviewPermissionKind kind,
     bool isUserInitiated,
   ) {
-    if (kind == WebviewPermissionKind.notifications ||
-        kind == WebviewPermissionKind.clipboardRead) {
+    if (kind == WebviewPermissionKind.clipboardRead) {
       return WebviewPermissionDecision.allow;
     }
+    // Nunca usar notificaciones nativas de Windows.
     return WebviewPermissionDecision.deny;
   }
 
@@ -239,6 +245,11 @@ class _StoreWebViewPageState extends State<StoreWebViewPage> {
                     ),
                   ),
                 if (!_ready) _Splash(error: _error, onRetry: _openStore),
+                CustomToastOverlay(
+                  items: List<AppToastData>.from(_toasts.items),
+                  onDismiss: _toasts.dismiss,
+                  onFriendAction: (id, action) => unawaited(_respondFriend(id, action)),
+                ),
               ],
             ),
           ),

@@ -11,7 +11,7 @@ import {
 import { apiUrl } from "./api";
 import { useAuth } from "./AuthContext";
 import { useChat } from "./ChatContext";
-import { notifyDesktop } from "./desktopNotify";
+import { notifyDesktopHost } from "./desktopNotify";
 import { useDownloads } from "./DownloadsContext";
 
 export type FriendRequestToast = {
@@ -121,23 +121,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
       });
       if (!added) return id;
 
-      if (toast.kind === "friend-request") {
-        notifyDesktop("friend-request", {
-          name: toast.name,
-          avatarUrl: toast.avatarUrl || "",
-        });
-      } else if (toast.kind === "game-downloaded" || toast.kind === "game-ready") {
-        notifyDesktop(toast.kind, {
-          name: toast.name,
-          cover: toast.cover || "",
-        });
-      } else if (toast.kind === "message") {
-        notifyDesktop("message", {
-          name: toast.name,
-          text: toast.text,
-          avatarUrl: toast.avatarUrl || "",
-        });
-      }
+      notifyDesktopHost({ ...toast, id });
 
       const existing = timers.current.get(id);
       if (existing) window.clearTimeout(existing);
@@ -170,6 +154,16 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
     },
     [dismiss, items, token],
   );
+
+  useEffect(() => {
+    const respond = (id: string, action: "accept" | "reject") => {
+      void respondFriendRequest(id, action);
+    };
+    (window as unknown as { __gamenowRespondFriend?: typeof respond }).__gamenowRespondFriend = respond;
+    return () => {
+      delete (window as unknown as { __gamenowRespondFriend?: typeof respond }).__gamenowRespondFriend;
+    };
+  }, [respondFriendRequest]);
 
   useEffect(() => {
     return () => {

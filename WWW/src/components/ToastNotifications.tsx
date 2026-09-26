@@ -1,4 +1,5 @@
 import { Check, X } from "lucide-react";
+import { hasDesktopHost } from "../data/desktopNotify";
 import { useNotifications, type AppToast } from "../data/NotificationsContext";
 import "./ToastNotifications.css";
 
@@ -56,7 +57,11 @@ function GameToastCard({
   return (
     <article className="gn-toast gn-toast--game" role="status">
       <div className="gn-toast-cover-wrap">
-        {item.cover ? <img className="gn-toast-cover" src={item.cover} alt="" /> : <span className="gn-toast-cover gn-toast-cover--empty" />}
+        {item.cover ? (
+          <img className="gn-toast-cover" src={item.cover} alt="" />
+        ) : (
+          <span className="gn-toast-cover gn-toast-cover--empty" />
+        )}
         <span className="gn-toast-cover-fade" aria-hidden />
       </div>
       <div className="gn-toast-game-copy">
@@ -83,6 +88,8 @@ function MessageToastCard({ item }: { item: Extract<AppToast, { kind: "message" 
 
 export function ToastNotifications() {
   const { items, respondFriendRequest } = useNotifications();
+  // En la app de escritorio el host Flutter muestra los mismos toasts personalizados.
+  if (hasDesktopHost()) return null;
   if (!items.length) return null;
 
   return (

@@ -6,7 +6,7 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
-  width: min(380px, calc(100vw - 24px));
+  width: min(440px, calc(100vw - 24px));
   pointer-events: none;
 }
 
@@ -161,14 +161,14 @@
 
 .gn-toast--game {
   display: grid;
-  grid-template-columns: 78px minmax(0, 1fr);
+  grid-template-columns: 156px minmax(0, 1fr);
   min-height: 78px;
   padding: 0;
 }
 
 .gn-toast-cover-wrap {
   position: relative;
-  width: 78px;
+  width: 156px;
   min-height: 78px;
   overflow: hidden;
 }

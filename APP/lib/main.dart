@@ -1,19 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:local_notifier/local_notifier.dart';
 
 import 'pages/store_webview.dart';
 import 'theme.dart';
 
-Future<void> main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  try {
-    await localNotifier.setup(
-      appName: 'GameNow',
-      shortcutPolicy: ShortcutPolicy.requireCreate,
-    );
-  } catch (_) {
-    /* sin atajo de notificaciones sigue la app */
-  }
   runApp(const GameNowApp());
 }
 
