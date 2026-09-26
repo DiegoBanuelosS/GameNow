@@ -105,6 +105,7 @@ export function PayPage() {
   const [address, setAddress] = useState("");
   const [city, setCity] = useState("");
   const [postal, setPostal] = useState("");
+  const [addressId, setAddressId] = useState("");
   const [error, setError] = useState("");
   const [showCvv, setShowCvv] = useState(false);
   const [picking, setPicking] = useState(false);
@@ -144,7 +145,10 @@ export function PayPage() {
     clear();
   };
 
-  const fillDemoAddress = (demo: DemoAddress) => {
+  const selectAddress = (id: string) => {
+    setAddressId(id);
+    const demo = DEMO_ADDRESSES.find((item) => item.id === id);
+    if (!demo) return;
     setAddress(demo.address);
     setCity(demo.city);
     setPostal(demo.postal);
@@ -319,20 +323,6 @@ export function PayPage() {
                     ) : (
                       <p className="pay-note">Aún no tienes una tarjeta guardada. Llena el formulario para guardar una.</p>
                     )}
-                    <p className="pay-saved-title">Direcciones X</p>
-                    <div className="pay-saved-row">
-                      {DEMO_ADDRESSES.map((demo) => (
-                        <button
-                          key={demo.id}
-                          type="button"
-                          className="pay-saved-chip"
-                          disabled={paying}
-                          onClick={() => fillDemoAddress(demo)}
-                        >
-                          {demo.label}
-                        </button>
-                      ))}
-                    </div>
                   </div>
 
                   <form className="pay-form" onSubmit={pay}>
@@ -383,12 +373,42 @@ export function PayPage() {
                       </label>
                     </div>
                     <label>
+                      Seleccionar dirección
+                      <select
+                        className="pay-address-select"
+                        value={addressId}
+                        disabled={paying}
+                        onChange={(event) => selectAddress(event.target.value)}
+                      >
+                        <option value="">Elige una dirección</option>
+                        {DEMO_ADDRESSES.map((demo) => (
+                          <option key={demo.id} value={demo.id}>
+                            {demo.label} — {demo.address}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label>
                       Dirección
-                      <input autoComplete="street-address" value={address} onChange={(event) => setAddress(event.target.value)} />
+                      <input
+                        autoComplete="street-address"
+                        value={address}
+                        onChange={(event) => {
+                          setAddressId("");
+                          setAddress(event.target.value);
+                        }}
+                      />
                     </label>
                     <label>
                       Ciudad
-                      <input autoComplete="address-level2" value={city} onChange={(event) => setCity(event.target.value)} />
+                      <input
+                        autoComplete="address-level2"
+                        value={city}
+                        onChange={(event) => {
+                          setAddressId("");
+                          setCity(event.target.value);
+                        }}
+                      />
                     </label>
                     <label>
                       Código postal
@@ -396,7 +416,10 @@ export function PayPage() {
                         inputMode="numeric"
                         autoComplete="postal-code"
                         value={postal}
-                        onChange={(event) => setPostal(digits(event.target.value, 5))}
+                        onChange={(event) => {
+                          setAddressId("");
+                          setPostal(digits(event.target.value, 5));
+                        }}
                       />
                     </label>
                     <label className="pay-save-toggle">
