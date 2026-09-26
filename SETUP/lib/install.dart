@@ -128,7 +128,7 @@ Future<List<int>> _downloadAppPayload({
     ];
 
     final client = HttpClient();
-    client.connectionTimeout = const Duration(seconds: preferRemote ? 20 : 4);
+    client.connectionTimeout = Duration(seconds: preferRemote ? 20 : 4);
 
     for (final url in candidateUrls) {
       try {
