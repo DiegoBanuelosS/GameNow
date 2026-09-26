@@ -4,6 +4,7 @@ const identitySchema = new Schema(
   {
     userId: { type: Schema.Types.ObjectId, ref: "User", required: true, unique: true, index: true },
     publicKeyJwk: { type: Schema.Types.Mixed, required: true },
+    privateKeyJwk: { type: Schema.Types.Mixed, default: null },
   },
   { timestamps: true },
 );
@@ -36,9 +37,13 @@ const messageSchema = new Schema(
   {
     roomId: { type: Schema.Types.ObjectId, ref: "ChatRoom", required: true, index: true },
     senderId: { type: Schema.Types.ObjectId, ref: "User", required: true },
-    ciphertext: { type: String, required: true },
-    iv: { type: String, required: true },
+    /** Texto legible con la sesión (cualquier dispositivo autenticado) */
+    text: { type: String, default: "" },
+    imageUrl: { type: String, default: "" },
+    ciphertext: { type: String, default: "" },
+    iv: { type: String, default: "" },
     at: { type: Number, required: true, index: true },
+    editedAt: { type: Number, default: 0 },
   },
   { timestamps: false },
 );

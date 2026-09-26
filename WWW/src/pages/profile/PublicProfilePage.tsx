@@ -58,16 +58,26 @@ export function PublicProfilePage() {
 
   useEffect(() => {
     if (status === "loading") return;
-    if (status !== "authenticated" || !token || !/^\d{17}$/.test(steamId)) {
+    if (status !== "authenticated" || !token || !steamId) {
       setLoading(false);
       setProfile(null);
       setError(status === "authenticated" ? "Perfil no válido." : "");
       return;
     }
+    const valid =
+      /^\d{17}$/.test(steamId) ||
+      steamId.startsWith("user:") ||
+      /^[a-f\d]{24}$/i.test(steamId);
+    if (!valid) {
+      setLoading(false);
+      setProfile(null);
+      setError("Perfil no válido.");
+      return;
+    }
     let active = true;
     setLoading(true);
     setError("");
-    fetch(apiUrl(`/api/steam/profile/${steamId}`), {
+    fetch(apiUrl(`/api/steam/profile/${encodeURIComponent(steamId)}`), {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(async (response) => {

@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent } from "react";
-import { Check, Lock, MessageCircle, MessageSquarePlus, Users } from "lucide-react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type CSSProperties, type FormEvent, type MouseEvent } from "react";
+import { Check, ImagePlus, Lock, MessageCircle, MessageSquarePlus, Pencil, Trash2, Users, X } from "lucide-react";
 import { apiUrl } from "../../data/api";
 import { useAuth } from "../../data/AuthContext";
 import { useChat, type ChatMessage, type ChatRoom } from "../../data/ChatContext";
@@ -82,11 +82,13 @@ function RoomRow({
   leaving,
   entering,
   index,
+  onContextMenu,
 }: {
   row: ListRow;
   leaving?: boolean;
   entering?: boolean;
   index: number;
+  onContextMenu?: (event: MouseEvent<HTMLButtonElement>) => void;
 }) {
   return (
     <li
@@ -98,6 +100,7 @@ function RoomRow({
         className={`chat-room-btn${row.active ? " is-active" : ""}`}
         disabled={row.disabled}
         onClick={row.onClick}
+        onContextMenu={onContextMenu}
       >
         {row.avatarUrl ? <img className="chat-room-avatar" src={row.avatarUrl} alt="" /> : <span className="chat-room-avatar" />}
         <span className="chat-room-copy">
@@ -125,7 +128,7 @@ export function ChatModal({
   focusFriendId?: string | null;
 }) {
   const { user, token } = useAuth();
-  const { ready, rooms, refreshRooms, openDm, createGroup, loadMessages, sendMessage } = useChat();
+  const { ready, rooms, refreshRooms, openDm, createGroup, loadMessages, sendMessage, uploadImage, editMessage, deleteMessage, deleteRoom } = useChat();
   const openDmRef = useRef(openDm);
   openDmRef.current = openDm;
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -140,6 +143,16 @@ export function ChatModal({
   const [leavingPick, setLeavingPick] = useState(false);
   const [peerBgOverride, setPeerBgOverride] = useState<{ url: string; video: string }>({ url: "", video: "" });
   const [myBgOverride, setMyBgOverride] = useState<{ url: string; video: string }>({ url: "", video: "" });
+  const [menu, setMenu] = useState<
+    | { kind: "message"; messageId: string; mine: boolean; x: number; y: number }
+    | { kind: "room"; roomId: string; x: number; y: number }
+    | null
+  >(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState("");
+  const [pendingImage, setPendingImage] = useState<string | null>(null);
+  const [animIds, setAnimIds] = useState<Record<string, "send" | "receive">>({});
+  const fileRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const leaveTimer = useRef<number | null>(null);
   const meId = user?._id || "";
@@ -150,6 +163,17 @@ export function ChatModal({
   const mySteamId = user?.steamId || "";
 
   const chatFriends = useMemo(() => friends, [friends]);
+
+  useEffect(() => {
+    if (!menu) return;
+    const close = () => setMenu(null);
+    window.addEventListener("click", close);
+    window.addEventListener("scroll", close, true);
+    return () => {
+      window.removeEventListener("click", close);
+      window.removeEventListener("scroll", close, true);
+    };
+  }, [menu]);
 
   useEffect(() => {
     if (!open) return;
@@ -200,7 +224,23 @@ export function ChatModal({
         setMessages((current) => {
           const ids = new Set(current.map((message) => message.id));
           const next = batch.filter((message) => !ids.has(message.id));
-          return next.length ? [...current, ...next] : current;
+          if (!next.length) return current;
+          const incoming = next.filter((message) => message.senderId !== meId);
+          if (incoming.length) {
+            setAnimIds((prev) => {
+              const copy = { ...prev };
+              for (const message of incoming) copy[message.id] = "receive";
+              return copy;
+            });
+            window.setTimeout(() => {
+              setAnimIds((prev) => {
+                const copy = { ...prev };
+                for (const message of incoming) delete copy[message.id];
+                return copy;
+              });
+            }, 520);
+          }
+          return [...current, ...next];
         });
       } catch {
         /* poll silencioso */
@@ -208,13 +248,15 @@ export function ChatModal({
     };
 
     setMessages([]);
+    setAnimIds({});
+    setPendingImage(null);
     void pull();
     const timer = window.setInterval(() => void pull(), 2500);
     return () => {
       alive = false;
       window.clearInterval(timer);
     };
-  }, [open, activeId, loadMessages]);
+  }, [open, activeId, loadMessages, meId]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -292,18 +334,57 @@ export function ChatModal({
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     const text = draft.trim();
-    if (!text || !activeId || busy) return;
+    if ((!text && !pendingImage) || !activeId || busy) return;
     setDraft("");
+    const imagePreview = pendingImage;
+    setPendingImage(null);
     setBusy(true);
     try {
-      const message = await sendMessage(activeId, text);
-      if (message) setMessages((current) => [...current, message]);
+      let imageUrl = "";
+      if (imagePreview) {
+        imageUrl = await uploadImage(imagePreview);
+      }
+      const message = await sendMessage(activeId, text, imageUrl);
+      if (message) {
+        setMessages((current) => [...current, message]);
+        setAnimIds((prev) => ({ ...prev, [message.id]: "send" }));
+        window.setTimeout(() => {
+          setAnimIds((prev) => {
+            const copy = { ...prev };
+            delete copy[message.id];
+            return copy;
+          });
+        }, 520);
+      }
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "No se envió el mensaje.");
       setDraft(text);
+      if (imagePreview) setPendingImage(imagePreview);
     } finally {
       setBusy(false);
     }
+  };
+
+  const onPickImage = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file || !file.type.startsWith("image/")) return;
+    if (file.size > 2_500_000) {
+      setNotice("La imagen debe pesar menos de 2.5 MB.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = typeof reader.result === "string" ? reader.result : "";
+      if (!result.startsWith("data:image/")) {
+        setNotice("No se pudo leer la imagen.");
+        return;
+      }
+      setPendingImage(result);
+      setNotice("");
+    };
+    reader.onerror = () => setNotice("No se pudo leer la imagen.");
+    reader.readAsDataURL(file);
   };
 
   const makeGroup = async (event: FormEvent) => {
@@ -359,6 +440,69 @@ export function ChatModal({
       if (room) setActiveId(room.id);
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "No se pudo abrir el chat.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const openMessageMenu = (event: MouseEvent, message: ChatMessage) => {
+    event.preventDefault();
+    setMenu({
+      kind: "message",
+      messageId: message.id,
+      mine: message.senderId === meId,
+      x: event.clientX,
+      y: event.clientY,
+    });
+  };
+
+  const openRoomMenu = (event: MouseEvent, roomId: string) => {
+    event.preventDefault();
+    setMenu({ kind: "room", roomId, x: event.clientX, y: event.clientY });
+  };
+
+  const saveEdit = async () => {
+    if (!activeId || !editingId || !editDraft.trim()) return;
+    setBusy(true);
+    try {
+      const updated = await editMessage(activeId, editingId, editDraft.trim());
+      if (updated) {
+        setMessages((current) => current.map((item) => (item.id === updated.id ? { ...item, ...updated } : item)));
+      }
+      setEditingId(null);
+      setEditDraft("");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "No se pudo editar.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const removeMessage = async (messageId: string) => {
+    if (!activeId) return;
+    setBusy(true);
+    setMenu(null);
+    try {
+      await deleteMessage(activeId, messageId);
+      setMessages((current) => current.filter((item) => item.id !== messageId));
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "No se pudo eliminar.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const removeRoom = async (roomId: string) => {
+    setBusy(true);
+    setMenu(null);
+    try {
+      await deleteRoom(roomId);
+      if (activeId === roomId) {
+        setActiveId(null);
+        setMessages([]);
+      }
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "No se pudo eliminar el chat.");
     } finally {
       setBusy(false);
     }
@@ -432,7 +576,7 @@ export function ChatModal({
               <h2 id="chat-modal-title">{myName}</h2>
               <p className="chat-modal-lock">
                 <Lock size={14} aria-hidden />
-                Cifrado de extremo a extremo
+                Mensajes en tu cuenta
               </p>
               <button
                 type="button"
@@ -458,6 +602,11 @@ export function ChatModal({
                       index={index}
                       leaving={leavingPick}
                       entering={pickingFriend && !leavingPick}
+                      onContextMenu={
+                        !showPick
+                          ? (event) => openRoomMenu(event, row.key)
+                          : undefined
+                      }
                     />
                   ))}
                 </ul>
@@ -576,7 +725,6 @@ export function ChatModal({
                 <>
                   <header className="chat-thread-head">
                     <h3>{roomLabel(active, meId)}</h3>
-                    <p>Solo ustedes pueden leer estos mensajes.</p>
                   </header>
                   <div className="chat-thread-scroll">
                     {messages.map((message) => {
@@ -584,15 +732,63 @@ export function ChatModal({
                       const member = active.members.find((item) => item.id === message.senderId);
                       const sender = member?.name || (mine ? "Tú" : "Alguien");
                       const avatar = mine ? myAvatar : member?.avatarUrl || "";
+                      const editing = editingId === message.id;
+                      const motion = animIds[message.id];
                       return (
-                        <article key={message.id} className={mine ? "chat-bubble is-mine" : "chat-bubble"}>
+                        <article
+                          key={message.id}
+                          className={`chat-bubble${mine ? " is-mine" : ""}${
+                            motion === "send" ? " is-send" : motion === "receive" ? " is-receive" : ""
+                          }`}
+                          onContextMenu={(event) => openMessageMenu(event, message)}
+                        >
                           {!mine ? (
                             <div className="chat-bubble-meta">
                               {avatar ? <img src={avatar} alt="" /> : <span className="chat-bubble-avatar" />}
                               <span className="chat-bubble-name">{sender}</span>
                             </div>
                           ) : null}
-                          <p>{message.text}</p>
+                          {editing ? (
+                            <div className="chat-bubble-edit">
+                              <input
+                                value={editDraft}
+                                maxLength={2000}
+                                onChange={(event) => setEditDraft(event.target.value)}
+                                autoFocus
+                              />
+                              <button type="button" onClick={() => void saveEdit()} disabled={busy || !editDraft.trim()}>
+                                Guardar
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditingId(null);
+                                  setEditDraft("");
+                                }}
+                              >
+                                Cancelar
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="chat-bubble-body">
+                              {message.imageUrl ? (
+                                <a
+                                  className="chat-bubble-image"
+                                  href={message.imageUrl}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                >
+                                  <img src={message.imageUrl} alt="Imagen enviada" />
+                                </a>
+                              ) : null}
+                              {message.text ? (
+                                <p>
+                                  {message.text}
+                                  {message.editedAt ? <small className="chat-edited"> (editado)</small> : null}
+                                </p>
+                              ) : null}
+                            </div>
+                          )}
                           <time dateTime={new Date(message.at).toISOString()}>
                             {new Date(message.at).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" })}
                           </time>
@@ -601,7 +797,31 @@ export function ChatModal({
                     })}
                     <div ref={bottomRef} />
                   </div>
+                  {pendingImage ? (
+                    <div className="chat-image-preview">
+                      <img src={pendingImage} alt="Vista previa" />
+                      <button type="button" aria-label="Quitar imagen" onClick={() => setPendingImage(null)}>
+                        <X size={14} aria-hidden />
+                      </button>
+                    </div>
+                  ) : null}
                   <form className="chat-composer" onSubmit={(event) => void submit(event)}>
+                    <input
+                      ref={fileRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/gif"
+                      className="visually-hidden"
+                      onChange={onPickImage}
+                    />
+                    <button
+                      type="button"
+                      className="chat-attach"
+                      aria-label="Adjuntar imagen"
+                      disabled={busy}
+                      onClick={() => fileRef.current?.click()}
+                    >
+                      <ImagePlus size={18} aria-hidden />
+                    </button>
                     <label className="visually-hidden" htmlFor="chat-draft">
                       Mensaje
                     </label>
@@ -609,11 +829,11 @@ export function ChatModal({
                       id="chat-draft"
                       value={draft}
                       maxLength={2000}
-                      placeholder="Escribe un mensaje cifrado…"
+                      placeholder={pendingImage ? "Añade un texto (opcional)…" : "Escribe un mensaje…"}
                       onChange={(event) => setDraft(event.target.value)}
                       disabled={busy}
                     />
-                    <button type="submit" disabled={busy || !draft.trim()}>
+                    <button type="submit" disabled={busy || (!draft.trim() && !pendingImage)}>
                       Enviar
                     </button>
                   </form>
@@ -623,6 +843,59 @@ export function ChatModal({
           </div>
         </div>
       </div>
+
+      {menu ? (
+        <div
+          className="chat-context-menu"
+          style={{ left: menu.x, top: menu.y }}
+          role="menu"
+          onClick={(event) => event.stopPropagation()}
+        >
+          {menu.kind === "message" && menu.mine ? (
+            <>
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  const target = messages.find((item) => item.id === menu.messageId);
+                  setEditingId(menu.messageId);
+                  setEditDraft(target?.text || "");
+                  setMenu(null);
+                }}
+              >
+                <Pencil size={15} aria-hidden="true" />
+                Editar mensaje
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                className="is-danger"
+                onClick={() => void removeMessage(menu.messageId)}
+              >
+                <Trash2 size={15} aria-hidden="true" />
+                Eliminar mensaje
+              </button>
+            </>
+          ) : null}
+          {menu.kind === "message" && !menu.mine ? (
+            <button type="button" role="menuitem" disabled>
+              <Lock size={15} aria-hidden="true" />
+              Solo el autor puede editar o borrar
+            </button>
+          ) : null}
+          {menu.kind === "room" ? (
+            <button
+              type="button"
+              role="menuitem"
+              className="is-danger"
+              onClick={() => void removeRoom(menu.roomId)}
+            >
+              <Trash2 size={15} aria-hidden="true" />
+              Eliminar chat
+            </button>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }

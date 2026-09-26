@@ -56,26 +56,44 @@ export type WrappedRoomKey = {
   ciphertext: string;
 };
 
-export async function ensureIdentity(userId: string) {
+export type ChatIdentityKeys = {
+  publicKey: CryptoKey;
+  privateKey: CryptoKey;
+  publicKeyJwk: JsonWebKey;
+  privateKeyJwk: JsonWebKey;
+};
+
+async function importIdentity(publicKeyJwk: JsonWebKey, privateKeyJwk: JsonWebKey): Promise<ChatIdentityKeys> {
+  const publicKey = await crypto.subtle.importKey("jwk", publicKeyJwk, { name: "ECDH", namedCurve: "P-256" }, true, []);
+  const privateKey = await crypto.subtle.importKey(
+    "jwk",
+    privateKeyJwk,
+    { name: "ECDH", namedCurve: "P-256" },
+    false,
+    ["deriveBits"],
+  );
+  return { publicKey, privateKey, publicKeyJwk, privateKeyJwk };
+}
+
+export async function ensureIdentity(
+  userId: string,
+  remote?: { publicKeyJwk: JsonWebKey; privateKeyJwk: JsonWebKey } | null,
+): Promise<ChatIdentityKeys> {
   const storageKey = `identity:${userId}`;
   const saved = await idbGet<{ publicKeyJwk: JsonWebKey; privateKeyJwk: JsonWebKey }>(storageKey);
   if (saved?.publicKeyJwk && saved?.privateKeyJwk) {
-    const publicKey = await crypto.subtle.importKey("jwk", saved.publicKeyJwk, { name: "ECDH", namedCurve: "P-256" }, true, []);
-    const privateKey = await crypto.subtle.importKey(
-      "jwk",
-      saved.privateKeyJwk,
-      { name: "ECDH", namedCurve: "P-256" },
-      false,
-      ["deriveBits"],
-    );
-    return { publicKey, privateKey, publicKeyJwk: saved.publicKeyJwk };
+    return importIdentity(saved.publicKeyJwk, saved.privateKeyJwk);
+  }
+  if (remote?.publicKeyJwk && remote?.privateKeyJwk) {
+    await idbSet(storageKey, { publicKeyJwk: remote.publicKeyJwk, privateKeyJwk: remote.privateKeyJwk });
+    return importIdentity(remote.publicKeyJwk, remote.privateKeyJwk);
   }
 
   const pair = await crypto.subtle.generateKey({ name: "ECDH", namedCurve: "P-256" }, true, ["deriveBits"]);
   const publicKeyJwk = await crypto.subtle.exportKey("jwk", pair.publicKey);
   const privateKeyJwk = await crypto.subtle.exportKey("jwk", pair.privateKey);
   await idbSet(storageKey, { publicKeyJwk, privateKeyJwk });
-  return { publicKey: pair.publicKey, privateKey: pair.privateKey, publicKeyJwk };
+  return { publicKey: pair.publicKey, privateKey: pair.privateKey, publicKeyJwk, privateKeyJwk };
 }
 
 async function importPublic(jwk: JsonWebKey) {
@@ -145,4 +163,8 @@ export function cachedRoomKey(roomId: string) {
 
 export function setCachedRoomKey(roomId: string, key: CryptoKey) {
   roomKeyCache.set(roomId, key);
+}
+
+export function clearRoomKeyCache() {
+  roomKeyCache.clear();
 }

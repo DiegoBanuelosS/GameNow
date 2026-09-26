@@ -24,11 +24,21 @@ export interface IUser extends Document {
     favorite?: boolean;
     hidden?: boolean;
     added?: boolean;
+    /** Solicitud enviada, pendiente de aceptación */
+    outgoing?: boolean;
     name?: string;
     avatarUrl?: string;
     username?: string;
     inviteGame?: string;
     messages?: { text?: string; at?: number }[];
+  }[];
+  incomingFriendRequests: {
+    fromUserId: string;
+    steamId: string;
+    name: string;
+    avatarUrl: string;
+    username: string;
+    at: number;
   }[];
   failedLoginAttempts: number;
   lockUntil: Date | null;
@@ -133,6 +143,7 @@ const userSchema = new Schema<IUser>(
             favorite: Boolean,
             hidden: Boolean,
             added: Boolean,
+            outgoing: Boolean,
             name: String,
             avatarUrl: String,
             username: String,
@@ -141,6 +152,22 @@ const userSchema = new Schema<IUser>(
               type: [{ text: String, at: Number }],
               default: [],
             },
+          },
+          { _id: false },
+        ),
+      ],
+      default: [],
+    },
+    incomingFriendRequests: {
+      type: [
+        new Schema(
+          {
+            fromUserId: String,
+            steamId: String,
+            name: String,
+            avatarUrl: String,
+            username: String,
+            at: Number,
           },
           { _id: false },
         ),

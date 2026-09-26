@@ -1,6 +1,8 @@
 import { Request, Response, Router } from "express";
+import { v2 as cloudinary } from "cloudinary";
 import { Types } from "mongoose";
 import { verifyJwt } from "./auth.js";
+import { requireCloudinary } from "./config.js";
 import { connectDb } from "./db.js";
 import { ChatIdentity, ChatMessage, ChatRoom } from "./models/Chat.js";
 import { User } from "./models/User.js";
@@ -113,8 +115,10 @@ async function roomWithMembers(room: Parameters<typeof publicRoom>[0]) {
     lastMessage: last
       ? {
           senderId: String(last.senderId),
-          ciphertext: last.ciphertext,
-          iv: last.iv,
+          ciphertext: last.ciphertext || "",
+          iv: last.iv || "",
+          text: typeof last.text === "string" ? last.text : "",
+          imageUrl: typeof last.imageUrl === "string" ? last.imageUrl : "",
           at: last.at,
         }
       : null,
@@ -123,26 +127,81 @@ async function roomWithMembers(room: Parameters<typeof publicRoom>[0]) {
 
 export const chatRouter = Router();
 
+chatRouter.post("/upload", async (req, res) => {
+  const userId = await requireUser(req, res);
+  if (!userId) return;
+  const image = typeof req.body?.image === "string" ? req.body.image : "";
+  if (!image.startsWith("data:image/")) {
+    res.status(400).json({ error: "Imagen inválida." });
+    return;
+  }
+  if (image.length > 3_500_000) {
+    res.status(400).json({ error: "La imagen es demasiado grande (máx. ~2.5 MB)." });
+    return;
+  }
+  try {
+    const creds = requireCloudinary();
+    cloudinary.config({
+      cloud_name: creds.cloudName,
+      api_key: creds.apiKey,
+      api_secret: creds.apiSecret,
+    });
+    const result = await cloudinary.uploader.upload(image, {
+      folder: "gamenow/chat",
+      resource_type: "image",
+      transformation: [{ width: 1600, height: 1600, crop: "limit", quality: "auto:good" }],
+    });
+    res.json({ url: result.secure_url });
+  } catch (error) {
+    console.error("Chat upload:", error instanceof Error ? error.message : error);
+    res.status(502).json({ error: "No se pudo subir la imagen." });
+  }
+});
+
 chatRouter.put("/keys", async (req, res) => {
   const userId = await requireUser(req, res);
   if (!userId) return;
   const publicKeyJwk = req.body?.publicKeyJwk;
+  const privateKeyJwk = req.body?.privateKeyJwk;
   if (!publicKeyJwk || typeof publicKeyJwk !== "object") {
     res.status(400).json({ error: "Falta la clave pública." });
     return;
   }
+  if (!privateKeyJwk || typeof privateKeyJwk !== "object") {
+    res.status(400).json({ error: "Falta la clave privada." });
+    return;
+  }
   await ChatIdentity.findOneAndUpdate(
     { userId },
-    { userId, publicKeyJwk },
+    { userId, publicKeyJwk, privateKeyJwk },
     { upsert: true, new: true, setDefaultsOnInsert: true },
   );
   res.json({ ok: true });
+});
+
+chatRouter.get("/keys/me", async (req, res) => {
+  const userId = await requireUser(req, res);
+  if (!userId) return;
+  const identity = await ChatIdentity.findOne({ userId }).lean();
+  if (!identity?.publicKeyJwk || !identity?.privateKeyJwk) {
+    res.status(404).json({ error: "Sin claves guardadas." });
+    return;
+  }
+  res.json({
+    userId,
+    publicKeyJwk: identity.publicKeyJwk,
+    privateKeyJwk: identity.privateKeyJwk,
+  });
 });
 
 chatRouter.get("/keys/:userId", async (req, res) => {
   const userId = await requireUser(req, res);
   if (!userId) return;
   const target = String(req.params.userId || "");
+  if (target === "me") {
+    res.status(404).json({ error: "Usa /keys/me." });
+    return;
+  }
   if (!isObjectId(target)) {
     res.status(400).json({ error: "Usuario inválido." });
     return;
@@ -282,11 +341,115 @@ chatRouter.get("/rooms/:id/messages", async (req, res) => {
       id: String(message._id),
       roomId: String(message.roomId),
       senderId: String(message.senderId),
-      ciphertext: message.ciphertext,
-      iv: message.iv,
+      text: typeof message.text === "string" ? message.text : "",
+      imageUrl: typeof message.imageUrl === "string" ? message.imageUrl : "",
+      ciphertext: message.ciphertext || "",
+      iv: message.iv || "",
       at: message.at,
+      editedAt: message.editedAt || 0,
     })),
   });
+});
+
+chatRouter.patch("/rooms/:id/messages/:messageId", async (req, res) => {
+  const userId = await requireUser(req, res);
+  if (!userId) return;
+  const roomId = String(req.params.id || "");
+  const messageId = String(req.params.messageId || "");
+  if (!isObjectId(roomId) || !isObjectId(messageId)) {
+    res.status(400).json({ error: "Mensaje inválido." });
+    return;
+  }
+  const text = typeof req.body?.text === "string" ? req.body.text.trim().slice(0, 2000) : "";
+  const ciphertext = typeof req.body?.ciphertext === "string" ? req.body.ciphertext : "";
+  const iv = typeof req.body?.iv === "string" ? req.body.iv : "";
+  if (!text) {
+    res.status(400).json({ error: "Mensaje incompleto." });
+    return;
+  }
+  const room = await ChatRoom.findById(roomId).lean();
+  if (!room || !room.memberIds.some((id) => String(id) === userId)) {
+    res.status(404).json({ error: "No está en esta conversación." });
+    return;
+  }
+  const message = await ChatMessage.findOne({ _id: messageId, roomId });
+  if (!message || String(message.senderId) !== userId) {
+    res.status(404).json({ error: "No puedes editar este mensaje." });
+    return;
+  }
+  message.text = text;
+  if (ciphertext && iv) {
+    message.ciphertext = ciphertext;
+    message.iv = iv;
+  }
+  message.editedAt = Date.now();
+  await message.save();
+  res.json({
+    message: {
+      id: String(message._id),
+      roomId,
+      senderId: userId,
+      text,
+      ciphertext: message.ciphertext || "",
+      iv: message.iv || "",
+      at: message.at,
+      editedAt: message.editedAt,
+    },
+  });
+});
+
+chatRouter.delete("/rooms/:id/messages/:messageId", async (req, res) => {
+  const userId = await requireUser(req, res);
+  if (!userId) return;
+  const roomId = String(req.params.id || "");
+  const messageId = String(req.params.messageId || "");
+  if (!isObjectId(roomId) || !isObjectId(messageId)) {
+    res.status(400).json({ error: "Mensaje inválido." });
+    return;
+  }
+  const room = await ChatRoom.findById(roomId).lean();
+  if (!room || !room.memberIds.some((id) => String(id) === userId)) {
+    res.status(404).json({ error: "No está en esta conversación." });
+    return;
+  }
+  const message = await ChatMessage.findOne({ _id: messageId, roomId });
+  if (!message || String(message.senderId) !== userId) {
+    res.status(404).json({ error: "No puedes eliminar este mensaje." });
+    return;
+  }
+  await message.deleteOne();
+  res.json({ ok: true, id: messageId });
+});
+
+chatRouter.delete("/rooms/:id", async (req, res) => {
+  const userId = await requireUser(req, res);
+  if (!userId) return;
+  const roomId = String(req.params.id || "");
+  if (!isObjectId(roomId)) {
+    res.status(400).json({ error: "Sala inválida." });
+    return;
+  }
+  const room = await ChatRoom.findById(roomId);
+  if (!room || !room.memberIds.some((id) => String(id) === userId)) {
+    res.status(404).json({ error: "No está en esta conversación." });
+    return;
+  }
+  if (room.type === "dm") {
+    await ChatMessage.deleteMany({ roomId: room._id });
+    await room.deleteOne();
+    res.json({ ok: true, deleted: true });
+    return;
+  }
+  room.memberIds = room.memberIds.filter((id) => String(id) !== userId);
+  room.wrappedKeys = room.wrappedKeys.filter((item) => String(item.userId) !== userId);
+  if (room.memberIds.length < 2) {
+    await ChatMessage.deleteMany({ roomId: room._id });
+    await room.deleteOne();
+    res.json({ ok: true, deleted: true });
+    return;
+  }
+  await room.save();
+  res.json({ ok: true, left: true });
 });
 
 chatRouter.post("/rooms/:id/messages", async (req, res) => {
@@ -297,10 +460,16 @@ chatRouter.post("/rooms/:id/messages", async (req, res) => {
     res.status(400).json({ error: "Sala inválida." });
     return;
   }
+  const text = typeof req.body?.text === "string" ? req.body.text.trim().slice(0, 2000) : "";
+  const imageUrl = typeof req.body?.imageUrl === "string" ? req.body.imageUrl.trim().slice(0, 500) : "";
   const ciphertext = typeof req.body?.ciphertext === "string" ? req.body.ciphertext : "";
   const iv = typeof req.body?.iv === "string" ? req.body.iv : "";
-  if (!ciphertext || !iv) {
+  if (!text && !imageUrl) {
     res.status(400).json({ error: "Mensaje incompleto." });
+    return;
+  }
+  if (imageUrl && !/^https:\/\/res\.cloudinary\.com\//.test(imageUrl)) {
+    res.status(400).json({ error: "URL de imagen no permitida." });
     return;
   }
   const room = await ChatRoom.findById(roomId);
@@ -309,7 +478,15 @@ chatRouter.post("/rooms/:id/messages", async (req, res) => {
     return;
   }
   const at = Date.now();
-  const message = await ChatMessage.create({ roomId, senderId: userId, ciphertext, iv, at });
+  const message = await ChatMessage.create({
+    roomId,
+    senderId: userId,
+    text,
+    imageUrl,
+    ciphertext: ciphertext || "",
+    iv: iv || "",
+    at,
+  });
   room.updatedAt = new Date();
   await room.save();
   res.status(201).json({
@@ -317,9 +494,12 @@ chatRouter.post("/rooms/:id/messages", async (req, res) => {
       id: String(message._id),
       roomId,
       senderId: userId,
-      ciphertext,
-      iv,
+      text,
+      imageUrl,
+      ciphertext: message.ciphertext || "",
+      iv: message.iv || "",
       at,
+      editedAt: 0,
     },
   });
 });

@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import { Types } from "mongoose";
 import { config } from "./config.js";
 import { connectDb } from "./db.js";
 import { verifyJwt } from "./auth.js";
@@ -153,85 +154,100 @@ export async function steamFriends(req: Request, res: Response) {
     res.status(503).json({ error: "La base de datos no está disponible." });
     return;
   }
-  const user = await User.findById(userId).select("steamId friendPrefs");
-  if (!user?.steamId) {
-    res.json({ friends: [], linked: false });
+  const user = await User.findById(userId).select("steamId friendPrefs incomingFriendRequests");
+  if (!user) {
+    res.status(404).json({ error: "Usuario no encontrado." });
     return;
   }
 
-  try {
-    const key = encodeURIComponent(config.steamApiKey);
-    const list = await steamJson<{ friendslist?: { friends?: { steamid: string }[] } }>(
-      `https://api.steampowered.com/ISteamUser/GetFriendList/v1/?key=${key}&steamid=${user.steamId}&relationship=friend`,
-    );
-    const ids = (list?.friendslist?.friends ?? []).map((friend) => friend.steamid).filter(Boolean);
-    if (!list?.friendslist) {
-      res.json({ friends: [], linked: true, hidden: true });
-      return;
-    }
+  const requests = (user.incomingFriendRequests ?? []).map((item) => ({
+    fromUserId: item.fromUserId || "",
+    steamId: item.steamId || "",
+    name: item.name || item.username || "Jugador",
+    avatarUrl: item.avatarUrl || "",
+    username: item.username || "",
+    at: item.at || 0,
+  }));
 
-    const prefs = new Map((user.friendPrefs ?? []).map((item) => [item.steamId, item]));
-    const friends: Friend[] = [];
-    for (let index = 0; index < ids.length; index += 100) {
-      const chunk = ids.slice(index, index + 100).join(",");
-      const summaries = await steamJson<{
-        response?: {
-          players?: {
-            steamid: string;
-            personaname?: string;
-            avatarfull?: string;
-            profileurl?: string;
-            personastate?: number;
-            gameid?: string;
-            gameextrainfo?: string;
-          }[];
-        };
-      }>(`https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key=${key}&steamids=${chunk}`);
-      for (const player of summaries?.response?.players ?? []) {
-        const pref = prefs.get(player.steamid);
-        if (pref?.hidden) continue;
-        let playingMinutes = 0;
-        let playingSpan: Friend["playingSpan"] = "";
-        if (player.gameid) {
-          const recent = await steamJson<{
-            response?: { games?: { appid: number; playtime_2weeks?: number; playtime_forever?: number }[] };
-          }>(
-            `https://api.steampowered.com/IPlayerService/GetRecentlyPlayedGames/v0001/?key=${key}&steamid=${player.steamid}&count=8`,
-          );
-          const current = recent?.response?.games?.find((item) => String(item.appid) === String(player.gameid));
-          if (current?.playtime_2weeks) {
-            playingMinutes = current.playtime_2weeks;
-            playingSpan = "week";
-          } else if (current?.playtime_forever) {
-            playingMinutes = current.playtime_forever;
-            playingSpan = "total";
+  const friends: Friend[] = [];
+  let hidden = false;
+  let linked = Boolean(user.steamId);
+
+  try {
+    if (user.steamId) {
+      const key = encodeURIComponent(config.steamApiKey);
+      const list = await steamJson<{ friendslist?: { friends?: { steamid: string }[] } }>(
+        `https://api.steampowered.com/ISteamUser/GetFriendList/v1/?key=${key}&steamid=${user.steamId}&relationship=friend`,
+      );
+      const ids = (list?.friendslist?.friends ?? []).map((friend) => friend.steamid).filter(Boolean);
+      if (!list?.friendslist) {
+        hidden = true;
+      } else {
+        const prefs = new Map((user.friendPrefs ?? []).map((item) => [item.steamId, item]));
+        for (let index = 0; index < ids.length; index += 100) {
+          const chunk = ids.slice(index, index + 100).join(",");
+          const summaries = await steamJson<{
+            response?: {
+              players?: {
+                steamid: string;
+                personaname?: string;
+                avatarfull?: string;
+                profileurl?: string;
+                personastate?: number;
+                gameid?: string;
+                gameextrainfo?: string;
+              }[];
+            };
+          }>(`https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key=${key}&steamids=${chunk}`);
+          for (const player of summaries?.response?.players ?? []) {
+            const pref = prefs.get(player.steamid);
+            if (pref?.hidden) continue;
+            let playingMinutes = 0;
+            let playingSpan: Friend["playingSpan"] = "";
+            if (player.gameid) {
+              const recent = await steamJson<{
+                response?: { games?: { appid: number; playtime_2weeks?: number; playtime_forever?: number }[] };
+              }>(
+                `https://api.steampowered.com/IPlayerService/GetRecentlyPlayedGames/v0001/?key=${key}&steamid=${player.steamid}&count=8`,
+              );
+              const current = recent?.response?.games?.find((item) => String(item.appid) === String(player.gameid));
+              if (current?.playtime_2weeks) {
+                playingMinutes = current.playtime_2weeks;
+                playingSpan = "week";
+              } else if (current?.playtime_forever) {
+                playingMinutes = current.playtime_forever;
+                playingSpan = "total";
+              }
+            }
+            friends.push({
+              steamId: player.steamid,
+              name: player.personaname || "Amigo",
+              avatarUrl: player.avatarfull || "",
+              profileUrl: player.profileurl || `https://steamcommunity.com/profiles/${player.steamid}`,
+              status: player.personastate ? "En línea" : "Desconectado",
+              playingGame: player.gameextrainfo || "",
+              playingAppId: player.gameid || "",
+              playingMinutes,
+              playingSpan,
+              favorite: Boolean(pref?.favorite),
+              inviteGame: pref?.inviteGame || "",
+              messages: (pref?.messages ?? []).slice(-20).map((message) => ({
+                text: message.text || "",
+                at: message.at || 0,
+              })),
+            });
           }
         }
-        friends.push({
-          steamId: player.steamid,
-          name: player.personaname || "Amigo",
-          avatarUrl: player.avatarfull || "",
-          profileUrl: player.profileurl || `https://steamcommunity.com/profiles/${player.steamid}`,
-          status: player.personastate ? "En línea" : "Desconectado",
-          playingGame: player.gameextrainfo || "",
-          playingAppId: player.gameid || "",
-          playingMinutes,
-          playingSpan,
-          favorite: Boolean(pref?.favorite),
-          inviteGame: pref?.inviteGame || "",
-          messages: (pref?.messages ?? []).slice(-20).map((message) => ({
-            text: message.text || "",
-            at: message.at || 0,
-          })),
-        });
       }
     }
+
     const listed = new Set(friends.map((friend) => friend.steamId));
     const extras = (user.friendPrefs ?? []).filter(
-      (pref) => pref.added && !pref.hidden && pref.steamId && !listed.has(pref.steamId),
+      (pref) => pref.added && !pref.hidden && !pref.outgoing && pref.steamId && !listed.has(pref.steamId),
     );
     const steamExtras = extras.filter((pref) => /^\d{17}$/.test(pref.steamId));
-    if (steamExtras.length) {
+    if (steamExtras.length && user.steamId) {
+      const key = encodeURIComponent(config.steamApiKey);
       const chunk = steamExtras.map((pref) => pref.steamId).join(",");
       const summaries = await steamJson<{
         response?: { players?: { steamid: string; personaname?: string; avatarfull?: string; profileurl?: string; personastate?: number }[] };
@@ -245,6 +261,23 @@ export async function steamFriends(req: Request, res: Response) {
           avatarUrl: player?.avatarfull || pref.avatarUrl || "",
           profileUrl: player?.profileurl || `https://steamcommunity.com/profiles/${pref.steamId}`,
           status: player?.personastate ? "En línea" : "Desconectado",
+          playingGame: "",
+          playingAppId: "",
+          playingMinutes: 0,
+          playingSpan: "",
+          favorite: Boolean(pref.favorite),
+          inviteGame: pref.inviteGame || "",
+          messages: (pref.messages ?? []).slice(-20).map((message) => ({ text: message.text || "", at: message.at || 0 })),
+        });
+      }
+    } else {
+      for (const pref of steamExtras) {
+        friends.push({
+          steamId: pref.steamId,
+          name: pref.name || "Amigo",
+          avatarUrl: pref.avatarUrl || "",
+          profileUrl: `https://steamcommunity.com/profiles/${pref.steamId}`,
+          status: "Desconectado",
           playingGame: "",
           playingAppId: "",
           playingMinutes: 0,
@@ -321,7 +354,7 @@ export async function steamFriends(req: Request, res: Response) {
         friend.backgroundVideo = backgroundVideo;
       }),
     );
-    res.json({ friends, linked: true, hidden: false });
+    res.json({ friends, requests, linked, hidden });
   } catch (error) {
     console.error("Steam friends:", error instanceof Error ? error.message : error);
     res.status(502).json({ error: "No se pudo leer la lista de amigos." });
@@ -723,7 +756,9 @@ export async function addFriend(req: Request, res: Response) {
     res.status(503).json({ error: "La base de datos no está disponible." });
     return;
   }
-  const me = await User.findById(userId).select("friendPrefs steamId");
+  const me = await User.findById(userId).select(
+    "friendPrefs steamId username steamName steamAvatarUrl avatarUrl incomingFriendRequests",
+  );
   if (!me) {
     res.status(404).json({ error: "Usuario no encontrado." });
     return;
@@ -733,20 +768,41 @@ export async function addFriend(req: Request, res: Response) {
   let name = "";
   let avatarUrl = "";
   let username = "";
+  let targetUser: Awaited<ReturnType<typeof User.findById>> | null = null;
+
   if (!steamId && typeof req.body?.username === "string") {
-    const person = await User.findOne({ username: req.body.username.trim() }).select("username avatarUrl steamId steamName steamAvatarUrl");
-    if (!person || person.id === userId) {
+    targetUser = await User.findOne({ username: req.body.username.trim() }).select(
+      "username avatarUrl steamId steamName steamAvatarUrl friendPrefs incomingFriendRequests",
+    );
+    if (!targetUser || String(targetUser._id) === userId) {
       res.status(404).json({ error: "No encontramos a esa persona en GameNow." });
       return;
     }
-    steamId = person.steamId || `user:${person.id}`;
-    name = person.steamName || person.username;
-    avatarUrl = person.steamAvatarUrl || person.avatarUrl || "";
-    username = person.username;
+    steamId = targetUser.steamId || `user:${targetUser.id}`;
+    name = targetUser.steamName || targetUser.username;
+    avatarUrl = targetUser.steamAvatarUrl || targetUser.avatarUrl || "";
+    username = targetUser.username;
   }
-  if (!steamId || steamId === me.steamId) {
+  if (!steamId || steamId === me.steamId || steamId === `user:${userId}`) {
     res.status(400).json({ error: "Escribe un usuario de GameNow o un SteamID." });
     return;
+  }
+  if (!targetUser) {
+    if (steamId.startsWith("user:")) {
+      targetUser = await User.findById(steamId.slice(5)).select(
+        "username avatarUrl steamId steamName steamAvatarUrl friendPrefs incomingFriendRequests",
+      );
+    } else if (/^\d{17}$/.test(steamId)) {
+      targetUser = await User.findOne({ steamId }).select(
+        "username avatarUrl steamId steamName steamAvatarUrl friendPrefs incomingFriendRequests",
+      );
+    }
+    if (targetUser) {
+      name = targetUser.steamName || targetUser.username || name;
+      avatarUrl = targetUser.steamAvatarUrl || targetUser.avatarUrl || avatarUrl;
+      username = targetUser.username || username;
+      steamId = targetUser.steamId || `user:${targetUser.id}`;
+    }
   }
   if (!name && /^\d{17}$/.test(steamId)) {
     const key = encodeURIComponent(config.steamApiKey);
@@ -760,16 +816,85 @@ export async function addFriend(req: Request, res: Response) {
 
   const prefs = me.friendPrefs ?? [];
   let current = prefs.find((item) => item.steamId === steamId);
-  if (current && !current.hidden && current.added) {
+  if (current && !current.hidden && current.added && !current.outgoing) {
     res.status(409).json({ error: "Esa persona ya está en tus amigos." });
     return;
   }
+  if (current?.outgoing) {
+    res.status(409).json({ error: "Ya enviaste una solicitud a esa persona." });
+    return;
+  }
+
+  const myKey = me.steamId || `user:${userId}`;
+  const myName = me.steamName || me.username || "Jugador";
+  const myAvatar = me.steamAvatarUrl || me.avatarUrl || "";
+
+  // Cuenta GameNow: solicitud pendiente (aceptar / rechazar)
+  if (targetUser) {
+    const theirIncoming = targetUser.incomingFriendRequests ?? [];
+    if (theirIncoming.some((item) => item.fromUserId === userId || item.steamId === myKey)) {
+      res.status(409).json({ error: "Ya enviaste una solicitud a esa persona." });
+      return;
+    }
+    // Si ellos ya me enviaron solicitud, aceptar automáticamente
+    const mutual = (me.incomingFriendRequests ?? []).find(
+      (item) => item.fromUserId === String(targetUser!._id) || item.steamId === steamId,
+    );
+    if (mutual) {
+      await acceptFriendPair(me, targetUser, steamId, {
+        name: name || targetUser.steamName || targetUser.username,
+        avatarUrl: avatarUrl || targetUser.steamAvatarUrl || targetUser.avatarUrl || "",
+        username: username || targetUser.username || "",
+      });
+      res.json({
+        steamId,
+        name: name || targetUser.steamName || targetUser.username,
+        avatarUrl: avatarUrl || targetUser.steamAvatarUrl || targetUser.avatarUrl || "",
+        username: username || targetUser.username || "",
+        status: "accepted",
+      });
+      return;
+    }
+
+    if (!current) {
+      current = { steamId, favorite: false, hidden: false, inviteGame: "", messages: [] };
+      prefs.push(current);
+    }
+    current.hidden = false;
+    current.added = false;
+    current.outgoing = true;
+    current.name = name || current.name || "";
+    current.avatarUrl = avatarUrl || current.avatarUrl || "";
+    current.username = username || current.username || "";
+    me.friendPrefs = prefs;
+    theirIncoming.push({
+      fromUserId: userId,
+      steamId: myKey,
+      name: myName,
+      avatarUrl: myAvatar,
+      username: me.username || "",
+      at: Date.now(),
+    });
+    targetUser.incomingFriendRequests = theirIncoming;
+    await Promise.all([me.save(), targetUser.save()]);
+    res.json({
+      steamId,
+      name: current.name,
+      avatarUrl: current.avatarUrl,
+      username: current.username,
+      status: "pending",
+    });
+    return;
+  }
+
+  // Solo Steam (sin cuenta GameNow): se agrega directo a la lista
   if (!current) {
     current = { steamId, favorite: false, hidden: false, inviteGame: "", messages: [] };
     prefs.push(current);
   }
   current.hidden = false;
   current.added = true;
+  current.outgoing = false;
   current.name = name || current.name || "";
   current.avatarUrl = avatarUrl || current.avatarUrl || "";
   current.username = username || current.username || "";
@@ -780,7 +905,52 @@ export async function addFriend(req: Request, res: Response) {
     name: current.name,
     avatarUrl: current.avatarUrl,
     username: current.username,
+    status: "added",
   });
+}
+
+async function acceptFriendPair(
+  me: InstanceType<typeof User>,
+  other: InstanceType<typeof User>,
+  theirKey: string,
+  theirMeta: { name: string; avatarUrl: string; username: string },
+) {
+  const myKey = me.steamId || `user:${me.id}`;
+  const myMeta = {
+    name: me.steamName || me.username || "Jugador",
+    avatarUrl: me.steamAvatarUrl || me.avatarUrl || "",
+    username: me.username || "",
+  };
+
+  const upsertFriend = (
+    owner: InstanceType<typeof User>,
+    key: string,
+    meta: { name: string; avatarUrl: string; username: string },
+  ) => {
+    const prefs = owner.friendPrefs ?? [];
+    let row = prefs.find((item) => item.steamId === key);
+    if (!row) {
+      row = { steamId: key, favorite: false, hidden: false, inviteGame: "", messages: [] };
+      prefs.push(row);
+    }
+    row.hidden = false;
+    row.added = true;
+    row.outgoing = false;
+    row.name = meta.name || row.name || "";
+    row.avatarUrl = meta.avatarUrl || row.avatarUrl || "";
+    row.username = meta.username || row.username || "";
+    owner.friendPrefs = prefs;
+  };
+
+  upsertFriend(me, theirKey, theirMeta);
+  upsertFriend(other, myKey, myMeta);
+  me.incomingFriendRequests = (me.incomingFriendRequests ?? []).filter(
+    (item) => item.fromUserId !== String(other._id) && item.steamId !== theirKey,
+  );
+  other.incomingFriendRequests = (other.incomingFriendRequests ?? []).filter(
+    (item) => item.fromUserId !== String(me._id) && item.steamId !== myKey,
+  );
+  await Promise.all([me.save(), other.save()]);
 }
 
 export async function resaleQuote(req: Request, res: Response) {
@@ -831,9 +1001,69 @@ export async function updateFriend(req: Request, res: Response) {
     res.status(503).json({ error: "La base de datos no está disponible." });
     return;
   }
-  const user = await User.findById(userId).select("friendPrefs");
+  const user = await User.findById(userId).select(
+    "friendPrefs steamId username steamName steamAvatarUrl avatarUrl incomingFriendRequests",
+  );
   if (!user) {
     res.status(404).json({ error: "Usuario no encontrado." });
+    return;
+  }
+
+  const action = typeof req.body?.action === "string" ? req.body.action : "";
+  if (action === "accept" || action === "reject") {
+    const incoming = user.incomingFriendRequests ?? [];
+    const request = incoming.find((item) => item.steamId === steamId || item.fromUserId === steamId.replace(/^user:/, ""));
+    if (!request) {
+      res.status(404).json({ error: "No hay solicitud de esa persona." });
+      return;
+    }
+    if (action === "reject") {
+      user.incomingFriendRequests = incoming.filter(
+        (item) => item.steamId !== request.steamId && item.fromUserId !== request.fromUserId,
+      );
+      if (request.fromUserId) {
+        const other = await User.findById(request.fromUserId).select("friendPrefs");
+        if (other) {
+          const myKey = user.steamId || `user:${userId}`;
+          other.friendPrefs = (other.friendPrefs ?? []).filter(
+            (item) => !(item.outgoing && (item.steamId === myKey || item.steamId === steamId)),
+          );
+          await other.save();
+        }
+      }
+      await user.save();
+      res.json({ steamId: request.steamId, status: "rejected" });
+      return;
+    }
+
+    let other = request.fromUserId ? await User.findById(request.fromUserId) : null;
+    if (!other && /^\d{17}$/.test(request.steamId)) {
+      other = await User.findOne({ steamId: request.steamId });
+    }
+    if (!other && request.steamId.startsWith("user:")) {
+      other = await User.findById(request.steamId.slice(5));
+    }
+    if (!other) {
+      res.status(404).json({ error: "Esa cuenta ya no existe." });
+      return;
+    }
+    const theirKey = other.steamId || `user:${other.id}`;
+    await acceptFriendPair(user, other, theirKey, {
+      name: request.name || other.steamName || other.username,
+      avatarUrl: request.avatarUrl || other.steamAvatarUrl || other.avatarUrl || "",
+      username: request.username || other.username || "",
+    });
+    res.json({
+      steamId: theirKey,
+      name: request.name || other.steamName || other.username,
+      avatarUrl: request.avatarUrl || other.steamAvatarUrl || other.avatarUrl || "",
+      username: request.username || other.username || "",
+      status: "accepted",
+      favorite: false,
+      hidden: false,
+      inviteGame: "",
+      messages: [],
+    });
     return;
   }
 
@@ -912,11 +1142,7 @@ function publicGame(game: {
 
 /** Perfil de un amigo: GameNow si la cuenta existe, si no el perfil público de Steam. */
 export async function steamProfile(req: Request, res: Response) {
-  const steamId = String(req.params.steamId || "");
-  if (!/^\d{17}$/.test(steamId)) {
-    res.status(400).json({ error: "Perfil no válido." });
-    return;
-  }
+  const rawId = decodeURIComponent(String(req.params.steamId || ""));
   const userId = userIdFromRequest(req);
   if (!userId) {
     res.status(401).json({ error: "No autorizado." });
@@ -929,20 +1155,76 @@ export async function steamProfile(req: Request, res: Response) {
   }
 
   const viewer = await User.findById(userId).select("steamId friendPrefs");
-  if (!viewer?.steamId) {
-    res.status(404).json({ error: "No hay una cuenta de Steam vinculada." });
+  if (!viewer) {
+    res.status(404).json({ error: "Usuario no encontrado." });
     return;
   }
-  if (viewer.steamId !== steamId) {
-    const ids = await friendIds(viewer.steamId);
-    if (!ids.has(steamId)) {
+
+  // Perfil GameNow por user:ObjectId
+  if (rawId.startsWith("user:") || (/^[a-f\d]{24}$/i.test(rawId) && !/^\d{17}$/.test(rawId))) {
+    const targetId = rawId.startsWith("user:") ? rawId.slice(5) : rawId;
+    if (!Types.ObjectId.isValid(targetId)) {
+      res.status(400).json({ error: "Perfil no válido." });
+      return;
+    }
+    const member = await User.findById(targetId).select(
+      "username steamId steamName steamAvatarUrl avatarUrl steamFrameUrl steamBackgroundUrl steamBackgroundVideo steamGameCount steamGames",
+    );
+    if (!member) {
       res.status(404).json({ error: "No se encontró ese perfil." });
       return;
+    }
+    const key = member.steamId || `user:${member.id}`;
+    const library = member.steamGames ?? [];
+    const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    const games = library
+      .filter((game) => game.lastPlayedTimestamp >= weekAgo)
+      .sort((a, b) => b.lastPlayedTimestamp - a.lastPlayedTimestamp)
+      .map(publicGame);
+    const totalHours = Math.round(library.reduce((sum, game) => sum + (game.playTimeHours || 0), 0));
+    res.json({
+      kind: "gamenow",
+      steamId: key,
+      name: member.username,
+      steamName: member.steamName || "",
+      avatarUrl: member.steamAvatarUrl || member.avatarUrl || "",
+      frameUrl: member.steamFrameUrl || "",
+      backgroundUrl: member.steamBackgroundUrl || "",
+      backgroundVideo: member.steamBackgroundVideo || "",
+      gameCount: member.steamGameCount || library.length,
+      totalHours,
+      games,
+      relation: viewerRelation(viewer, key),
+    });
+    return;
+  }
+
+  const steamId = rawId;
+  if (!/^\d{17}$/.test(steamId)) {
+    res.status(400).json({ error: "Perfil no válido." });
+    return;
+  }
+
+  if (viewer.steamId && viewer.steamId !== steamId) {
+    const ids = await friendIds(viewer.steamId);
+    const pref = (viewer.friendPrefs ?? []).find((item) => item.steamId === steamId && item.added && !item.hidden);
+    if (!ids.has(steamId) && !pref) {
+      res.status(404).json({ error: "No se encontró ese perfil." });
+      return;
+    }
+  } else if (!viewer.steamId) {
+    const pref = (viewer.friendPrefs ?? []).find((item) => item.steamId === steamId && item.added && !item.hidden);
+    if (!pref) {
+      const memberCheck = await User.findOne({ steamId }).select("_id");
+      if (!memberCheck) {
+        res.status(404).json({ error: "No se encontró ese perfil." });
+        return;
+      }
     }
   }
 
   const member = await User.findOne({ steamId }).select(
-    "username steamName steamAvatarUrl steamFrameUrl steamBackgroundUrl steamBackgroundVideo steamGameCount steamGames",
+    "username steamName steamAvatarUrl steamFrameUrl steamBackgroundUrl steamBackgroundVideo steamGameCount steamGames avatarUrl",
   );
   if (member) {
     const library = member.steamGames ?? [];
@@ -970,7 +1252,7 @@ export async function steamProfile(req: Request, res: Response) {
       steamId,
       name: member.username,
       steamName: member.steamName || "",
-      avatarUrl: member.steamAvatarUrl || "",
+      avatarUrl: member.steamAvatarUrl || member.avatarUrl || "",
       frameUrl: member.steamFrameUrl || "",
       backgroundUrl,
       backgroundVideo,

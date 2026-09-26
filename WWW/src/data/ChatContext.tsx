@@ -3,6 +3,7 @@ import { apiUrl } from "./api";
 import { useAuth } from "./AuthContext";
 import {
   cachedRoomKey,
+  clearRoomKeyCache,
   createRoomKey,
   decryptMessage,
   encryptMessage,
@@ -36,6 +37,7 @@ export type ChatRoom = {
     iv: string;
     at: number;
     text?: string;
+    imageUrl?: string;
   } | null;
 };
 
@@ -46,7 +48,9 @@ export type ChatMessage = {
   ciphertext: string;
   iv: string;
   at: number;
+  editedAt?: number;
   text?: string;
+  imageUrl?: string;
 };
 
 type ChatContextValue = {
@@ -56,7 +60,11 @@ type ChatContextValue = {
   openDm: (otherUserId: string) => Promise<ChatRoom | null>;
   createGroup: (title: string, memberIds: string[]) => Promise<ChatRoom | null>;
   loadMessages: (roomId: string, since?: number) => Promise<ChatMessage[]>;
-  sendMessage: (roomId: string, text: string) => Promise<ChatMessage | null>;
+  sendMessage: (roomId: string, text: string, imageUrl?: string) => Promise<ChatMessage | null>;
+  uploadImage: (dataUrl: string) => Promise<string>;
+  editMessage: (roomId: string, messageId: string, text: string) => Promise<ChatMessage | null>;
+  deleteMessage: (roomId: string, messageId: string) => Promise<boolean>;
+  deleteRoom: (roomId: string) => Promise<boolean>;
   resolveRoomKey: (room: ChatRoom) => Promise<CryptoKey | null>;
 };
 
@@ -88,17 +96,28 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       setReady(false);
       return;
     }
-    const identity = await ensureIdentity(user._id);
+    let remote: { publicKeyJwk: JsonWebKey; privateKeyJwk: JsonWebKey } | null = null;
+    try {
+      remote = await fetchJson<{ publicKeyJwk: JsonWebKey; privateKeyJwk: JsonWebKey }>("/api/chat/keys/me", token);
+    } catch {
+      remote = null;
+    }
+    const identity = await ensureIdentity(user._id, remote);
     identityRef.current = identity;
     await fetchJson("/api/chat/keys", token, {
       method: "PUT",
-      body: JSON.stringify({ publicKeyJwk: identity.publicKeyJwk }),
+      body: JSON.stringify({
+        publicKeyJwk: identity.publicKeyJwk,
+        privateKeyJwk: identity.privateKeyJwk,
+      }),
     });
     setReady(true);
   }, [token, user?._id]);
 
   useEffect(() => {
     if (status !== "authenticated") {
+      identityRef.current = null;
+      clearRoomKeyCache();
       setReady(false);
       setRooms([]);
       return;
@@ -145,6 +164,8 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     const data = await fetchJson<{ rooms: ChatRoom[] }>("/api/chat/rooms", token);
     const next = await Promise.all(
       data.rooms.map(async (room) => {
+        const preview = room.lastMessage?.text?.trim() || (room.lastMessage?.imageUrl ? "📷 Imagen" : "");
+        if (preview) return { ...room, lastMessage: { ...room.lastMessage!, text: preview } };
         if (!room.lastMessage?.ciphertext || !room.lastMessage.iv) return room;
         try {
           const key = await resolveRoomKey(room);
@@ -214,15 +235,13 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       const key = room ? await resolveRoomKey(room) : cachedRoomKey(roomId);
       const decoded: ChatMessage[] = [];
       for (const message of data.messages) {
-        let text = "";
-        if (key) {
+        let text = typeof message.text === "string" ? message.text : "";
+        if (!text && key && message.iv && message.ciphertext) {
           try {
             text = await decryptMessage(key, message.iv, message.ciphertext);
           } catch {
-            text = "No se pudo descifrar este mensaje.";
+            text = "No se pudo leer este mensaje.";
           }
-        } else {
-          text = "Abre el chat en este dispositivo para descifrar.";
         }
         decoded.push({ ...message, text });
       }
@@ -232,18 +251,35 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   );
 
   const sendMessage = useCallback(
-    async (roomId: string, text: string) => {
+    async (roomId: string, text: string, imageUrl = "") => {
       if (!token || !user?._id) return null;
       const room = rooms.find((item) => item.id === roomId);
       if (!room) return null;
-      const key = await resolveRoomKey(room);
-      if (!key) return null;
-      const payload = await encryptMessage(key, text);
+      const trimmed = text.trim();
+      if (!trimmed && !imageUrl) return null;
+      let payload: { text: string; imageUrl?: string; ciphertext?: string; iv?: string } = {
+        text: trimmed,
+        imageUrl: imageUrl || undefined,
+      };
+      try {
+        const key = await resolveRoomKey(room);
+        if (key && trimmed) {
+          const encrypted = await encryptMessage(key, trimmed);
+          payload = { ...payload, ...encrypted };
+        }
+      } catch {
+        /* el texto/imagen en servidor basta para cualquier sesión */
+      }
       const data = await fetchJson<{ message: ChatMessage }>(`/api/chat/rooms/${roomId}/messages`, token, {
         method: "POST",
         body: JSON.stringify(payload),
       });
-      const message = { ...data.message, text };
+      const message = {
+        ...data.message,
+        text: data.message.text || trimmed,
+        imageUrl: data.message.imageUrl || imageUrl,
+      };
+      const preview = message.text?.trim() || (message.imageUrl ? "📷 Imagen" : "");
       setRooms((current) =>
         current.map((item) =>
           item.id === roomId
@@ -251,10 +287,11 @@ export function ChatProvider({ children }: { children: ReactNode }) {
                 ...item,
                 lastMessage: {
                   senderId: message.senderId,
-                  ciphertext: message.ciphertext,
-                  iv: message.iv,
+                  ciphertext: message.ciphertext || "",
+                  iv: message.iv || "",
                   at: message.at,
-                  text,
+                  text: preview,
+                  imageUrl: message.imageUrl || "",
                 },
               }
             : item,
@@ -263,6 +300,62 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       return message;
     },
     [resolveRoomKey, rooms, token, user?._id],
+  );
+
+  const uploadImage = useCallback(
+    async (dataUrl: string) => {
+      if (!token) throw new Error("No autorizado.");
+      const data = await fetchJson<{ url: string }>("/api/chat/upload", token, {
+        method: "POST",
+        body: JSON.stringify({ image: dataUrl }),
+      });
+      return data.url;
+    },
+    [token],
+  );
+
+  const editMessage = useCallback(
+    async (roomId: string, messageId: string, text: string) => {
+      if (!token || !user?._id) return null;
+      const room = rooms.find((item) => item.id === roomId);
+      if (!room) return null;
+      let payload: { text: string; ciphertext?: string; iv?: string } = { text };
+      try {
+        const key = await resolveRoomKey(room);
+        if (key) {
+          const encrypted = await encryptMessage(key, text);
+          payload = { text, ...encrypted };
+        }
+      } catch {
+        /* ok */
+      }
+      const data = await fetchJson<{ message: ChatMessage }>(
+        `/api/chat/rooms/${roomId}/messages/${messageId}`,
+        token,
+        { method: "PATCH", body: JSON.stringify(payload) },
+      );
+      return { ...data.message, text: data.message.text || text };
+    },
+    [resolveRoomKey, rooms, token, user?._id],
+  );
+
+  const deleteMessage = useCallback(
+    async (roomId: string, messageId: string) => {
+      if (!token) return false;
+      await fetchJson(`/api/chat/rooms/${roomId}/messages/${messageId}`, token, { method: "DELETE" });
+      return true;
+    },
+    [token],
+  );
+
+  const deleteRoom = useCallback(
+    async (roomId: string) => {
+      if (!token) return false;
+      await fetchJson(`/api/chat/rooms/${roomId}`, token, { method: "DELETE" });
+      setRooms((current) => current.filter((item) => item.id !== roomId));
+      return true;
+    },
+    [token],
   );
 
   const value = useMemo(
@@ -274,9 +367,26 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       createGroup,
       loadMessages,
       sendMessage,
+      uploadImage,
+      editMessage,
+      deleteMessage,
+      deleteRoom,
       resolveRoomKey,
     }),
-    [ready, rooms, refreshRooms, openDm, createGroup, loadMessages, sendMessage, resolveRoomKey],
+    [
+      ready,
+      rooms,
+      refreshRooms,
+      openDm,
+      createGroup,
+      loadMessages,
+      sendMessage,
+      uploadImage,
+      editMessage,
+      deleteMessage,
+      deleteRoom,
+      resolveRoomKey,
+    ],
   );
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;
