@@ -160,14 +160,31 @@ export async function steamFriends(req: Request, res: Response) {
     return;
   }
 
-  const requests = (user.incomingFriendRequests ?? []).map((item) => ({
-    fromUserId: item.fromUserId || "",
-    steamId: item.steamId || "",
-    name: item.name || item.username || "Jugador",
-    avatarUrl: item.avatarUrl || "",
-    username: item.username || "",
-    at: item.at || 0,
-  }));
+  const requestRows = user.incomingFriendRequests ?? [];
+  const requestUserIds = requestRows
+    .map((item) => item.fromUserId)
+    .filter((id): id is string => Boolean(id) && Types.ObjectId.isValid(id));
+  const requestSenders =
+    requestUserIds.length > 0
+      ? await User.find({ _id: { $in: requestUserIds } })
+          .select("_id steamBackgroundUrl steamAvatarUrl avatarUrl")
+          .lean()
+      : [];
+  const requestSenderMap = new Map(
+    requestSenders.map((sender) => [String(sender._id), sender] as const),
+  );
+  const requests = requestRows.map((item) => {
+    const sender = requestSenderMap.get(item.fromUserId || "");
+    return {
+      fromUserId: item.fromUserId || "",
+      steamId: item.steamId || "",
+      name: item.name || item.username || "Jugador",
+      avatarUrl: item.avatarUrl || sender?.steamAvatarUrl || sender?.avatarUrl || "",
+      username: item.username || "",
+      at: item.at || 0,
+      backgroundUrl: sender?.steamBackgroundUrl || "",
+    };
+  });
 
   const friends: Friend[] = [];
   let hidden = false;

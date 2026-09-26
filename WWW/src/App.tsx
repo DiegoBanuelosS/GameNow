@@ -3,10 +3,12 @@ import { CatalogProvider } from "./data/CatalogContext";
 import { AuthProvider, useAuth } from "./data/AuthContext";
 import { ChatProvider } from "./data/ChatContext";
 import { DownloadsProvider } from "./data/DownloadsContext";
+import { NotificationsProvider } from "./data/NotificationsContext";
 import { LaunchProvider } from "./data/LaunchContext";
 import { AppPanelsProvider } from "./data/AppPanelsContext";
 import { DownloadBar } from "./components/DownloadBar";
 import { LaunchScreen } from "./components/LaunchScreen";
+import { ToastNotifications } from "./components/ToastNotifications";
 import { checkIsDesktopApp } from "./data/useDesktopApp";
 import { AuthPage } from "./pages/Auth/AuthPage";
 import { CartPage } from "./pages/cart/CartPage";
@@ -89,15 +91,18 @@ export function App() {
       <AppPanelsProvider>
         <ChatProvider>
           <DownloadsProvider>
-            <LaunchProvider>
-              <CartProvider>
-                <CatalogProvider>
-                  <AppRoutes />
-                  <DownloadBar />
-                  <LaunchScreen />
-                </CatalogProvider>
-              </CartProvider>
-            </LaunchProvider>
+            <NotificationsProvider>
+              <LaunchProvider>
+                <CartProvider>
+                  <CatalogProvider>
+                    <AppRoutes />
+                    <DownloadBar />
+                    <LaunchScreen />
+                    <ToastNotifications />
+                  </CatalogProvider>
+                </CartProvider>
+              </LaunchProvider>
+            </NotificationsProvider>
           </DownloadsProvider>
         </ChatProvider>
       </AppPanelsProvider>

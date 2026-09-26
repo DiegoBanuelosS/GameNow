@@ -1,9 +1,11 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:local_notifier/local_notifier.dart';
 import 'package:webview_windows/webview_windows.dart';
 
 import '../store_url.dart';
@@ -19,6 +21,7 @@ class StoreWebViewPage extends StatefulWidget {
 
 class _StoreWebViewPageState extends State<StoreWebViewPage> {
   final WebviewController _controller = WebviewController();
+  StreamSubscription<dynamic>? _webMessageSub;
   bool _ready = false;
   String? _error;
 
@@ -30,6 +33,7 @@ class _StoreWebViewPageState extends State<StoreWebViewPage> {
 
   @override
   void dispose() {
+    unawaited(_webMessageSub?.cancel() ?? Future<void>.value());
     try {
       if (_controller.value.isInitialized) {
         _controller.dispose();
@@ -63,6 +67,44 @@ class _StoreWebViewPageState extends State<StoreWebViewPage> {
     return null;
   }
 
+  Future<void> _showWindowsNotification({
+    required String title,
+    required String body,
+  }) async {
+    final trimmedTitle = title.trim().isEmpty ? 'GameNow' : title.trim();
+    final trimmedBody = body.trim();
+    if (trimmedBody.isEmpty) return;
+    try {
+      final notification = LocalNotification(
+        identifier: 'gamenow-${DateTime.now().millisecondsSinceEpoch}',
+        title: trimmedTitle,
+        body: trimmedBody,
+      );
+      await notification.show();
+    } catch (_) {}
+  }
+
+  Future<void> _onWebMessage(dynamic message) async {
+    Map<String, dynamic>? data;
+    if (message is Map) {
+      data = message.map((key, value) => MapEntry('$key', value));
+    } else if (message is String) {
+      try {
+        final decoded = jsonDecode(message);
+        if (decoded is Map) {
+          data = decoded.map((key, value) => MapEntry('$key', value));
+        }
+      } catch (_) {}
+    }
+    if (data == null) return;
+    if (data['action'] == 'notify') {
+      await _showWindowsNotification(
+        title: '${data['title'] ?? 'GameNow'}',
+        body: '${data['body'] ?? ''}',
+      );
+    }
+  }
+
   Future<void> _openStore() async {
     if (Platform.environment.containsKey('FLUTTER_TEST')) {
       return;
@@ -86,6 +128,8 @@ class _StoreWebViewPageState extends State<StoreWebViewPage> {
         await _controller.initialize();
         await _controller.setBackgroundColor(GameNowColors.canvas);
         await _controller.setPopupWindowPolicy(WebviewPopupWindowPolicy.deny);
+        await _webMessageSub?.cancel();
+        _webMessageSub = _controller.webMessage.listen(_onWebMessage);
       }
       final appUrl = targetUrl.contains('?') ? '$targetUrl&app=1' : '$targetUrl?app=1';
       await _controller.loadUrl(appUrl);
@@ -94,7 +138,8 @@ class _StoreWebViewPageState extends State<StoreWebViewPage> {
     } on PlatformException catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = 'Error de inicialización de WebView2: ${e.message ?? e.code}.\nAsegúrate de tener Microsoft Edge WebView2 Runtime instalado en Windows.';
+        _error =
+            'Error de inicialización de WebView2: ${e.message ?? e.code}.\nAsegúrate de tener Microsoft Edge WebView2 Runtime instalado en Windows.';
       });
     } catch (e) {
       if (!mounted) return;
@@ -153,13 +198,24 @@ class _StoreWebViewPageState extends State<StoreWebViewPage> {
   }
 
   void _handlePointerPanZoomUpdate(PointerPanZoomUpdateEvent event) {
-    // Invert panDelta so trackpad natural scrolling scrolls down when dragging fingers up
     _dispatchScroll(
       -event.panDelta.dx * 1.5,
       -event.panDelta.dy * 1.5,
       event.localPosition.dx,
       event.localPosition.dy,
     );
+  }
+
+  FutureOr<WebviewPermissionDecision> _onPermissionRequested(
+    String url,
+    WebviewPermissionKind kind,
+    bool isUserInitiated,
+  ) {
+    if (kind == WebviewPermissionKind.notifications ||
+        kind == WebviewPermissionKind.clipboardRead) {
+      return WebviewPermissionDecision.allow;
+    }
+    return WebviewPermissionDecision.deny;
   }
 
   @override
@@ -177,7 +233,10 @@ class _StoreWebViewPageState extends State<StoreWebViewPage> {
                   Listener(
                     onPointerSignal: _handlePointerSignal,
                     onPointerPanZoomUpdate: _handlePointerPanZoomUpdate,
-                    child: Webview(_controller),
+                    child: Webview(
+                      _controller,
+                      permissionRequested: _onPermissionRequested,
+                    ),
                   ),
                 if (!_ready) _Splash(error: _error, onRetry: _openStore),
               ],
