@@ -24,38 +24,12 @@ function cardBrand(value: string) {
   return "";
 }
 
-type DemoAddress = {
-  id: string;
-  label: string;
-  address: string;
-  city: string;
-  postal: string;
+/** Dirección por defecto (solo frontend) */
+const DEFAULT_ADDRESS = {
+  address: "Av. Insurgentes Sur 1458",
+  city: "Ciudad de México",
+  postal: "03100",
 };
-
-/** Direcciones de prueba (solo frontend) */
-const DEMO_ADDRESSES: DemoAddress[] = [
-  {
-    id: "cdmx",
-    label: "CDMX",
-    address: "Av. Insurgentes Sur 1458",
-    city: "Ciudad de México",
-    postal: "03100",
-  },
-  {
-    id: "gdl",
-    label: "Guadalajara",
-    address: "Calle Morelos 220",
-    city: "Guadalajara",
-    postal: "44100",
-  },
-  {
-    id: "mty",
-    label: "Monterrey",
-    address: "Av. Constitución 500",
-    city: "Monterrey",
-    postal: "64000",
-  },
-];
 
 function CardMark({ brand }: { brand: string }) {
   if (brand === "visa") {
@@ -102,10 +76,9 @@ export function PayPage() {
   const [card, setCard] = useState("");
   const [expiry, setExpiry] = useState("");
   const [cvv, setCvv] = useState("");
-  const [address, setAddress] = useState("");
-  const [city, setCity] = useState("");
-  const [postal, setPostal] = useState("");
-  const [addressId, setAddressId] = useState("");
+  const [address, setAddress] = useState(DEFAULT_ADDRESS.address);
+  const [city, setCity] = useState(DEFAULT_ADDRESS.city);
+  const [postal, setPostal] = useState(DEFAULT_ADDRESS.postal);
   const [error, setError] = useState("");
   const [showCvv, setShowCvv] = useState(false);
   const [picking, setPicking] = useState(false);
@@ -143,16 +116,6 @@ export function PayPage() {
     setCvv("");
     setExpiry("");
     clear();
-  };
-
-  const selectAddress = (id: string) => {
-    setAddressId(id);
-    const demo = DEMO_ADDRESSES.find((item) => item.id === id);
-    if (!demo) return;
-    setAddress(demo.address);
-    setCity(demo.city);
-    setPostal(demo.postal);
-    setError("");
   };
 
   const payWithWallet = () => {
@@ -373,42 +336,12 @@ export function PayPage() {
                       </label>
                     </div>
                     <label>
-                      Seleccionar dirección
-                      <select
-                        className="pay-address-select"
-                        value={addressId}
-                        disabled={paying}
-                        onChange={(event) => selectAddress(event.target.value)}
-                      >
-                        <option value="">Elige una dirección</option>
-                        {DEMO_ADDRESSES.map((demo) => (
-                          <option key={demo.id} value={demo.id}>
-                            {demo.label} — {demo.address}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <label>
                       Dirección
-                      <input
-                        autoComplete="street-address"
-                        value={address}
-                        onChange={(event) => {
-                          setAddressId("");
-                          setAddress(event.target.value);
-                        }}
-                      />
+                      <input autoComplete="street-address" value={address} onChange={(event) => setAddress(event.target.value)} />
                     </label>
                     <label>
                       Ciudad
-                      <input
-                        autoComplete="address-level2"
-                        value={city}
-                        onChange={(event) => {
-                          setAddressId("");
-                          setCity(event.target.value);
-                        }}
-                      />
+                      <input autoComplete="address-level2" value={city} onChange={(event) => setCity(event.target.value)} />
                     </label>
                     <label>
                       Código postal
@@ -416,10 +349,7 @@ export function PayPage() {
                         inputMode="numeric"
                         autoComplete="postal-code"
                         value={postal}
-                        onChange={(event) => {
-                          setAddressId("");
-                          setPostal(digits(event.target.value, 5));
-                        }}
+                        onChange={(event) => setPostal(digits(event.target.value, 5))}
                       />
                     </label>
                     <label className="pay-save-toggle">
