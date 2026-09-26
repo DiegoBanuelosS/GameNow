@@ -291,22 +291,18 @@ export async function loadProduct(slug: string) {
   const base = await toPublic(match);
   const steam = await matchingSteam(match);
   const hostedShots = (hostedFor(match).shots ?? []).map((id) => imageUrl(id, "hero"));
-  const screenshotItems = [...hostedShots, ...(hostedShots.length ? [] : steam?.screenshots ?? [])].slice(0, 12).map((url, i) => ({
-    type: "image" as const,
-    src: url,
-    srcSet: undefined,
-    sizes: "(min-width: 900px) 56vw, 92vw",
-    alt: `${match.name} – captura ${i + 1}`,
-  }));
+  const screenshotItems = [...hostedShots, ...(hostedShots.length ? [] : steam?.screenshots ?? [])]
+    .filter((url) => !/cp-phl-art|cyberpunk-2077-cover|cp-liberty|cp-home|\/cover|_cover|library_600x900|CP2077_UE_KV/i.test(url))
+    .slice(0, 12)
+    .map((url, i) => ({
+      type: "image" as const,
+      src: url,
+      srcSet: undefined,
+      sizes: "(min-width: 900px) 56vw, 92vw",
+      alt: `${match.name} – captura ${i + 1}`,
+    }));
   const pressVideos = galleryVideos(match, cover.src);
   const gallery = [
-    {
-      type: "image" as const,
-      src: cover.src,
-      srcSet: cover.srcSet,
-      sizes: cover.sizes,
-      alt: match.alt,
-    },
     ...(pressVideos.length
       ? pressVideos
       : (steam?.videos ?? []).slice(0, 2).map((video, index) => ({

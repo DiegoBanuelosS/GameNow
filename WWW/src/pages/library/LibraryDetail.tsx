@@ -5,6 +5,7 @@ import { useAppPanels } from "../../data/AppPanelsContext";
 import { useDownloads } from "../../data/DownloadsContext";
 import { useLaunch } from "../../data/LaunchContext";
 import { apiUrl } from "../../data/api";
+import { libraryBannerFor, libraryCoverFor } from "../../data/libraryArt";
 import { StoreArt } from "../../data/StoreArt";
 
 type Achievement = {
@@ -195,13 +196,16 @@ export function LibraryDetail({
   const steamBase = game.steamAppId
     ? `https://cdn.cloudflare.steamstatic.com/steam/apps/${game.steamAppId}`
     : "";
+  const preferredBanner = libraryBannerFor(game);
+  const preferredCover = libraryCoverFor(game) || game.cover;
   const bannerChain = [
+    preferredBanner,
     steamBase ? `${steamBase}/library_hero_2x.jpg` : "",
     steamBase ? `${steamBase}/library_hero.jpg` : "",
     game.banner || "",
     steamBase ? `${steamBase}/capsule_616x353.jpg` : "",
     game.coverFallback || "",
-    game.cover || "",
+    preferredCover || "",
   ].filter((url, index, list) => Boolean(url) && list.indexOf(url) === index);
   const [banner, setBanner] = useState(bannerChain[0] || "");
 
@@ -244,7 +248,7 @@ export function LibraryDetail({
         ) : null}
         <div className="library-detail-scrim" />
         <StoreArt
-          src={game.cover}
+          src={preferredCover}
           fallback={game.coverFallback}
           fallbacks={artFallbacks}
           alt=""
@@ -292,9 +296,9 @@ export function LibraryDetail({
               onClick={() =>
                 startLaunch({
                   name: game.name,
-                  image: bannerChain[0] || banner || game.cover || "",
+                  image: bannerChain[0] || banner || preferredCover || "",
                   images: bannerChain,
-                  cover: game.cover || game.coverFallback || banner || "",
+                  cover: preferredCover || game.coverFallback || banner || "",
                 })
               }
             >

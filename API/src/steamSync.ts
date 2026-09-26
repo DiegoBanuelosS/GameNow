@@ -94,6 +94,28 @@ export { inferGenre };
 function gameArt(appId: string) {
   const hd = `https://cdn.akamai.steamstatic.com/steam/apps/${appId}/library_600x900_2x.jpg`;
   const std = `https://cdn.akamai.steamstatic.com/steam/apps/${appId}/library_600x900.jpg`;
+  const cyberpunkBanner =
+    "https://res.cloudinary.com/fj6z6mba/image/upload/f_auto,q_auto:best,dpr_auto,c_limit,g_center,w_1440/gamenow/presskit/cp-home";
+  const phantomCover =
+    "https://res.cloudinary.com/fj6z6mba/image/upload/f_auto,q_auto:best,dpr_auto,c_limit,g_center,w_1440/gamenow/presskit/cp-liberty";
+  if (appId === "1091500") {
+    return {
+      cover: hd,
+      coverSrcSet: `${std} 600w, ${hd} 1200w`,
+      coverFallback: `https://cdn.akamai.steamstatic.com/steam/apps/${appId}/header.jpg`,
+      banner: cyberpunkBanner,
+      miniIcon: `https://cdn.akamai.steamstatic.com/steam/apps/${appId}/capsule_sm_120.jpg`,
+    };
+  }
+  if (appId === "2138330") {
+    return {
+      cover: phantomCover,
+      coverSrcSet: "",
+      coverFallback: phantomCover,
+      banner: `https://cdn.akamai.steamstatic.com/steam/apps/${appId}/capsule_616x353.jpg`,
+      miniIcon: `https://cdn.akamai.steamstatic.com/steam/apps/${appId}/capsule_sm_120.jpg`,
+    };
+  }
   return {
     cover: hd,
     coverSrcSet: `${std} 600w, ${hd} 1200w`,

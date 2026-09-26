@@ -63,15 +63,26 @@
   },
   "nba-2k27": {
     "cover": "gamenow/press/nba-2k27-cover",
-    "trailer": "gamenow/presskit/nba-2k27-trailer",
+    "trailer": "https://www.youtube.com/watch?v=vQ2jNNbh1TU",
     "videos": [
-      "gamenow/presskit/nba-2k27-trailer",
-      "https://www.youtube.com/watch?v=vQ2jNNbh1TU"
+      "https://www.youtube.com/watch?v=vQ2jNNbh1TU",
+      "https://www.youtube.com/watch?v=3drtGJfhQFc",
+      "https://www.youtube.com/watch?v=LHUzFnq70b8"
     ],
     "shots": [
-      "gamenow/press/nba-2k27-shot-1",
-      "gamenow/press/nba-2k27-shot-2",
-      "gamenow/press/nba-2k27-shot-3"
+      "gamenow/presskit/nba-2k27-season-1",
+      "gamenow/presskit/nba-2k27-mycareer",
+      "gamenow/presskit/nba-2k27-the-w",
+      "gamenow/presskit/nba-2k27-myplayer-builder",
+      "gamenow/presskit/nba-2k27-mynba",
+      "gamenow/presskit/nba-2k27-myteam",
+      "gamenow/presskit/nba-2k27-2k-hq",
+      "gamenow/presskit/nba-2k27-the-city",
+      "gamenow/presskit/nba-2k27-gameplay-key",
+      "gamenow/presskit/nba-2k27-launch-beats",
+      "gamenow/presskit/nba-2k27-gameplay-trailer-key",
+      "gamenow/presskit/nba-2k27-preseason",
+      "gamenow/presskit/nba-2k27-roadmap"
     ]
   },
   "forza-horizon-6": {
@@ -116,9 +127,6 @@
     "shots": [
       "gamenow/presskit/cp-5th-1920",
       "gamenow/presskit/cp-afterlife",
-      "gamenow/presskit/cp-home",
-      "gamenow/presskit/cp-liberty",
-      "gamenow/presskit/cp-phl-art",
       "gamenow/presskit/cp-ps5-jackie",
       "gamenow/presskit/cp-ps5-misty",
       "gamenow/presskit/cp-ps5-reed",

@@ -470,16 +470,25 @@ export async function updateLibraryGame(req: Request, res: Response) {
 }
 
 function boughtGame(slug: string, name: string, cover: string, steamAppId: string, coverFallback: string): SteamLibraryGame {
-  const banner = steamAppId
-    ? `https://cdn.cloudflare.steamstatic.com/steam/apps/${steamAppId}/header.jpg`
-    : cover;
+  const cyberpunkBanner =
+    "https://res.cloudinary.com/fj6z6mba/image/upload/f_auto,q_auto:best,dpr_auto,c_limit,g_center,w_1440/gamenow/presskit/cp-home";
+  const banner =
+    steamAppId === "1091500" || slug === "cyberpunk-2077"
+      ? cyberpunkBanner
+      : steamAppId
+        ? `https://cdn.cloudflare.steamstatic.com/steam/apps/${steamAppId}/header.jpg`
+        : cover;
+  const artCover =
+    steamAppId === "2138330" || slug.includes("phantom-liberty")
+      ? "https://res.cloudinary.com/fj6z6mba/image/upload/f_auto,q_auto:best,dpr_auto,c_limit,g_center,w_1440/gamenow/presskit/cp-liberty"
+      : cover || coverFallback;
   return {
     slug,
     steamAppId,
     name,
-    cover: cover || coverFallback,
+    cover: artCover,
     coverSrcSet: "",
-    coverFallback: coverFallback || cover,
+    coverFallback: coverFallback || artCover,
     banner,
     miniIcon: steamAppId ? `https://cdn.cloudflare.steamstatic.com/steam/apps/${steamAppId}/capsule_sm_120.jpg` : "",
     genre: "Aventura",

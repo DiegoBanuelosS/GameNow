@@ -154,30 +154,32 @@ export function ReleaseCalendar() {
         toggleActions: "play none none none",
       },
     });
-    gsap.from(".because-you-played .release-card", {
-      y: 32,
-      opacity: 0,
-      duration: 0.55,
-      stagger: 0.08,
-      ease: "power3.out",
-      scrollTrigger: {
-        trigger: ".because-you-played",
-        start: "top 86%",
-        toggleActions: "play none none none",
-      },
-    });
-    gsap.from(".you-may-like .release-card", {
-      y: 32,
-      opacity: 0,
-      duration: 0.55,
-      stagger: 0.08,
-      ease: "power3.out",
-      scrollTrigger: {
-        trigger: ".you-may-like",
-        start: "top 86%",
-        toggleActions: "play none none none",
-      },
-    });
+    if (user) {
+      gsap.from(".because-you-played .release-card", {
+        y: 32,
+        opacity: 0,
+        duration: 0.55,
+        stagger: 0.08,
+        ease: "power3.out",
+        scrollTrigger: {
+          trigger: ".because-you-played",
+          start: "top 86%",
+          toggleActions: "play none none none",
+        },
+      });
+      gsap.from(".you-may-like .release-card", {
+        y: 32,
+        opacity: 0,
+        duration: 0.55,
+        stagger: 0.08,
+        ease: "power3.out",
+        scrollTrigger: {
+          trigger: ".you-may-like",
+          start: "top 86%",
+          toggleActions: "play none none none",
+        },
+      });
+    }
     gsap.from(".release-calendar .release-card", {
       y: 32,
       opacity: 0,
@@ -190,7 +192,7 @@ export function ReleaseCalendar() {
         toggleActions: "play none none none",
       },
     });
-  }, [days]);
+  }, [days, user]);
 
   return (
     <>
@@ -237,60 +239,64 @@ export function ReleaseCalendar() {
         </>
       ) : null}
     </section>
-    <section className="you-may-like" aria-labelledby="you-may-like-title">
-      <h2 id="you-may-like-title">Te podría gustar</h2>
-      {suggestions.length ? (
-        <ul className="release-list">
-          {suggestions.map((title) => (
-            <li key={title.appId}>
-              <Link className="release-card" to={`/lanzamiento/${title.appId}`}>
-                <StoreArt src={title.cover} alt="" />
-                <span className="release-card-copy">
-                  <strong>{title.name}</strong>
-                  {title.studio ? <em>{title.studio}</em> : null}
-                  {title.price ? <span>{title.price}</span> : null}
-                </span>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <ReleaseNotice icon={Library}>
-          Cuando tengas juegos en tu biblioteca, esta fila se arma con las categorías que más juegas.
-        </ReleaseNotice>
-      )}
-    </section>
-    <section className="because-you-played" aria-labelledby="because-you-played-title">
-      <h2 id="because-you-played-title">
-        {weekGame ? `Por qué jugaste ${weekGame.name}` : "Por qué jugaste"}
-      </h2>
-      {because.length ? (
-        <ul className="release-list">
-          {because.map((title) => (
-            <li key={title.appId}>
-              <Link className="release-card" to={title.href.startsWith("/") ? title.href : `/lanzamiento/${title.appId}`}>
-                <StoreArt src={title.cover} alt="" />
-                <span className="release-card-copy">
-                  <strong>{title.name}</strong>
-                  {title.studio ? <em>{title.studio}</em> : null}
-                  {title.price ? <span>{title.price}</span> : null}
-                </span>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <ReleaseNotice icon={weekGame && similar === null && !similarError ? LoaderCircle : Gamepad2}>
-          {similarError
-            ? "No se pudieron cargar juegos parecidos."
-            : weekGame && similar === null
-              ? "Buscando juegos parecidos…"
-              : weekGame
-                ? `Nada parecido a ${weekGame.name}.`
-                : "No jugaste nada esta semana."}
-        </ReleaseNotice>
-      )}
-    </section>
+    {user ? (
+      <>
+        <section className="you-may-like" aria-labelledby="you-may-like-title">
+          <h2 id="you-may-like-title">Te podría gustar</h2>
+          {suggestions.length ? (
+            <ul className="release-list">
+              {suggestions.map((title) => (
+                <li key={title.appId}>
+                  <Link className="release-card" to={`/lanzamiento/${title.appId}`}>
+                    <StoreArt src={title.cover} alt="" />
+                    <span className="release-card-copy">
+                      <strong>{title.name}</strong>
+                      {title.studio ? <em>{title.studio}</em> : null}
+                      {title.price ? <span>{title.price}</span> : null}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <ReleaseNotice icon={Library}>
+              Cuando tengas juegos en tu biblioteca, esta fila se arma con las categorías que más juegas.
+            </ReleaseNotice>
+          )}
+        </section>
+        <section className="because-you-played" aria-labelledby="because-you-played-title">
+          <h2 id="because-you-played-title">
+            {weekGame ? `Por qué jugaste ${weekGame.name}` : "Por qué jugaste"}
+          </h2>
+          {because.length ? (
+            <ul className="release-list">
+              {because.map((title) => (
+                <li key={title.appId}>
+                  <Link className="release-card" to={title.href.startsWith("/") ? title.href : `/lanzamiento/${title.appId}`}>
+                    <StoreArt src={title.cover} alt="" />
+                    <span className="release-card-copy">
+                      <strong>{title.name}</strong>
+                      {title.studio ? <em>{title.studio}</em> : null}
+                      {title.price ? <span>{title.price}</span> : null}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <ReleaseNotice icon={weekGame && similar === null && !similarError ? LoaderCircle : Gamepad2}>
+              {similarError
+                ? "No se pudieron cargar juegos parecidos."
+                : weekGame && similar === null
+                  ? "Buscando juegos parecidos…"
+                  : weekGame
+                    ? `Nada parecido a ${weekGame.name}.`
+                    : "No jugaste nada esta semana."}
+            </ReleaseNotice>
+          )}
+        </section>
+      </>
+    ) : null}
     </>
   );
 }

@@ -227,14 +227,6 @@ export async function loadGame(slug: string) {
   }
   const extras = game.steamAppId ? await loadSteamExtras(game.steamAppId) : null;
   const gallery = [
-    {
-      type: "image" as const,
-      src: game.cover,
-      srcSet: game.coverSrcSet,
-      sizes: "min(100vw, 860px)",
-      fallback: game.coverFallback,
-      alt: game.alt,
-    },
     ...(extras?.videos ?? []).map((video, index) => ({
       type: "video" as const,
       src: video.src,

@@ -8,6 +8,7 @@ import { useDownloads } from "../../data/DownloadsContext";
 import { useLaunch } from "../../data/LaunchContext";
 import { apiUrl } from "../../data/api";
 import { useOurCovers } from "../../data/catalog";
+import { libraryCoverFor } from "../../data/libraryArt";
 import { StoreArt } from "../../data/StoreArt";
 import { steamMarkupToHtml } from "../../data/steamMarkup";
 import { AuthRequiredGate } from "../../components/AuthRequiredGate";
@@ -88,10 +89,13 @@ function ourCover(
 }
 
 function artFallbacks(game: LibraryGameItem, ours: string) {
+  const preferred = libraryCoverFor(game);
   const capsule = game.steamAppId
     ? `https://cdn.akamai.steamstatic.com/steam/apps/${game.steamAppId}/capsule_616x353.jpg`
     : "";
-  return [game.coverFallback, capsule, ours].filter((url): url is string => Boolean(url && url !== game.cover));
+  return [game.coverFallback, capsule, ours].filter(
+    (url): url is string => Boolean(url && url !== preferred && url !== game.cover),
+  );
 }
 
 export function LibraryPage() {
@@ -806,7 +810,7 @@ export function LibraryPage() {
                     }}
                   >
                     <StoreArt
-                      src={game.cover}
+                      src={libraryCoverFor(game) || game.cover}
                       fallback={game.coverFallback}
                       fallbacks={artFallbacks(game, ourCover(ourCovers, game))}
                       alt={`Carátula de ${game.name}`}
@@ -900,7 +904,7 @@ export function LibraryPage() {
                       }}
                     >
                       <StoreArt
-                        src={game.cover}
+                        src={libraryCoverFor(game) || game.cover}
                         fallback={game.coverFallback}
                         fallbacks={artFallbacks(game, ourCover(ourCovers, game))}
                         alt={`Carátula de ${game.name}`}

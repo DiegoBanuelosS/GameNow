@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Hls from "hls.js";
+import { Check } from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { useCart } from "../../data/CartContext";
+import { useAuth } from "../../data/AuthContext";
+import { useCart, type CartItem } from "../../data/CartContext";
 import { fetchProduct, type StoreProduct } from "../../data/catalog";
-import { buildEditions } from "../../data/editions";
+import { buildBuyEditions, buildDlcs, type GameEdition } from "../../data/editions";
 import { StoreArt } from "../../data/StoreArt";
 import { youtubeEmbed, youtubeId, youtubePoster } from "../../data/youtube";
 import { ConnectionBanner } from "../Store/ConnectionBanner";
@@ -15,10 +17,75 @@ import { PcFitCard } from "./PcFitCard";
 import { ReviewsSection } from "./ReviewsSection";
 import "./GamePage.css";
 
+function ownsEdition(
+  games: { slug: string }[] | undefined,
+  productSlug: string,
+  edition: GameEdition,
+) {
+  const list = games ?? [];
+  if (list.some((game) => game.slug === `${productSlug}:${edition.id}`)) {
+    return true;
+  }
+  // Ediciones del juego base: si ya está en la biblioteca, no se vuelve a comprar.
+  if (edition.kind === "edition") {
+    return list.some((game) => game.slug === productSlug);
+  }
+  return false;
+}
+
+function EditionOffer({
+  product,
+  edition,
+  owned,
+  add,
+  onBought,
+}: {
+  product: StoreProduct;
+  edition: GameEdition;
+  owned: boolean;
+  add: (item: CartItem) => void;
+  onBought: () => void;
+}) {
+  return (
+    <li className="game-edition">
+      <StoreArt className="game-edition-cover" src={edition.cover} alt="" />
+      <p className="game-edition-name">{edition.name}</p>
+      <div className="game-edition-price">
+        {edition.was ? <s>{edition.was}</s> : null}
+        <span>{edition.price}</span>
+      </div>
+      {owned ? (
+        <button type="button" className="game-edition-buy is-owned" disabled>
+          <Check size={16} aria-hidden />
+          Comprado
+        </button>
+      ) : (
+        <button
+          type="button"
+          className="game-edition-buy"
+          onClick={() => {
+            add({
+              slug: `${product.slug}:${edition.id}`,
+              name: `${product.name} — ${edition.name}`,
+              price: edition.price,
+              priceValue: edition.priceValue,
+              cover: edition.cover,
+            });
+            onBought();
+          }}
+        >
+          Comprar
+        </button>
+      )}
+    </li>
+  );
+}
+
 export function GamePage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { add } = useCart();
+  const { user } = useAuth();
   const [product, setProduct] = useState<StoreProduct | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error" | "missing">("loading");
   const [active, setActive] = useState(0);
@@ -57,22 +124,37 @@ export function GamePage() {
     if (!product) {
       return [];
     }
-    if (product.gallery?.length) {
-      return product.gallery;
-    }
-    if (!product.cover) {
-      return [];
-    }
-    return [
-      {
-        type: "image" as const,
-        src: product.cover,
-        srcSet: product.coverSrcSet,
-        sizes: product.coverSizes,
-        alt: product.alt,
-      },
-    ];
+    const raw =
+      product.gallery?.length
+        ? product.gallery
+        : product.cover
+          ? [
+              {
+                type: "image" as const,
+                src: product.cover,
+                srcSet: product.coverSrcSet,
+                sizes: product.coverSizes,
+                alt: product.alt,
+              },
+            ]
+          : [];
+    // Sin carátulas: solo tráilers y capturas de gameplay.
+    return raw.filter((item) => {
+      if (item.type !== "image") return true;
+      if (item.src === product.cover) return false;
+      if (
+        /library_600x900|\/cover|_cover|ar_2:3|capsule_616x353|capsule_231x87|cp-phl-art|cyberpunk-2077-cover|cp-liberty|cp-home|CP2077_UE_KV|nba-2k27-cover-reveal|header\.jpg/i.test(
+          item.src,
+        )
+      ) {
+        return false;
+      }
+      return true;
+    });
   }, [product]);
+
+  const buyEditions = useMemo(() => (product ? buildBuyEditions(product) : []), [product]);
+  const dlcs = useMemo(() => (product ? buildDlcs(product) : []), [product]);
 
   const current = gallery[active] ?? gallery[0];
   const heroVideoRef = useRef<HTMLVideoElement>(null);
@@ -112,85 +194,106 @@ export function GamePage() {
         {status === "missing" ? <p>No encontramos ese título.</p> : null}
         {status === "ready" && product ? (
           <div className="game-layout">
-            {current ? (
+            {current || dlcs.length ? (
               <section className="game-media" aria-label="Medios">
-                <div className="game-hero">
-                  {current.type === "video" && youtubeId(current.src) ? (
-                    <iframe
-                      key={current.src}
-                      className="game-hero-frame"
-                      src={youtubeEmbed(youtubeId(current.src), { muted: true, controls: true })}
-                      title={current.alt}
-                      allow="autoplay; encrypted-media; picture-in-picture"
-                      allowFullScreen
-                    />
-                  ) : current.type === "video" ? (
-                    <video
-                      key={current.src}
-                      ref={heroVideoRef}
-                      poster={current.poster}
-                      controls
-                      playsInline
-                      preload="metadata"
-                      muted={false}
-                    >
-                      {(current.src.includes(".m3u8")
-                        ? []
-                        : current.sources?.length
-                          ? current.sources
-                          : [{ src: current.src, type: current.src.endsWith(".webm") ? "video/webm" : "video/mp4" }]
-                      ).map((source) => (
-                        <source key={source.src} src={source.src} type={source.type} />
-                      ))}
-                    </video>
-                  ) : (
-                    <StoreArt
-                      className="game-hero-art"
-                      src={current.src}
-                      srcSet={current.srcSet}
-                      sizes={current.sizes ?? "(min-width: 900px) 56vw, 92vw"}
-                      fallback={current.fallback}
-                      alt={current.alt}
-                    />
-                  )}
-                </div>
-                {gallery.length > 1 ? (
-                  <ul className="game-thumbs">
-                    {gallery.map((item, index) => (
-                      <li key={`${item.type}-${item.src}`}>
-                        <button
-                          type="button"
-                          aria-current={index === active ? "true" : undefined}
-                          aria-label={item.alt}
-                          onClick={() => setActive(index)}
+                {current ? (
+                  <>
+                    <div className="game-hero">
+                      {current.type === "video" && youtubeId(current.src) ? (
+                        <iframe
+                          key={current.src}
+                          className="game-hero-frame"
+                          src={youtubeEmbed(youtubeId(current.src), { muted: true, controls: true })}
+                          title={current.alt}
+                          allow="autoplay; encrypted-media; picture-in-picture"
+                          allowFullScreen
+                        />
+                      ) : current.type === "video" ? (
+                        <video
+                          key={current.src}
+                          ref={heroVideoRef}
+                          poster={current.poster}
+                          controls
+                          playsInline
+                          preload="metadata"
+                          muted={false}
                         >
-                          {item.type === "video" && youtubeId(item.src) ? (
-                            <img className="game-thumb-preview" src={youtubePoster(youtubeId(item.src))} alt="" />
-                          ) : item.type === "video" && item.src.includes(".m3u8") && item.poster ? (
-                            <img className="game-thumb-preview" src={item.poster} alt="" />
-                          ) : item.type === "video" ? (
-                            <video
-                              className="game-thumb-preview"
-                              src={item.src}
-                              poster={item.poster}
-                              muted
-                              playsInline
-                              preload="metadata"
-                              aria-hidden
-                            />
-                          ) : (
-                            <StoreArt
-                              src={item.src}
-                              srcSet={item.srcSet}
-                              sizes="96px"
-                              fallback={item.fallback}
-                              alt=""
-                            />
-                          )}
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
+                          {(current.src.includes(".m3u8")
+                            ? []
+                            : current.sources?.length
+                              ? current.sources
+                              : [{ src: current.src, type: current.src.endsWith(".webm") ? "video/webm" : "video/mp4" }]
+                          ).map((source) => (
+                            <source key={source.src} src={source.src} type={source.type} />
+                          ))}
+                        </video>
+                      ) : (
+                        <StoreArt
+                          className="game-hero-art"
+                          src={current.src}
+                          srcSet={current.srcSet}
+                          sizes={current.sizes ?? "(min-width: 900px) 56vw, 92vw"}
+                          fallback={current.fallback}
+                          alt={current.alt}
+                        />
+                      )}
+                    </div>
+                    {gallery.length > 1 ? (
+                      <ul className="game-thumbs">
+                        {gallery.map((item, index) => (
+                          <li key={`${item.type}-${item.src}`}>
+                            <button
+                              type="button"
+                              aria-current={index === active ? "true" : undefined}
+                              aria-label={item.alt}
+                              onClick={() => setActive(index)}
+                            >
+                              {item.type === "video" && youtubeId(item.src) ? (
+                                <img className="game-thumb-preview" src={youtubePoster(youtubeId(item.src))} alt="" />
+                              ) : item.type === "video" && item.src.includes(".m3u8") && item.poster ? (
+                                <img className="game-thumb-preview" src={item.poster} alt="" />
+                              ) : item.type === "video" ? (
+                                <video
+                                  className="game-thumb-preview"
+                                  src={item.src}
+                                  poster={item.poster}
+                                  muted
+                                  playsInline
+                                  preload="metadata"
+                                  aria-hidden
+                                />
+                              ) : (
+                                <StoreArt
+                                  src={item.src}
+                                  srcSet={item.srcSet}
+                                  sizes="96px"
+                                  fallback={item.fallback}
+                                  alt=""
+                                />
+                              )}
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
+                  </>
+                ) : null}
+                {dlcs.length ? (
+                  <div className="game-dlcs">
+                    <h2 id="game-dlcs-title">DLCs</h2>
+                    <ul className="game-editions" aria-labelledby="game-dlcs-title">
+                      {dlcs.map((edition) => (
+                        <EditionOffer
+                          key={edition.id}
+                          product={product}
+                          edition={edition}
+                          owned={ownsEdition(user?.steamGames, product.slug, edition)}
+                          add={add}
+                          onBought={() => navigate("/cart")}
+                        />
+                      ))}
+                    </ul>
+                  </div>
                 ) : null}
               </section>
             ) : null}
@@ -210,35 +313,15 @@ export function GamePage() {
                 </p>
               ) : null}
               <ul className="game-editions" aria-label="Ediciones">
-                {buildEditions(product).map((edition) => (
-                  <li key={edition.id} className="game-edition">
-                    <StoreArt
-                      className="game-edition-cover"
-                      src={edition.cover}
-                      alt=""
-                    />
-                    <p className="game-edition-name">{edition.name}</p>
-                    <div className="game-edition-price">
-                      {edition.was ? <s>{edition.was}</s> : null}
-                      <span>{edition.price}</span>
-                    </div>
-                    <button
-                      type="button"
-                      className="game-edition-buy"
-                      onClick={() => {
-                        add({
-                          slug: `${product.slug}:${edition.id}`,
-                          name: `${product.name} — ${edition.name}`,
-                          price: edition.price,
-                          priceValue: edition.priceValue,
-                          cover: edition.cover,
-                        });
-                        navigate("/cart");
-                      }}
-                    >
-                      Comprar
-                    </button>
-                  </li>
+                {buyEditions.map((edition) => (
+                  <EditionOffer
+                    key={edition.id}
+                    product={product}
+                    edition={edition}
+                    owned={ownsEdition(user?.steamGames, product.slug, edition)}
+                    add={add}
+                    onBought={() => navigate("/cart")}
+                  />
                 ))}
               </ul>
               {product.platforms ? <p className="game-meta">Plataformas: {product.platforms}</p> : null}

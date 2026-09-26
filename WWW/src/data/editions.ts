@@ -1,3 +1,4 @@
+import { CYBERPUNK_ULTIMATE_COVER, PHANTOM_LIBERTY_COVER } from "./libraryArt";
 import type { StoreProduct } from "./catalog";
 
 export type GameEdition = {
@@ -7,6 +8,7 @@ export type GameEdition = {
   price: string;
   priceValue: number;
   was?: string;
+  kind: "edition" | "dlc";
 };
 
 const CLOUD = "https://res.cloudinary.com/fj6z6mba/image/upload";
@@ -59,8 +61,8 @@ type CoverSet = {
 const COVERS: Record<string, CoverSet> = {
   "cyberpunk-2077": {
     standard: steamLibrary("1091500"),
-    mid: portrait("gamenow/presskit/cp-phl-art"),
-    top: portrait("gamenow/presskit/cyberpunk-2077-cover"),
+    mid: PHANTOM_LIBERTY_COVER,
+    top: CYBERPUNK_ULTIMATE_COVER,
     midName: "Phantom Liberty",
     topName: "Ultimate Edition",
   },
@@ -75,9 +77,11 @@ const COVERS: Record<string, CoverSet> = {
     top: portrait("gamenow/presskit/f1-2025-2026-season-pack-cover"),
   },
   "nba-2k27": {
-    standard: "/images/events/nba.webp",
-    mid: portrait("gamenow/press/nba-2k27-shot-1"),
-    top: portrait("gamenow/press/nba-2k27-cover"),
+    standard: "https://res.cloudinary.com/fj6z6mba/image/upload/f_auto,q_auto:best,c_fill,g_auto,ar_2:3,w_480/gamenow/presskit/nba-2k27-standard",
+    mid: "https://res.cloudinary.com/fj6z6mba/image/upload/f_auto,q_auto:best,c_fill,g_auto,ar_2:3,w_480/gamenow/presskit/nba-2k27-deluxe",
+    top: "https://res.cloudinary.com/fj6z6mba/image/upload/f_auto,q_auto:best,c_fill,g_auto,ar_2:3,w_480/gamenow/presskit/nba-2k27-ultra",
+    midName: "Edición Deluxe",
+    topName: "Ultra Edition",
   },
   "forza-horizon-6": {
     standard: "/images/events/fh6.webp",
@@ -129,6 +133,7 @@ export function buildEditions(product: StoreProduct): GameEdition[] {
         price: moneyFromSample(sample, standardValue),
         priceValue: standardValue,
         was: product.was,
+        kind: "edition",
       },
       {
         id: "phantom-liberty",
@@ -136,6 +141,7 @@ export function buildEditions(product: StoreProduct): GameEdition[] {
         cover: covers.mid,
         price: moneyFromSample(sample, phantomValue),
         priceValue: phantomValue,
+        kind: "dlc",
       },
       {
         id: "ultimate",
@@ -144,6 +150,7 @@ export function buildEditions(product: StoreProduct): GameEdition[] {
         price: ultimate.price,
         priceValue: ultimate.priceValue,
         was: ultimate.was,
+        kind: "edition",
       },
     ];
   }
@@ -158,6 +165,7 @@ export function buildEditions(product: StoreProduct): GameEdition[] {
       price: product.price,
       priceValue: base,
       was: product.was,
+      kind: "edition",
     },
     {
       id: "deluxe",
@@ -165,6 +173,7 @@ export function buildEditions(product: StoreProduct): GameEdition[] {
       cover: covers.mid,
       price: moneyFromSample(sample, deluxe),
       priceValue: deluxe,
+      kind: "edition",
     },
     {
       id: "ultimate",
@@ -172,6 +181,15 @@ export function buildEditions(product: StoreProduct): GameEdition[] {
       cover: covers.top,
       price: moneyFromSample(sample, ultimate),
       priceValue: ultimate,
+      kind: "edition",
     },
   ];
+}
+
+export function buildBuyEditions(product: StoreProduct) {
+  return buildEditions(product).filter((item) => item.kind === "edition");
+}
+
+export function buildDlcs(product: StoreProduct) {
+  return buildEditions(product).filter((item) => item.kind === "dlc");
 }

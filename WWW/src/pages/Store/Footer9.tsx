@@ -99,10 +99,10 @@ export function Footer9() {
           <motion.div className="footer-9-aside" variants={item}>
             <div className="footer-9-card">
               <div className="footer-9-card-media">
-                <img src="/logotipes/logotipe-mark-clean.svg" alt="" width="2217" height="405" />
+                <img src="/images/offers/pale-crown.webp" alt="" width="800" height="450" />
               </div>
               <h2>Novedades de la tienda</h2>
-              <p>Ofertas y lanzamientos, dos veces al mes. Sin ruido.</p>
+              <p>Suscríbete para mantenerte al día de las ofertas, cambios y novedades.</p>
               <form
                 onSubmit={(event) => {
                   event.preventDefault();

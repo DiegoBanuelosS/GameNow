@@ -1,68 +1,91 @@
-import { readFile, writeFile } from "node:fs/promises";
-import { resolve } from "node:path";
+import { connectDb } from "./db.js";
+import { ReviewModel } from "./models/Review.js";
+import { User } from "./models/User.js";
 
 export type Review = {
   id: string;
   author: string;
-  rating: number; // 1–5
+  rating: number;
   text: string;
-  date: string; // ISO date string
+  date: string;
   helpful: number;
 };
 
-type ReviewsStore = Record<string, Review[]>;
-
-const REVIEWS_FILE = resolve(process.cwd(), "data/reviews.json");
-
-async function readStore(): Promise<ReviewsStore> {
-  try {
-    const raw = await readFile(REVIEWS_FILE, "utf8");
-    return JSON.parse(raw) as ReviewsStore;
-  } catch {
-    return {};
-  }
-}
-
-async function writeStore(store: ReviewsStore): Promise<void> {
-  await writeFile(REVIEWS_FILE, JSON.stringify(store, null, 2) + "\n", "utf8");
+function toReview(row: {
+  _id: { toString(): string };
+  author: string;
+  rating: number;
+  text: string;
+  createdAt?: Date;
+  helpful?: number;
+}): Review {
+  return {
+    id: String(row._id),
+    author: row.author,
+    rating: row.rating,
+    text: row.text,
+    date: (row.createdAt ?? new Date()).toISOString(),
+    helpful: row.helpful ?? 0,
+  };
 }
 
 export async function getReviews(slug: string): Promise<Review[]> {
-  const store = await readStore();
-  return store[slug] ?? [];
+  if (!(await connectDb())) {
+    return [];
+  }
+  const rows = await ReviewModel.find({ slug }).sort({ createdAt: -1 }).limit(200).lean();
+  return rows.map((row) => toReview(row));
+}
+
+export async function userOwnsGame(userId: string, slug: string): Promise<boolean> {
+  if (!(await connectDb())) {
+    return false;
+  }
+  const user = await User.findById(userId).select("steamGames.slug").lean();
+  return Boolean(user?.steamGames?.some((game) => game.slug === slug));
 }
 
 export async function addReview(
   slug: string,
+  userId: string,
   author: string,
   rating: number,
   text: string,
-): Promise<Review> {
-  const store = await readStore();
-  if (!store[slug]) {
-    store[slug] = [];
+): Promise<{ review?: Review; error?: "duplicate" | "db" }> {
+  if (!(await connectDb())) {
+    return { error: "db" };
   }
-  const review: Review = {
-    id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-    author: author.trim().slice(0, 60) || "Anónimo",
-    rating: Math.max(1, Math.min(5, Math.round(rating))),
-    text: text.trim().slice(0, 1000),
-    date: new Date().toISOString(),
-    helpful: 0,
-  };
-  store[slug].unshift(review);
-  // Keep only latest 200 reviews per game
-  store[slug] = store[slug].slice(0, 200);
-  await writeStore(store);
-  return review;
+  const existing = await ReviewModel.findOne({ slug, userId }).lean();
+  if (existing) {
+    return { error: "duplicate" };
+  }
+  try {
+    const created = await ReviewModel.create({
+      slug,
+      userId,
+      author: author.trim().slice(0, 60) || "Anónimo",
+      rating: Math.max(1, Math.min(5, Math.round(rating))),
+      text: text.trim().slice(0, 1000),
+      helpful: 0,
+    });
+    return { review: toReview(created) };
+  } catch (error) {
+    const code = (error as { code?: number })?.code;
+    if (code === 11000) {
+      return { error: "duplicate" };
+    }
+    throw error;
+  }
 }
 
 export async function markHelpful(slug: string, reviewId: string): Promise<boolean> {
-  const store = await readStore();
-  const list = store[slug] ?? [];
-  const review = list.find((r) => r.id === reviewId);
-  if (!review) return false;
-  review.helpful += 1;
-  await writeStore(store);
-  return true;
+  if (!(await connectDb())) {
+    return false;
+  }
+  const updated = await ReviewModel.findOneAndUpdate(
+    { _id: reviewId, slug },
+    { $inc: { helpful: 1 } },
+    { new: true },
+  );
+  return Boolean(updated);
 }

@@ -9,13 +9,14 @@ import { connectDb } from "./db.js";
 import { fitPc } from "./pcFit.js";
 import { windowsInstallerPath, windowsAppZipPath, windowsPackagePath } from "./download.js";
 import { cachedVideoPath, videoContentType } from "./videoCache.js";
-import { getReviews, addReview, markHelpful } from "./reviews.js";
-import { authRouter } from "./auth.js";
+import { getReviews, addReview, markHelpful, userOwnsGame } from "./reviews.js";
+import { authRouter, verifyJwt } from "./auth.js";
 import { chatRouter } from "./chat.js";
 import { steamCallback, steamRefresh, steamStart, steamUnlink } from "./steamLink.js";
 import { addFriend, purchaseLibrary, resaleQuote, searchPeople, steamAchievements, steamFriends, steamProfile, updateFriend, updateLibraryGame } from "./steamSocial.js";
 import { loadSteamNewsForApps } from "./steamNews.js";
 import { submitSupport } from "./support.js";
+import { User } from "./models/User.js";
 
 const app = express();
 app.use(
@@ -345,18 +346,46 @@ app.get("/api/reviews/:slug", async (req, res) => {
 
 app.post("/api/reviews/:slug", async (req, res) => {
   try {
-    const { author, rating, text } = req.body ?? {};
+    const header = req.headers.authorization;
+    if (!header?.startsWith("Bearer ")) {
+      res.status(401).json({ error: "Inicia sesión para escribir una reseña." });
+      return;
+    }
+    const payload = verifyJwt(header.slice(7).trim());
+    if (!payload?.sub) {
+      res.status(401).json({ error: "Sesión no válida." });
+      return;
+    }
+    if (!(await connectDb())) {
+      res.status(503).json({ error: "La base de datos no está disponible." });
+      return;
+    }
+
+    const slug = req.params.slug;
+    const owns = await userOwnsGame(payload.sub, slug);
+    if (!owns) {
+      res.status(403).json({ error: "Debes poseer el juego en tu biblioteca para reseñarlo." });
+      return;
+    }
+
+    const { rating, text } = req.body ?? {};
     if (!text || !rating) {
       res.status(400).json({ error: "Faltan campos obligatorios: rating y text." });
       return;
     }
-    const review = await addReview(
-      req.params.slug,
-      String(author || ""),
-      Number(rating),
-      String(text),
-    );
-    res.status(201).json(review);
+
+    const account = await User.findById(payload.sub).select("username").lean();
+    const author = account?.username || payload.username || "Anónimo";
+    const result = await addReview(slug, payload.sub, author, Number(rating), String(text));
+    if (result.error === "duplicate") {
+      res.status(409).json({ error: "Ya publicaste una reseña para este juego." });
+      return;
+    }
+    if (result.error === "db" || !result.review) {
+      res.status(503).json({ error: "No se pudo guardar la reseña." });
+      return;
+    }
+    res.status(201).json(result.review);
   } catch (error) {
     res.status(500).json({ error: "No se pudo guardar la reseña." });
     console.error(error);

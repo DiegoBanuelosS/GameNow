@@ -1,9 +1,11 @@
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { LiquidGlass } from "quick-liquid/react";
+import { LiquidGlass, type LiquidGlassRef } from "quick-liquid/react";
 import { StoreArt } from "../../data/StoreArt";
 import { useCatalog } from "../../data/CatalogContext";
 import type { StoreProduct } from "../../data/catalog";
 import { cyberpunkUltimateDeal } from "../../data/editions";
+import { PHANTOM_LIBERTY_COVER } from "../../data/libraryArt";
 import { useHoverVideo } from "./useHoverVideo";
 import "./EventOffers.css";
 
@@ -11,7 +13,6 @@ const CYBERPUNK = "cyberpunk-2077";
 const CYBERPUNK_VIDEO = "/videos/cp.webm";
 const CYBERPUNK_COVER = "https://cdn.cloudflare.steamstatic.com/steam/apps/1091500/library_600x900_2x.jpg";
 const CYBERPUNK_EXTENDED = "https://res.cloudinary.com/fj6z6mba/image/upload/f_auto,q_auto:best,c_fill,g_center,w_1600,h_900/gamenow/presskit/cp-5th-1920";
-const PHANTOM_LIBERTY_COVER = "https://res.cloudinary.com/fj6z6mba/image/upload/f_auto,q_auto:best,c_fill,g_auto,ar_2:3,w_600/gamenow/presskit/cp-phl-art";
 
 /* Carátulas verticales 2:3 (referencia del grid); press kit landscape se evita */
 const SIDE_COVERS: Record<string, string> = {
@@ -95,9 +96,29 @@ function CyberpunkFeature({ game }: { game: StoreProduct }) {
 function GameTile({ game, size }: { game: StoreProduct; size: "large" | "small" }) {
   const discount = getDiscountBadge(game);
   const art = sideArt(game);
+  const glassRef = useRef<LiquidGlassRef>(null);
+  const [popOpen, setPopOpen] = useState(false);
+
+  // Precarga Quick Liquid al montar; el hover solo cambia visibilidad
+  useEffect(() => {
+    const id = window.requestAnimationFrame(() => {
+      glassRef.current?.animateIn(0);
+    });
+    return () => window.cancelAnimationFrame(id);
+  }, []);
 
   return (
-    <li className={`offer-item is-${size}`}>
+    <li
+      className={`offer-item is-${size}${popOpen ? " is-pop-open" : ""}`}
+      onPointerEnter={() => setPopOpen(true)}
+      onPointerLeave={() => setPopOpen(false)}
+      onFocusCapture={() => setPopOpen(true)}
+      onBlurCapture={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+          setPopOpen(false);
+        }
+      }}
+    >
       <Link className={`offer-card is-${size}`} to={game.href}>
         <StoreArt
           className="offer-card-art"
@@ -123,9 +144,12 @@ function GameTile({ game, size }: { game: StoreProduct; size: "large" | "small" 
         className={`offer-popout-info is-${size}`}
         to={game.href}
         aria-label={`Ver detalles de ${game.name}`}
+        tabIndex={-1}
       >
         <LiquidGlass
+          ref={glassRef}
           className="offer-popout-glass"
+          animateIn={0}
           config={{
             appearance: "dark",
             material: "regular",

@@ -1,6 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Link } from "react-router-dom";
+import { PenLine, ThumbsUp } from "lucide-react";
 import { apiUrl } from "../../data/api";
-import { ThumbsUp } from "lucide-react";
+import { useAuth } from "../../data/AuthContext";
 import { Star } from "../../components/Icons";
 import { StarRating } from "../Store/StarRating";
 import "./ReviewsSection.css";
@@ -22,17 +24,23 @@ async function fetchReviews(slug: string): Promise<Review[]> {
 
 async function postReview(
   slug: string,
-  author: string,
+  token: string,
   rating: number,
   text: string,
-): Promise<Review> {
+): Promise<{ review?: Review; error?: string; status: number }> {
   const res = await fetch(apiUrl(`/api/reviews/${slug}`), {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ author, rating, text }),
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ rating, text }),
   });
-  if (!res.ok) throw new Error("error");
-  return res.json() as Promise<Review>;
+  const body = (await res.json().catch(() => ({}))) as Review & { error?: string };
+  if (!res.ok) {
+    return { error: body.error || "No se pudo enviar tu reseña.", status: res.status };
+  }
+  return { review: body, status: res.status };
 }
 
 async function markHelpful(slug: string, id: string): Promise<void> {
@@ -93,7 +101,9 @@ function ReviewCard({ review, slug }: { review: Review; slug: string }) {
           <span className="rv-avatar">{review.author.charAt(0).toUpperCase()}</span>
           <div>
             <p className="rv-author-name">{review.author}</p>
-            <time className="rv-date" dateTime={review.date}>{date}</time>
+            <time className="rv-date" dateTime={review.date}>
+              {date}
+            </time>
           </div>
         </div>
         <StarRating score={review.rating * 20} />
@@ -114,15 +124,23 @@ function ReviewCard({ review, slug }: { review: Review; slug: string }) {
 }
 
 export function ReviewsSection({ slug }: { slug: string }) {
+  const { user, token, status: authStatus } = useAuth();
   const [reviews, setReviews] = useState<Review[]>([]);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
+  const [gateMessage, setGateMessage] = useState("");
 
-  const authorRef = useRef<HTMLInputElement>(null);
   const textRef = useRef<HTMLTextAreaElement>(null);
   const [rating, setRating] = useState(0);
+
+  const ownsGame = useMemo(
+    () => Boolean(user?.steamGames?.some((game) => game.slug === slug)),
+    [user?.steamGames, slug],
+  );
+
+  const canWrite = Boolean(token && user && ownsGame);
 
   useEffect(() => {
     let alive = true;
@@ -142,9 +160,38 @@ export function ReviewsSection({ slug }: { slug: string }) {
     };
   }, [slug]);
 
+  useEffect(() => {
+    if (!canWrite) {
+      setShowForm(false);
+    }
+  }, [canWrite]);
+
+  const handleWriteClick = () => {
+    setGateMessage("");
+    if (authStatus === "loading") return;
+    if (!user || !token) {
+      setGateMessage("Inicia sesión para escribir una reseña.");
+      setShowForm(false);
+      return;
+    }
+    if (!ownsGame) {
+      setGateMessage("Debes tener este juego en tu biblioteca para escribir una reseña.");
+      setShowForm(false);
+      return;
+    }
+    setShowForm((v) => !v);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const author = authorRef.current?.value.trim() ?? "";
+    if (!token) {
+      setFormError("Inicia sesión para escribir una reseña.");
+      return;
+    }
+    if (!ownsGame) {
+      setFormError("Debes poseer el juego para reseñarlo.");
+      return;
+    }
     const text = textRef.current?.value.trim() ?? "";
     if (rating === 0) {
       setFormError("Por favor selecciona una calificación.");
@@ -157,11 +204,14 @@ export function ReviewsSection({ slug }: { slug: string }) {
     setFormError("");
     setSubmitting(true);
     try {
-      const review = await postReview(slug, author, rating, text);
-      setReviews((prev) => [review, ...prev]);
+      const result = await postReview(slug, token, rating, text);
+      if (!result.review) {
+        setFormError(result.error || "No se pudo enviar tu reseña. Inténtalo de nuevo.");
+        return;
+      }
+      setReviews((prev) => [result.review!, ...prev]);
       setShowForm(false);
       setRating(0);
-      if (authorRef.current) authorRef.current.value = "";
       if (textRef.current) textRef.current.value = "";
     } catch {
       setFormError("No se pudo enviar tu reseña. Inténtalo de nuevo.");
@@ -171,9 +221,7 @@ export function ReviewsSection({ slug }: { slug: string }) {
   };
 
   const avg =
-    reviews.length > 0
-      ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length
-      : 0;
+    reviews.length > 0 ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length : 0;
 
   return (
     <section className="rv-section" aria-labelledby="rv-heading">
@@ -184,33 +232,44 @@ export function ReviewsSection({ slug }: { slug: string }) {
             <p className="rv-summary">
               <span className="rv-avg">{avg.toFixed(1)}</span>
               <StarRating score={avg * 20} />
-              <span className="rv-count">({reviews.length} reseña{reviews.length !== 1 ? "s" : ""})</span>
+              <span className="rv-count">
+                ({reviews.length} reseña{reviews.length !== 1 ? "s" : ""})
+              </span>
             </p>
           )}
         </div>
         <button
           type="button"
           className="rv-write-btn"
-          onClick={() => setShowForm((v) => !v)}
+          onClick={handleWriteClick}
           aria-expanded={showForm}
         >
-          {showForm ? "Cancelar" : "✍️ Escribir reseña"}
+          {showForm ? (
+            "Cancelar"
+          ) : (
+            <>
+              <PenLine size={16} aria-hidden />
+              Escribir reseña
+            </>
+          )}
         </button>
       </div>
 
-      {showForm && (
+      {gateMessage ? (
+        <p className="rv-gate" role="status">
+          {gateMessage}{" "}
+          {!user ? (
+            <Link to="/auth">Iniciar sesión</Link>
+          ) : !ownsGame ? (
+            <Link to="/">Ver en la tienda</Link>
+          ) : null}
+        </p>
+      ) : null}
+
+      {showForm && canWrite ? (
         <form className="rv-form" onSubmit={(e) => void handleSubmit(e)}>
           <h3>Tu reseña</h3>
-          <label className="rv-label">
-            Nombre (opcional)
-            <input
-              ref={authorRef}
-              type="text"
-              className="rv-input"
-              placeholder="Anónimo"
-              maxLength={60}
-            />
-          </label>
+          <p className="rv-as">Publicarás como <strong>{user?.username}</strong></p>
           <div className="rv-label">
             Calificación
             <StarPicker value={rating} onChange={setRating} />
@@ -226,21 +285,17 @@ export function ReviewsSection({ slug }: { slug: string }) {
               required
             />
           </label>
-          {formError && <p className="rv-form-error">{formError}</p>}
+          {formError ? <p className="rv-form-error">{formError}</p> : null}
           <button type="submit" className="rv-submit" disabled={submitting}>
             {submitting ? "Enviando…" : "Publicar reseña"}
           </button>
         </form>
-      )}
+      ) : null}
 
       {status === "loading" && <p className="rv-loading">Cargando reseñas…</p>}
-      {status === "error" && (
-        <p className="rv-loading">No se pudieron cargar las reseñas.</p>
-      )}
+      {status === "error" && <p className="rv-loading">No se pudieron cargar las reseñas.</p>}
       {status === "ready" && reviews.length === 0 && !showForm && (
-        <p className="rv-empty">
-          Sé el primero en dejar tu reseña de este juego.
-        </p>
+        <p className="rv-empty">Sé el primero en dejar tu reseña de este juego.</p>
       )}
       {status === "ready" && reviews.length > 0 && (
         <ul className="rv-list">
