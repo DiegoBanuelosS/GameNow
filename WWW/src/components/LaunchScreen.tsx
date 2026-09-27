@@ -70,13 +70,13 @@ export function LaunchScreen() {
           <div>
             <p style={{ fontWeight: 600 }}>
               {steamLaunched
-                ? `¡Petición enviada a Steam con éxito!`
-                : `Iniciando ${launch.name} a través de Steam...`}
+                ? `¡Iniciando ${launch.name}!`
+                : `Iniciando ${launch.name}...`}
             </p>
             <p style={{ fontSize: "12px", color: "rgba(236, 231, 222, 0.75)", marginTop: "2px" }}>
               {steamLaunched
-                ? "Tu cliente de Steam se está encargando de ejecutar el juego."
-                : `Conectando con el protocolo de Steam (AppID ${launch.steamAppId})...`}
+                ? "El juego se está ejecutando."
+                : "Preparando entorno de ejecución..."}
             </p>
           </div>
         ) : (

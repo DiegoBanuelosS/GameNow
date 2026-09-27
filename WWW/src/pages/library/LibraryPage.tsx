@@ -860,8 +860,8 @@ export function LibraryPage() {
                                   cover: libraryCoverFor(game) || game.cover,
                                 });
                               }}
-                              title={`Lanzar ${game.name} en Steam`}
-                              aria-label={`Lanzar ${game.name} en Steam`}
+                              title={`Jugar a ${game.name}`}
+                              aria-label={`Jugar a ${game.name}`}
                             >
                               <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
                                 <polygon points="6 4 20 12 6 20 6 4" />

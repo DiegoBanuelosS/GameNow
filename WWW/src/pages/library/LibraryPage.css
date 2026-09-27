@@ -1781,25 +1781,6 @@
   cursor: pointer;
 }
 
-.library-detail-steam-launch {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  background: linear-gradient(135deg, #1b2838 0%, #2a475e 100%);
-  border-color: rgba(102, 192, 244, 0.4);
-  color: #66c0f4;
-  font-weight: 600;
-  transition: all 0.2s ease;
-}
-
-.library-detail-steam-launch:hover {
-  background: linear-gradient(135deg, #2a475e 0%, #1b2838 100%);
-  border-color: #66c0f4;
-  color: #fff;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 14px rgba(42, 71, 94, 0.5);
-}
-
 .library-cover-action-btn.library-cover-play-btn:hover {
   background: #2a475e;
   color: #66c0f4;

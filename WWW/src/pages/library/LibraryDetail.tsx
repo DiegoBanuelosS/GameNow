@@ -292,7 +292,7 @@ export function LibraryDetail({
           {game.saleStatus === "pending" ? null : game.steamAppId ? (
             <button
               type="button"
-              className="library-detail-download library-detail-steam-launch"
+              className="library-detail-download"
               onClick={() =>
                 startLaunch({
                   name: game.name,
@@ -304,10 +304,7 @@ export function LibraryDetail({
                 })
               }
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style={{ marginRight: "8px", verticalAlign: "middle" }}>
-                <path d="M12 2a10 10 0 0 0-10 9.87c0 4.93 3.63 9 8.35 9.83l2.25-3.23a3.57 3.57 0 0 1-1.07-.37l-3.32 1.37a8.55 8.55 0 0 1-1.63-8.83l4.38 1.8a2.53 2.53 0 0 0 3.86 1.83l3.24 1.34A8.52 8.52 0 0 1 12 20.52a8.52 8.52 0 1 1 0-17.04c.48 0 .95.04 1.41.12L10.74 5.9a3.57 3.57 0 0 1 4.77 4.77l2.3 3.32A8.52 8.52 0 0 1 12 2zm3.08 7.39a1.78 1.78 0 1 0-1.78 1.78 1.78 1.78 0 0 0 1.78-1.78z" />
-              </svg>
-              Jugar en Steam
+              Jugar
             </button>
           ) : game.isInstalled ? (
             <button
