@@ -1,7 +1,8 @@
 # DOCUMENTACIÓN TÉCNICA INTEGRAL DE LA PLATAFORMA GAMENOW
-**Versión:** 2.4.0  
+**Versión:** 2.5.0  
 **Fecha:** 2026-09-27  
-**Estado:** Producción / Certificado  
+**Estado:** Proyecto Personal y Universitario / Simulación Técnica de Alta Fidelidad  
+**Demostración en Vivo / Live Preview:** [https://gamenow-549.pages.dev/](https://gamenow-549.pages.dev/)  
 **Seguridad:** Alta disponibilidad, Blindaje Criptográfico OWASP y E2EE  
 
 ---
@@ -9,6 +10,15 @@
 ## 1. RESUMEN EJECUTIVO Y ALCANCE
 
 **GameNow** es un ecosistema integral de distribución digital, catálogo de videojuegos, análisis de compatibilidad de hardware en tiempo real, red social y mensajería cifrada de extremo a extremo (E2EE). La plataforma proporciona una experiencia omnicanal sincronizada compuesta por un cliente web moderno, una aplicación de escritorio nativa para sistemas operativos de alto rendimiento y una API centralizada de microservicios conectada a un clúster de bases de datos de alta velocidad.
+
+> [!TIP]
+> **Acceso al Despliegue en Vivo (Live Preview):**
+> La aplicación web se encuentra desplegada activamente y accesible de forma pública para pruebas interactivas en:  
+> 🌐 **[https://gamenow-549.pages.dev/](https://gamenow-549.pages.dev/)**
+
+> [!NOTE]
+> **Naturaleza del Proyecto y Finalidad Académica:**
+> **GameNow es un proyecto personal y universitario**, concebido y desarrollado con fines puramente académicos, de investigación en ingeniería de software y demostración técnica. **No es una plataforma comercial real en producción**, sino una simulación hiperrealista de nivel profesional diseñada para emular con la máxima fidelidad posible la arquitectura, seguridad, flujos transaccionales, rendimiento y experiencia de usuario de una plataforma real de distribución digital.
 
 > [!IMPORTANT]
 > **Arquitectura de Datos y Catálogo Central:**
