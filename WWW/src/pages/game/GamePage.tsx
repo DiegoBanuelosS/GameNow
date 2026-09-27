@@ -5,7 +5,14 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../../data/AuthContext";
 import { useCart, type CartItem } from "../../data/CartContext";
 import { fetchProduct, type StoreProduct } from "../../data/catalog";
-import { buildBuyEditions, buildDlcs, type GameEdition } from "../../data/editions";
+import {
+  buildBuyEditions,
+  buildDlcs,
+  formatEditionMoney,
+  ownedEdition,
+  upgradePrice,
+  type GameEdition,
+} from "../../data/editions";
 import { StoreArt } from "../../data/StoreArt";
 import { youtubeEmbed, youtubeId, youtubePoster } from "../../data/youtube";
 import { ConnectionBanner } from "../Store/ConnectionBanner";
@@ -17,64 +24,83 @@ import { PcFitCard } from "./PcFitCard";
 import { ReviewsSection } from "./ReviewsSection";
 import "./GamePage.css";
 
-function ownsEdition(
-  games: { slug: string }[] | undefined,
-  productSlug: string,
+type EditionState =
+  | { kind: "buy" }
+  | { kind: "owned" }
+  | { kind: "included"; by: string }
+  | { kind: "upgrade"; price: number };
+
+function editionState(
+  games: { slug: string; edition?: string }[] | undefined,
+  product: StoreProduct,
   edition: GameEdition,
-) {
-  const list = games ?? [];
-  if (list.some((game) => game.slug === `${productSlug}:${edition.id}`)) {
-    return true;
+): EditionState {
+  if (edition.kind === "dlc") {
+    return (games ?? []).some((game) => game.slug === `${product.slug}:${edition.id}`)
+      ? { kind: "owned" }
+      : { kind: "buy" };
   }
-  // Ediciones del juego base: si ya está en la biblioteca, no se vuelve a comprar.
-  if (edition.kind === "edition") {
-    return list.some((game) => game.slug === productSlug);
-  }
-  return false;
+  const owned = ownedEdition(games, product);
+  if (!owned) return { kind: "buy" };
+  if (owned.id === edition.id) return { kind: "owned" };
+  if (edition.rank <= owned.rank) return { kind: "included", by: owned.name };
+  return { kind: "upgrade", price: upgradePrice(edition, owned) };
 }
 
 function EditionOffer({
   product,
   edition,
-  owned,
+  state,
   add,
   onBought,
 }: {
   product: StoreProduct;
   edition: GameEdition;
-  owned: boolean;
+  state: EditionState;
   add: (item: CartItem) => void;
   onBought: () => void;
 }) {
+  const upgrade = state.kind === "upgrade";
+  const price = upgrade ? formatEditionMoney(product, state.price) : edition.price;
   return (
     <li className="game-edition">
       <StoreArt className="game-edition-cover" src={edition.cover} alt="" />
-      <p className="game-edition-name">{edition.name}</p>
-      <div className="game-edition-price">
-        {edition.was ? <s>{edition.was}</s> : null}
-        <span>{edition.price}</span>
-      </div>
-      {owned ? (
+      <p className="game-edition-name">
+        {edition.name}
+        {state.kind === "included" ? <small>Incluida en tu {state.by}</small> : null}
+        {upgrade ? <small>Pagas solo la diferencia</small> : null}
+      </p>
+      {state.kind === "buy" || upgrade ? (
+        <div className="game-edition-price">
+          {upgrade ? <s>{edition.price}</s> : edition.was ? <s>{edition.was}</s> : null}
+          <span>{price}</span>
+        </div>
+      ) : null}
+      {state.kind === "owned" ? (
         <button type="button" className="game-edition-buy is-owned" disabled>
           <Check size={16} aria-hidden />
           Comprado
         </button>
+      ) : state.kind === "included" ? (
+        <button type="button" className="game-edition-buy is-included" disabled>
+          Incluido
+        </button>
       ) : (
         <button
           type="button"
-          className="game-edition-buy"
+          className={upgrade ? "game-edition-buy is-upgrade" : "game-edition-buy"}
           onClick={() => {
             add({
               slug: `${product.slug}:${edition.id}`,
-              name: `${product.name} — ${edition.name}`,
-              price: edition.price,
-              priceValue: edition.priceValue,
+              name: upgrade ? `${product.name} — Mejora a ${edition.name}` : `${product.name} — ${edition.name}`,
+              price,
+              priceValue: upgrade ? state.price : edition.priceValue,
               cover: edition.cover,
             });
             onBought();
           }}
         >
-          Comprar
+          {upgrade ? `Mejorar a ${edition.name}` : "Comprar"}
         </button>
       )}
     </li>
@@ -287,7 +313,7 @@ export function GamePage() {
                           key={edition.id}
                           product={product}
                           edition={edition}
-                          owned={ownsEdition(user?.steamGames, product.slug, edition)}
+                          state={editionState(user?.steamGames, product, edition)}
                           add={add}
                           onBought={() => navigate("/cart")}
                         />
@@ -312,13 +338,20 @@ export function GamePage() {
                   {product.steamRating ? <span>{product.steamRating}</span> : null}
                 </p>
               ) : null}
+              {product.priceValue > 0 ? null : (
+                <p className="game-unavailable">
+                  {product.price === "Gratis"
+                    ? "Este juego es gratuito en Steam; no se vende en GameNow."
+                    : "Este juego no está a la venta en este momento."}
+                </p>
+              )}
               <ul className="game-editions" aria-label="Ediciones">
-                {buyEditions.map((edition) => (
+                {(product.priceValue > 0 ? buyEditions : []).map((edition) => (
                   <EditionOffer
                     key={edition.id}
                     product={product}
                     edition={edition}
-                    owned={ownsEdition(user?.steamGames, product.slug, edition)}
+                    state={editionState(user?.steamGames, product, edition)}
                     add={add}
                     onBought={() => navigate("/cart")}
                   />

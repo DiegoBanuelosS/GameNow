@@ -28,17 +28,16 @@ const columns: {
   {
     title: "Ayuda",
     links: [
-      { label: "Cómo comprar", to: "/#descargar-windows" },
+      { label: "Cómo comprar", to: "/ayuda/como-comprar" },
       { label: "Biblioteca", to: "/library" },
     ],
   },
 ];
 
 const legal = [
-  { label: "Privacidad", to: "/#privacidad" },
-  { label: "Términos", to: "/#terminos" },
-  { label: "Seguridad", to: "/#seguridad" },
-  { label: "Cookies", to: "/#cookies" },
+  { label: "Privacidad", to: "/privacidad" },
+  { label: "Términos", to: "/terminos" },
+  { label: "Cookies", to: "/cookies" },
 ];
 
 const container: Variants = {

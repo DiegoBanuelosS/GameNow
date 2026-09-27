@@ -22,11 +22,114 @@
   font: var(--caption);
 }
 
+.pc-fit.is-great .pc-fit-title,
+.pc-fit.is-well .pc-fit-title {
+  color: #3ecf7a;
+}
+
+.pc-fit-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+  margin: var(--space-3) 0;
+}
+
+.pc-fit-stats div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.pc-fit-stats span {
+  color: var(--color-fg-muted);
+  font: 400 11px/1.2 var(--font-sans);
+}
+
+.pc-fit-stats strong {
+  color: var(--color-fg-default);
+  font: 700 18px/1.1 var(--font-sans);
+  font-variant-numeric: tabular-nums;
+}
+
+.pc-fit-presets {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: var(--space-3) 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pc-fit-presets li {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr) 64px;
+  align-items: center;
+  gap: 10px;
+  color: var(--color-fg-muted);
+  font: 400 12px/1.2 var(--font-sans);
+  font-variant-numeric: tabular-nums;
+}
+
+.pc-fit-presets li > span:last-child {
+  text-align: right;
+}
+
+.pc-fit-presets li.is-picked {
+  color: var(--color-fg-default);
+  font-weight: 600;
+}
+
+.pc-fit-bar {
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.pc-fit-bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+}
+
+.pc-fit-bar .is-smooth {
+  background: #3ecf7a;
+}
+
+.pc-fit-bar .is-playable {
+  background: #e3b341;
+}
+
+.pc-fit-bar .is-low {
+  background: var(--color-fg-critical);
+}
+
+.pc-fit-notes {
+  margin: 0 0 var(--space-2);
+  padding-left: 18px;
+  color: var(--color-fg-muted);
+  font: var(--body-small);
+}
+
+.pc-fit-notes li + li {
+  margin-top: 4px;
+}
+
 .pc-fit-machine {
   margin-bottom: 0;
 }
 
-.pc-fit.is-well {
+.pc-fit-disclaimer {
+  margin: var(--space-2) 0 0;
+  font-size: 11px;
+  opacity: 0.75;
+}
+
+.pc-fit.is-great {
   border-color: var(--color-border-strong);
 }
 
@@ -37,4 +140,10 @@
 
 .pc-fit.is-no {
   border-color: var(--color-border-critical);
+}
+
+@media (max-width: 480px) {
+  .pc-fit-stats {
+    grid-template-columns: 1fr;
+  }
 }

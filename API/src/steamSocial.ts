@@ -5,7 +5,7 @@ import { connectDb } from "./db.js";
 import { verifyJwt } from "./auth.js";
 import { User } from "./models/User.js";
 import { loadProducts } from "./catalog.js";
-import { loadGames } from "./games.js";
+import { loadGames, loadPricedGame } from "./games.js";
 import { formatMxn, toMxn } from "./money.js";
 import { purchasePrice, quoteResale, recordTrade } from "./resale.js";
 import { loadSteamVisit, resolveSteamBackground, resolveSteamMiniBackground, type SteamLibraryGame } from "./steamSync.js";
@@ -494,6 +494,7 @@ export async function updateLibraryGame(req: Request, res: Response) {
     await recordTrade(slug, "sell", userId, quote.payout);
     if ((owned.playTimeHours || 0) > 0) {
       owned.purchased = false;
+      owned.edition = undefined;
     } else {
       owner.steamGames = owner.steamGames.filter((item) => item.slug !== slug);
     }
@@ -551,6 +552,37 @@ function boughtGame(slug: string, name: string, cover: string, steamAppId: strin
   };
 }
 
+const cents = (value: number) => Math.round(value * 100) / 100;
+
+function moneyValue(text?: string) {
+  return text ? Number.parseFloat(text.replace(/[^0-9.]/g, "")) || 0 : 0;
+}
+
+/** Debe coincidir con buildEditions() en WWW/src/data/editions.ts. */
+function editionOffer(baseSlug: string, editionId: string, base: number, was: number) {
+  if (baseSlug === "cyberpunk-2077") {
+    if (editionId === "standard") {
+      return { kind: "edition", price: cents(was ? was * 0.4 : base * 0.75), name: "", rank: 0 };
+    }
+    if (editionId === "phantom-liberty") {
+      return { kind: "dlc", price: cents(was ? was * 0.25 : base * 0.55), name: "Phantom Liberty", rank: 0 };
+    }
+    if (editionId === "ultimate") {
+      return { kind: "edition", price: was && base > was * 0.3 ? cents(was * 0.2) : base, name: "", rank: 2 };
+    }
+    return null;
+  }
+  if (editionId === "standard") return { kind: "edition", price: base, name: "", rank: 0 };
+  if (editionId === "deluxe") return { kind: "edition", price: cents(base * 1.4), name: "", rank: 1 };
+  if (editionId === "ultimate") return { kind: "edition", price: cents(base * 1.75), name: "", rank: 2 };
+  return null;
+}
+
+/** Debe coincidir con upgradePrice() en WWW/src/data/editions.ts. */
+function upgradeCharge(target: number, owned: number) {
+  return Math.max(cents(target - owned), cents(target * 0.1));
+}
+
 /** Agrega a la biblioteca los juegos pagados en la tienda. */
 export async function purchaseLibrary(req: Request, res: Response) {
   const userId = userIdFromRequest(req);
@@ -564,7 +596,7 @@ export async function purchaseLibrary(req: Request, res: Response) {
       slug: typeof item?.slug === "string" ? item.slug : typeof item === "string" ? item : "",
       price: Number(typeof item === "object" && item ? item.price : NaN),
     }))
-    .filter((item: { slug: string }) => /^[a-z0-9-]{2,80}$/.test(item.slug))
+    .filter((item: { slug: string }) => /^[a-z0-9-]{2,80}(:[a-z0-9-]{2,40})?$/.test(item.slug))
     .slice(0, 20);
   if (!purchases.length) {
     res.status(400).json({ error: "Falta el juego." });
@@ -585,34 +617,72 @@ export async function purchaseLibrary(req: Request, res: Response) {
   const known = new Map(catalog.games.map((game) => [game.slug, game]));
   const products = new Map((await loadProducts()).map((product) => [product.slug, product]));
   const now = Date.now();
-  const ready: { slug: string; name: string; cover: string; steamAppId: string; coverFallback: string; catalogPrice: number; already: boolean }[] = [];
+  const ready: {
+    slug: string;
+    name: string;
+    cover: string;
+    steamAppId: string;
+    coverFallback: string;
+    charge: number;
+    rank: number;
+    edition?: string;
+  }[] = [];
   for (const item of purchases) {
-    const source = known.get(item.slug);
-    const product = products.get(item.slug);
-    const productPrice = product ? await toMxn(product.price, product.currency || "MXN") : 0;
-    const catalogPrice = Math.round((productPrice || source?.priceValue || 0) * 100) / 100;
-    const name = product?.name || source?.name || item.slug;
-    if (!catalogPrice) {
+    const [baseSlug, editionId] = item.slug.split(":");
+    const product = products.get(baseSlug);
+    const source = known.get(baseSlug) ?? (product ? undefined : ((await loadPricedGame(baseSlug)) ?? undefined));
+    const currency = product?.currency || "MXN";
+    const productPrice = product ? await toMxn(product.price, currency) : 0;
+    const basePrice = cents(productPrice || source?.priceValue || 0);
+    const baseName = product?.name || source?.name || baseSlug;
+    if (!basePrice) {
       res.status(404).json({ error: "Ese juego no está en la tienda." });
       return;
     }
-    const paid = Number.isFinite(item.price) && item.price > 0 ? Math.round(item.price * 100) / 100 : catalogPrice;
-    if (Math.abs(paid - catalogPrice) > 0.01) {
+    const was = product ? (product.compareAtPrice ? cents(await toMxn(product.compareAtPrice, currency)) : 0) : moneyValue(source?.was);
+    const offer = editionOffer(baseSlug, editionId || "standard", basePrice, was);
+    if (!offer) {
+      res.status(404).json({ error: `Esa edición de ${baseName} no está en la tienda.` });
+      return;
+    }
+    // Las ediciones del juego base se guardan con el slug base; los DLC con "base:dlc".
+    const slug = offer.kind === "dlc" ? item.slug : baseSlug;
+    const name = offer.name ? `${baseName} — ${offer.name}` : baseName;
+    const owned = user.steamGames.find((game) => game.slug === slug);
+    let expected = offer.price;
+    let edition: string | undefined = offer.kind === "dlc" ? undefined : editionId || "standard";
+    if (owned && offer.kind === "dlc") {
+      if (owned.purchased) expected = 0;
+    } else if (owned) {
+      // Los juegos de Steam sin compra en GameNow cuentan como edición estándar.
+      const ownedOffer = editionOffer(baseSlug, owned.edition || "standard", basePrice, was);
+      if (ownedOffer && offer.rank <= ownedOffer.rank) {
+        expected = 0;
+        edition = undefined;
+      } else if (ownedOffer) {
+        expected = upgradeCharge(offer.price, ownedOffer.price);
+      }
+    }
+    const paid = Number.isFinite(item.price) && item.price > 0 ? cents(item.price) : expected;
+    if (expected > 0 && Math.abs(paid - expected) > 0.05) {
       res.status(409).json({ error: `El precio de ${name} cambió. Vuelve al carrito e inténtalo de nuevo.` });
       return;
     }
-    const owned = user.steamGames.find((game) => game.slug === item.slug);
-    ready.push({
-      slug: item.slug,
+    const entry = {
+      slug,
       name,
       cover: source?.cover || product?.cover.local || "",
       steamAppId: source?.steamAppId || "",
       coverFallback: source?.coverFallback || source?.cover || product?.cover.local || "",
-      catalogPrice,
-      already: Boolean(owned?.purchased),
-    });
+      charge: expected,
+      rank: offer.rank,
+      edition,
+    };
+    const duplicate = ready.findIndex((row) => row.slug === slug);
+    if (duplicate < 0) ready.push(entry);
+    else if (entry.rank > ready[duplicate].rank) ready[duplicate] = entry;
   }
-  const charge = Math.round(ready.reduce((sum, item) => sum + (item.already ? 0 : item.catalogPrice), 0) * 100) / 100;
+  const charge = cents(ready.reduce((sum, item) => sum + item.charge, 0));
   if (method === "wallet") {
     const balance = Math.round((user.balance || 0) * 100) / 100;
     if (balance + 0.001 < charge) {
@@ -626,11 +696,12 @@ export async function purchaseLibrary(req: Request, res: Response) {
   for (const item of ready) {
     const current = user.steamGames.find((game) => game.slug === item.slug);
     if (current) {
-      if (!current.purchased) {
-        current.paidPrice = item.catalogPrice;
-        await recordTrade(item.slug, "buy", userId, item.catalogPrice);
+      if (item.charge > 0) {
+        current.paidPrice = cents((current.purchased ? current.paidPrice || 0 : 0) + item.charge);
+        await recordTrade(item.slug, "buy", userId, item.charge);
       }
-      current.purchased = true;
+      if (item.edition) current.edition = item.edition;
+      current.purchased = Boolean(current.purchased) || item.charge > 0;
       current.lastPlayed = "Hoy";
       current.lastPlayedTimestamp = now;
       if (!current.banner && item.steamAppId) {
@@ -639,9 +710,10 @@ export async function purchaseLibrary(req: Request, res: Response) {
       continue;
     }
     const bought = boughtGame(item.slug, item.name, item.cover, item.steamAppId, item.coverFallback);
-    bought.paidPrice = item.catalogPrice;
+    bought.paidPrice = item.charge;
+    if (item.edition) bought.edition = item.edition;
     user.steamGames.unshift(bought);
-    await recordTrade(item.slug, "buy", userId, item.catalogPrice);
+    await recordTrade(item.slug, "buy", userId, item.charge);
   }
   const last4 = method === "card" && typeof req.body?.cardLast4 === "string" ? req.body.cardLast4.replace(/\D/g, "").slice(-4) : "";
   if (/^\d{4}$/.test(last4)) user.cardLast4 = last4;

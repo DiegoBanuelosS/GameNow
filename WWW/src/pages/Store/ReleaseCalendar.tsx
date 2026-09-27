@@ -141,58 +141,36 @@ export function ReleaseCalendar() {
       .slice(0, 4);
   }, [similar, suggestions, user?.steamGames]);
 
-  useGSAP(() => {
-    if (!days || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    gsap.from(".release-days", {
-      y: 24,
-      opacity: 0,
-      duration: 0.5,
-      ease: "power3.out",
-      scrollTrigger: {
-        trigger: ".release-calendar",
-        start: "top 86%",
-        toggleActions: "play none none none",
-      },
-    });
-    if (user) {
-      gsap.from(".because-you-played .release-card", {
-        y: 32,
-        opacity: 0,
-        duration: 0.55,
-        stagger: 0.08,
-        ease: "power3.out",
-        scrollTrigger: {
-          trigger: ".because-you-played",
-          start: "top 86%",
-          toggleActions: "play none none none",
-        },
-      });
-      gsap.from(".you-may-like .release-card", {
-        y: 32,
-        opacity: 0,
-        duration: 0.55,
-        stagger: 0.08,
-        ease: "power3.out",
-        scrollTrigger: {
-          trigger: ".you-may-like",
-          start: "top 86%",
-          toggleActions: "play none none none",
-        },
-      });
-    }
-    gsap.from(".release-calendar .release-card", {
-      y: 32,
-      opacity: 0,
-      duration: 0.55,
-      stagger: 0.08,
-      ease: "power3.out",
-      scrollTrigger: {
-        trigger: ".release-calendar",
-        start: "top 86%",
-        toggleActions: "play none none none",
-      },
-    });
-  }, [days, user]);
+  const signedIn = Boolean(user);
+
+  useGSAP(
+    () => {
+      if (!days || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+      const reveal = (targets: string, trigger: string, y: number, stagger = 0) => {
+        if (!document.querySelector(targets)) return;
+        gsap.fromTo(
+          targets,
+          { y, opacity: 0 },
+          {
+            y: 0,
+            opacity: 1,
+            duration: stagger ? 0.55 : 0.5,
+            stagger,
+            ease: "power3.out",
+            clearProps: "transform,opacity",
+            scrollTrigger: { trigger, start: "top 86%", toggleActions: "play none none none" },
+          },
+        );
+      };
+      reveal(".release-days", ".release-calendar", 24);
+      reveal(".release-calendar .release-card", ".release-calendar", 32, 0.08);
+      if (signedIn) {
+        reveal(".you-may-like .release-card", ".you-may-like", 32, 0.08);
+        reveal(".because-you-played .release-card", ".because-you-played", 32, 0.08);
+      }
+    },
+    { dependencies: [days, signedIn], revertOnUpdate: true },
+  );
 
   return (
     <>

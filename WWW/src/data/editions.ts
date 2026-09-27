@@ -9,6 +9,8 @@ export type GameEdition = {
   priceValue: number;
   was?: string;
   kind: "edition" | "dlc";
+  /** Orden entre ediciones del juego base: una edición incluye a las de rango menor. */
+  rank: number;
 };
 
 const CLOUD = "https://res.cloudinary.com/fj6z6mba/image/upload";
@@ -134,6 +136,7 @@ export function buildEditions(product: StoreProduct): GameEdition[] {
         priceValue: standardValue,
         was: product.was,
         kind: "edition",
+        rank: 0,
       },
       {
         id: "phantom-liberty",
@@ -142,6 +145,7 @@ export function buildEditions(product: StoreProduct): GameEdition[] {
         price: moneyFromSample(sample, phantomValue),
         priceValue: phantomValue,
         kind: "dlc",
+        rank: 0,
       },
       {
         id: "ultimate",
@@ -151,6 +155,7 @@ export function buildEditions(product: StoreProduct): GameEdition[] {
         priceValue: ultimate.priceValue,
         was: ultimate.was,
         kind: "edition",
+        rank: 2,
       },
     ];
   }
@@ -166,6 +171,7 @@ export function buildEditions(product: StoreProduct): GameEdition[] {
       priceValue: base,
       was: product.was,
       kind: "edition",
+      rank: 0,
     },
     {
       id: "deluxe",
@@ -174,6 +180,7 @@ export function buildEditions(product: StoreProduct): GameEdition[] {
       price: moneyFromSample(sample, deluxe),
       priceValue: deluxe,
       kind: "edition",
+      rank: 1,
     },
     {
       id: "ultimate",
@@ -182,8 +189,31 @@ export function buildEditions(product: StoreProduct): GameEdition[] {
       price: moneyFromSample(sample, ultimate),
       priceValue: ultimate,
       kind: "edition",
+      rank: 2,
     },
   ];
+}
+
+/** Edición del juego base que ya está en la biblioteca (los juegos de Steam cuentan como estándar). */
+export function ownedEdition(
+  games: { slug: string; edition?: string }[] | undefined,
+  product: StoreProduct,
+): GameEdition | null {
+  const entry = (games ?? []).find((game) => game.slug === product.slug);
+  if (!entry) return null;
+  const editions = buildBuyEditions(product);
+  return editions.find((item) => item.id === (entry.edition || "standard")) ?? editions[0] ?? null;
+}
+
+/** Debe coincidir con upgradeCharge() en API/src/steamSocial.ts. */
+export function upgradePrice(target: GameEdition, owned: GameEdition) {
+  const diff = Math.round((target.priceValue - owned.priceValue) * 100) / 100;
+  const floor = Math.round(target.priceValue * 0.1 * 100) / 100;
+  return Math.max(diff, floor);
+}
+
+export function formatEditionMoney(product: StoreProduct, value: number) {
+  return moneyFromSample(product.price, value);
 }
 
 export function buildBuyEditions(product: StoreProduct) {

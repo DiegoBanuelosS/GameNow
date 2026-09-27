@@ -1,9 +1,13 @@
+import { requestDesktopPc } from "./desktopNotify";
+
 export type PcProfile = {
   os?: string;
   cpu?: string;
   gpu?: string;
   /** Effective RAM in GB. May be higher than deviceMemory due to browser cap. */
   ramGb?: number | null;
+  /** Native monitor height in physical pixels. */
+  screenHeight?: number | null;
 };
 
 export async function readPcProfile(): Promise<PcProfile> {
@@ -15,8 +19,17 @@ export async function readPcProfile(): Promise<PcProfile> {
   // A machine that reports 8 almost certainly has ≥16 GB, so we treat 8 as 16.
   const raw = typeof navigator.deviceMemory === "number" ? navigator.deviceMemory : null;
   const ramGb = raw === 8 ? 16 : raw;
-  const os = await readWindows();
-  return { os, gpu, ramGb, cpu };
+  const screenHeight = Math.round(window.screen.height * (window.devicePixelRatio || 1)) || null;
+  const [os, desktop] = await Promise.all([readWindows(), requestDesktopPc()]);
+  const text = (value: unknown) => (typeof value === "string" && value.trim() ? value.trim() : "");
+  const desktopRam = Number(desktop?.ramGb);
+  return {
+    os: text(desktop?.os) || os,
+    gpu: text(desktop?.gpu) || gpu,
+    cpu: text(desktop?.cpu) || cpu,
+    ramGb: Number.isFinite(desktopRam) && desktopRam > 0 ? desktopRam : ramGb,
+    screenHeight,
+  };
 }
 
 /** Extract clean GPU name from raw WebGL renderer string (handles ANGLE wrappers). */
@@ -30,6 +43,8 @@ function cleanGpuName(raw: string): string {
   }
   // Strip trailing driver junk: " Direct3D11 vs_5_0 ps_5_0", "/PCIe/SSE2", etc.
   s = s.replace(/\s*(Direct3D|vs_\d|ps_\d|D3D\d|\/PCIe|\/SSE\d|PCIe|SSE\d).*$/i, "");
+  // Strip PCI device ids like "(0x00002504)", even when ANGLE cut the closing paren
+  s = s.replace(/\s*\(0x[0-9a-f]+\)?/gi, "");
   // Strip trailing parenthetical like "(6 GB)" if present
   s = s.replace(/\s*\([^)]*\)\s*$/, "");
   return s.trim();

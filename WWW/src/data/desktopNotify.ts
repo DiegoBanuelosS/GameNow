@@ -10,6 +10,41 @@ export function hasDesktopHost(): boolean {
   }
 }
 
+let desktopPc: Promise<Record<string, unknown> | null> | null = null;
+
+/** Pide a la app de escritorio el hardware real (CPU, GPU y RAM que el navegador no expone). */
+export function requestDesktopPc(timeoutMs = 4000): Promise<Record<string, unknown> | null> {
+  if (desktopPc) return desktopPc;
+  const host = (window as unknown as { chrome?: { webview?: WebViewHost } }).chrome?.webview;
+  if (!host) return Promise.resolve(null);
+  const unsupportedKey = "gamenow_pc_bridge_unsupported";
+  try {
+    if (sessionStorage.getItem(unsupportedKey)) return Promise.resolve(null);
+  } catch {}
+  desktopPc = new Promise((resolve) => {
+    const target = window as unknown as { __gamenowPcSpecs?: (specs: Record<string, unknown>) => void };
+    const timer = window.setTimeout(() => {
+      try {
+        sessionStorage.setItem(unsupportedKey, "1");
+      } catch {}
+      desktopPc = null;
+      resolve(null);
+    }, timeoutMs);
+    target.__gamenowPcSpecs = (specs) => {
+      window.clearTimeout(timer);
+      resolve(specs && typeof specs === "object" ? specs : null);
+    };
+    try {
+      host.postMessage({ action: "pc" });
+    } catch {
+      window.clearTimeout(timer);
+      desktopPc = null;
+      resolve(null);
+    }
+  });
+  return desktopPc;
+}
+
 /** Envía un toast al host de la app (Flutter) para mostrarlo con UI propia, sin toasts de Windows. */
 export function notifyDesktopHost(toast: Record<string, unknown>): boolean {
   try {

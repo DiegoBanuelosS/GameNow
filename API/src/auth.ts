@@ -69,12 +69,13 @@ export interface JwtPayload {
   email: string;
   username: string;
   role: string;
+  tv?: number; // Token Version para revocación inmediata de sesiones
   iat: number;
   exp: number;
 }
 
 /**
- * Firma un token JWT estándar HS256 con expiración de 7 días.
+ * Firma un token JWT estándar HS256 con expiración de 7 días y versión de token.
  */
 export function signJwt(user: IUser): string {
   const header = JSON.stringify({ alg: "HS256", typ: "JWT" });
@@ -84,6 +85,7 @@ export function signJwt(user: IUser): string {
     email: user.email,
     username: user.username,
     role: user.role,
+    tv: user.tokenVersion || 0,
     iat: now,
     exp: now + 7 * 24 * 60 * 60, // 7 días
   };
@@ -145,6 +147,16 @@ export function verifyJwt(token: string): JwtPayload | null {
 // 2. LIMITADOR DE TASA / PROTECCIÓN CONTRA FUERZA BRUTA POR IP
 // ============================================================================
 const ipAttempts = new Map<string, { count: number; resetAt: number }>();
+
+// Tarea en segundo plano para purgar registros expirados y prevenir fugas de memoria
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, value] of ipAttempts.entries()) {
+    if (value.resetAt <= now) {
+      ipAttempts.delete(key);
+    }
+  }
+}, 60 * 1000).unref();
 
 function rateLimitAuth(req: Request, res: Response, next: NextFunction): void {
   const ip = req.ip || req.socket.remoteAddress || "unknown";
@@ -395,10 +407,65 @@ authRouter.get("/me", async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
+    // Verificación de revocación inmediata de sesiones
+    if (typeof payload.tv === "number" && typeof user.tokenVersion === "number" && payload.tv < user.tokenVersion) {
+      res.status(401).json({ error: "Esta sesión ha sido revocada. Inicia sesión nuevamente." });
+      return;
+    }
+
     res.json({ user: user.toJSON() });
   } catch (err: unknown) {
     console.error("Error en /auth/me:", err);
     res.status(500).json({ error: "Error al consultar usuario." });
+  }
+});
+
+/**
+ * POST /api/auth/revoke-sessions
+ * Invalida inmediatamente todos los tokens JWT emitidos previamente para este usuario.
+ */
+authRouter.post("/revoke-sessions", async (req: Request, res: Response): Promise<void> => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      res.status(401).json({ error: "No autorizado. Token no proporcionado." });
+      return;
+    }
+
+    const token = authHeader.slice(7).trim();
+    const payload = verifyJwt(token);
+
+    if (!payload || !payload.sub) {
+      res.status(401).json({ error: "Token inválido o expirado." });
+      return;
+    }
+
+    const hasDb = await connectDb();
+    if (!hasDb) {
+      res.status(503).json({ error: "Base de datos no disponible." });
+      return;
+    }
+
+    const user = await User.findById(payload.sub);
+    if (!user) {
+      res.status(404).json({ error: "Usuario no encontrado." });
+      return;
+    }
+
+    // Incrementar versión del token para invalidar todas las sesiones emitidas previamente
+    user.tokenVersion = (user.tokenVersion || 0) + 1;
+    await user.save();
+
+    const refreshedToken = signJwt(user);
+
+    res.json({
+      ok: true,
+      message: "Todas las sesiones anteriores han sido revocadas con éxito.",
+      token: refreshedToken,
+    });
+  } catch (err: unknown) {
+    console.error("Error en revoke-sessions:", err);
+    res.status(500).json({ error: "Error al revocar sesiones." });
   }
 });
 

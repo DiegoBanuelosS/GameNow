@@ -163,7 +163,8 @@ export function PayPage() {
 
   const beginDownload = async (item: CartItem) => {
     setSelected(item.slug);
-    const result = await startDownload({ slug: item.slug, name: item.name, cover: item.cover });
+    const librarySlug = user?.steamGames?.some((game) => game.slug === item.slug) ? item.slug : item.slug.split(":")[0];
+    const result = await startDownload({ slug: librarySlug, name: item.name, cover: item.cover });
     setDownloadNote(result.ok ? "La descarga empezó. La ves en la barra de abajo." : result.error || "No se pudo descargar.");
   };
 

@@ -43,6 +43,7 @@ export interface IUser extends Document {
   failedLoginAttempts: number;
   lockUntil: Date | null;
   lastLogin: Date | null;
+  tokenVersion: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -119,6 +120,7 @@ const userSchema = new Schema<IUser>(
             userRating: Number,
             userNote: String,
             purchased: Boolean,
+            edition: String,
             paidPrice: Number,
             saleStatus: String,
             salePayout: Number,
@@ -186,6 +188,10 @@ const userSchema = new Schema<IUser>(
       type: Date,
       default: null,
     },
+    tokenVersion: {
+      type: Number,
+      default: 0,
+    },
   },
   {
     timestamps: true,
@@ -195,6 +201,7 @@ const userSchema = new Schema<IUser>(
         delete (ret as Record<string, unknown>).failedLoginAttempts;
         delete (ret as Record<string, unknown>).lockUntil;
         delete (ret as Record<string, unknown>).hiddenLibraryKeys;
+        delete (ret as Record<string, unknown>).tokenVersion;
         delete (ret as Record<string, unknown>).__v;
         return ret;
       },

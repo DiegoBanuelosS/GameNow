@@ -169,16 +169,24 @@ export function useOurCovers() {
   return covers;
 }
 
+export type PcQuality = "Bajo" | "Medio" | "Alto" | "Ultra";
+
 export type PcFit = {
-  verdict: "well" | "poor" | "no" | "unknown";
+  verdict: "great" | "well" | "poor" | "no" | "unknown";
   title: string;
   detail: string;
   machine: string;
+  fps?: { min: number; max: number };
+  quality?: PcQuality;
+  resolution?: "1080p" | "1440p" | "4K";
+  presets?: { quality: PcQuality; fps: number }[];
+  limitedBy?: "gpu" | "cpu";
+  notes?: string[];
 };
 
 export async function fetchPcFit(
   slug: string,
-  pc: { os?: string; cpu?: string; gpu?: string; ramGb?: number | null },
+  pc: { os?: string; cpu?: string; gpu?: string; ramGb?: number | null; screenHeight?: number | null },
 ): Promise<PcFit> {
   const response = await fetch(apiUrl("/api/pc-fit"), {
     method: "POST",

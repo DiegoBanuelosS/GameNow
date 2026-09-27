@@ -45,6 +45,75 @@ export function toPublicWithRate(game: CatalogGame, rate: number) {
   };
 }
 
+type SteamPrice = { final: number; initial: number } | "free" | "unavailable";
+
+const PRICE_TTL = 6 * 60 * 60 * 1000;
+
+/** Precios reales de Steam (MXN) para los juegos que el índice agregó sin precio. */
+async function steamPrices(appIds: string[]) {
+  const prices = new Map<string, SteamPrice>();
+  const missing: string[] = [];
+  for (const id of new Set(appIds.filter(Boolean))) {
+    const hit = cacheGet<SteamPrice>(`steam-price:${id}`);
+    if (hit) prices.set(id, hit);
+    else missing.push(id);
+  }
+  for (let start = 0; start < missing.length; start += 25) {
+    const batch = missing.slice(start, start + 25);
+    try {
+      const url = new URL("https://store.steampowered.com/api/appdetails");
+      url.searchParams.set("appids", batch.join(","));
+      url.searchParams.set("cc", "mx");
+      url.searchParams.set("filters", "price_overview");
+      const response = await fetch(url, { signal: AbortSignal.timeout(8000) });
+      if (!response.ok) continue;
+      const payload = (await response.json()) as Record<
+        string,
+        { success?: boolean; data?: { price_overview?: { final: number; initial: number } } | unknown[] }
+      >;
+      for (const id of batch) {
+        const entry = payload[id];
+        if (!entry) continue;
+        const overview = entry.data && !Array.isArray(entry.data) ? entry.data.price_overview : undefined;
+        const price: SteamPrice = !entry.success
+          ? "unavailable"
+          : overview
+            ? { final: overview.final / 100, initial: overview.initial / 100 }
+            : "free";
+        prices.set(id, cacheSet(`steam-price:${id}`, price, PRICE_TTL));
+      }
+    } catch {
+      // Sin respuesta de Steam: esos juegos se muestran sin precio hasta el siguiente intento.
+    }
+  }
+  return prices;
+}
+
+async function withPrices(games: CatalogGame[], rate: number) {
+  const prices = await steamPrices(games.filter((game) => !(game.price > 0)).map((game) => game.steamAppId));
+  return games.map((game) => {
+    const row = toPublicWithRate(game, rate);
+    if (game.price > 0) return row;
+    const steam = prices.get(game.steamAppId);
+    if (steam && typeof steam === "object") {
+      const onSale = steam.initial > steam.final;
+      return {
+        ...row,
+        price: formatMxn(steam.final),
+        priceValue: steam.final,
+        was: onSale ? formatMxn(steam.initial) : undefined,
+        table: row.table === "rated" ? row.table : onSale ? "deals" : row.table,
+      };
+    }
+    return {
+      ...row,
+      price: steam === "free" ? "Gratis" : "No disponible",
+      priceValue: 0,
+      was: undefined,
+    };
+  });
+}
+
 async function toPublic(game: CatalogGame) {
   const rate = await usdMxnRate();
   return toPublicWithRate(game, rate);
@@ -187,13 +256,21 @@ export async function loadGamesPage(input: { page?: number; tab?: string; min?: 
   const matched = index.filter((game) => matchesQuery(game, rate, { ...input, ceiling }));
   const pageCount = Math.max(1, Math.ceil(matched.length / PAGE_SIZE));
   const page = Math.min(pageCount, Math.max(1, input.page || 1));
-  const games = matched.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map((game) => toPublicWithRate(game, rate));
+  const games = await withPrices(matched.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE), rate);
   return { games, total: matched.length, page, pageCount, ceiling };
 }
 
 export async function findCatalogGame(slug: string) {
   const index = await catalogIndex();
   return index.find((game) => game.slug === slug) ?? null;
+}
+
+/** Juego del índice completo con su precio real (para comprar juegos fuera del catálogo curado). */
+export async function loadPricedGame(slug: string) {
+  const raw = await findCatalogGame(slug);
+  if (!raw) return null;
+  const [game] = await withPrices([raw], await usdMxnRate());
+  return game;
 }
 
 export async function loadGames() {
@@ -220,8 +297,7 @@ export async function loadGames() {
 }
 
 export async function loadGame(slug: string) {
-  const raw = await findCatalogGame(slug);
-  const game = raw ? toPublicWithRate(raw, await usdMxnRate()) : null;
+  const game = await loadPricedGame(slug);
   if (!game) {
     return null;
   }

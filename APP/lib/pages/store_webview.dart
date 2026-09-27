@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:webview_windows/webview_windows.dart';
 
+import '../pc.dart';
 import '../store_url.dart';
 import '../theme.dart';
 import '../widgets/app_title_bar.dart';
@@ -23,6 +24,7 @@ class _StoreWebViewPageState extends State<StoreWebViewPage> {
   final WebviewController _controller = WebviewController();
   final CustomToastController _toasts = CustomToastController();
   StreamSubscription<dynamic>? _webMessageSub;
+  late final Future<Map<String, dynamic>> _pcSpecs = readPc().catchError((_) => <String, dynamic>{});
   bool _ready = false;
   String? _error;
 
@@ -30,7 +32,18 @@ class _StoreWebViewPageState extends State<StoreWebViewPage> {
   void initState() {
     super.initState();
     _toasts.addListener(_onToastsChanged);
+    unawaited(_pcSpecs);
     unawaited(_openStore());
+  }
+
+  Future<void> _sendPcSpecs() async {
+    final specs = await _pcSpecs;
+    if (!mounted || !_controller.value.isInitialized) return;
+    try {
+      await _controller.executeScript(
+        'window.__gamenowPcSpecs && window.__gamenowPcSpecs(${jsonEncode(specs)});',
+      );
+    } catch (_) {}
   }
 
   void _onToastsChanged() {
@@ -88,6 +101,10 @@ class _StoreWebViewPageState extends State<StoreWebViewPage> {
       } catch (_) {}
     }
     if (data == null) return;
+    if (data['action'] == 'pc') {
+      unawaited(_sendPcSpecs());
+      return;
+    }
     if (data['action'] != 'notify') return;
 
     final raw = data['toast'];

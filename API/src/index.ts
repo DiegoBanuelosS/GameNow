@@ -1,5 +1,6 @@
 import cors from "cors";
 import express from "express";
+import helmet from "helmet";
 import { loadProduct, loadStore } from "./catalog.js";
 import { loadAppTitle, loadReleases } from "./releases.js";
 import { loadSimilar } from "./similar.js";
@@ -19,6 +20,18 @@ import { submitSupport } from "./support.js";
 import { User } from "./models/User.js";
 
 const app = express();
+
+// Configuración de proxy inverso seguro para Cloudflare / Fly.io (evita IP spoofing)
+app.set("trust proxy", 1);
+
+// Blindaje de cabeceras HTTP con Helmet (HSTS, NoSniff, X-Frame-Options)
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false,
+  }),
+);
+
 app.use(
   cors({
     origin(origin, next) {
@@ -261,6 +274,7 @@ app.post("/api/pc-fit", async (req, res) => {
         cpu: String(req.body?.cpu || ""),
         gpu: String(req.body?.gpu || ""),
         ramGb: Number(req.body?.ramGb) || null,
+        screenHeight: Number(req.body?.screenHeight) || null,
       }),
     );
   } catch (error) {

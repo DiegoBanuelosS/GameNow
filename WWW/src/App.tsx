@@ -23,6 +23,8 @@ import { ReleasePage } from "./pages/Store/ReleasePage";
 import { StorePage } from "./pages/Store/StorePage";
 import { ProfilePage } from "./pages/profile/ProfilePage";
 import { PublicProfilePage } from "./pages/profile/PublicProfilePage";
+import { LegalPage } from "./pages/legal/LegalPage";
+import { HowToBuyPage } from "./pages/help/HowToBuyPage";
 import { SettingsPanel } from "./pages/Store/SettingsPanel";
 import { HelpPanel } from "./pages/Store/HelpPanel";
 
@@ -78,6 +80,10 @@ function AppRoutes() {
         <Route path="/perfil/:steamId" element={<PublicProfilePage />} />
         <Route path="/game/:id" element={<GamePage />} />
         <Route path="/lanzamiento/:appId" element={<ReleasePage />} />
+        <Route path="/privacidad" element={<LegalPage slug="privacidad" />} />
+        <Route path="/terminos" element={<LegalPage slug="terminos" />} />
+        <Route path="/cookies" element={<LegalPage slug="cookies" />} />
+        <Route path="/ayuda/como-comprar" element={<HowToBuyPage />} />
       </Routes>
       <SettingsPanel />
       <HelpPanel />

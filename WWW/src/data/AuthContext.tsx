@@ -27,6 +27,7 @@ export interface SteamLibraryGame {
   userRating?: number;
   userNote?: string;
   purchased?: boolean;
+  edition?: string;
   saleStatus?: "" | "pending";
   salePayout?: number;
   desktopShortcut?: boolean;
