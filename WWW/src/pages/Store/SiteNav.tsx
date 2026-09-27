@@ -62,7 +62,7 @@ export function SiteNav() {
                 </span>
                 <span className="site-profile-username">{user.username}</span>
                 {user.steamName && (
-                  <span className="site-profile-steam-indicator" title={`Cuenta unificada con Steam: ${user.steamName}`}>
+                  <span className="site-profile-steam-indicator" title={`Steam: ${user.steamName}`}>
                     <SteamLogo size={12} fill="#66c0f4" />
                   </span>
                 )}

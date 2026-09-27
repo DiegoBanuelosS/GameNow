@@ -159,12 +159,6 @@ export function ProfilePage() {
               <div className="profile-user-meta">
                 <div className="profile-username-row">
                   <h1 className="profile-username">{user.username}</h1>
-                  {steamLinked ? (
-                    <span className="profile-unified-badge" title="Tus cuentas de GameNow y Steam están unificadas en una sola">
-                      <SteamLogo size={13} fill="#66c0f4" />
-                      Cuenta unificada
-                    </span>
-                  ) : null}
                 </div>
                 <p className="profile-email">{user.email}</p>
                 {steamLinked ? (
