@@ -1,4 +1,4 @@
-# GameNow 🎮
+# GameNow 
 
 > **High-Performance Omnichannel Digital Gaming Distribution Simulation Platform**  
 > _Academic & Personal Software Engineering Project_
