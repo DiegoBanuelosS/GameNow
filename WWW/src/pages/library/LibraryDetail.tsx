@@ -289,7 +289,7 @@ export function LibraryDetail({
           ) : (
             <p className="library-detail-hours">{game.playTimeHours} hrs jugadas</p>
           )}
-          {game.saleStatus === "pending" ? null : game.steamAppId ? (
+          {game.saleStatus === "pending" ? null : game.isInstalled ? (
             <button
               type="button"
               className="library-detail-download"
@@ -306,13 +306,14 @@ export function LibraryDetail({
             >
               Jugar
             </button>
-          ) : game.isInstalled ? (
+          ) : game.steamAppId ? (
             <button
               type="button"
               className="library-detail-download"
               onClick={() =>
                 startLaunch({
                   name: game.name,
+                  steamAppId: game.steamAppId,
                   slug: game.slug,
                   image: bannerChain[0] || banner || preferredCover || "",
                   images: bannerChain,
@@ -320,7 +321,7 @@ export function LibraryDetail({
                 })
               }
             >
-              Jugar
+              Descargar
             </button>
           ) : (
             <button type="button" className="library-detail-download" onClick={download} disabled={inFlight}>

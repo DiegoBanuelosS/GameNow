@@ -57,6 +57,59 @@ export function notifyDesktopHost(toast: Record<string, unknown>): boolean {
   }
 }
 
+/** Pide a la app de escritorio la lista de AppIDs de Steam instalados localmente. */
+export function requestInstalledSteamGames(timeoutMs = 3500): Promise<string[]> {
+  const win = window as unknown as {
+    __gamenowInstalledSteamApps?: string[];
+    __gamenowSetInstalledSteamApps?: (apps: string[]) => void;
+  };
+
+  // 1. Si ya se han recibido desde el WebView host en memoria
+  if (Array.isArray(win.__gamenowInstalledSteamApps) && win.__gamenowInstalledSteamApps.length > 0) {
+    return Promise.resolve(win.__gamenowInstalledSteamApps);
+  }
+
+  // 2. Si están guardados en localStorage
+  try {
+    const raw = localStorage.getItem("gamenow_installed_steam_appids");
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        win.__gamenowInstalledSteamApps = parsed;
+        return Promise.resolve(parsed);
+      }
+    }
+  } catch {}
+
+  const host = (window as unknown as { chrome?: { webview?: WebViewHost } }).chrome?.webview;
+  if (!host) {
+    return Promise.resolve([]);
+  }
+
+  return new Promise((resolve) => {
+    const timer = window.setTimeout(() => {
+      resolve(win.__gamenowInstalledSteamApps || []);
+    }, timeoutMs);
+
+    win.__gamenowSetInstalledSteamApps = (apps) => {
+      window.clearTimeout(timer);
+      const cleanList = Array.isArray(apps) ? apps.map((x) => String(x).trim()).filter(Boolean) : [];
+      win.__gamenowInstalledSteamApps = cleanList;
+      try {
+        localStorage.setItem("gamenow_installed_steam_appids", JSON.stringify(cleanList));
+      } catch {}
+      resolve(cleanList);
+    };
+
+    try {
+      host.postMessage({ action: "get_installed_steam_games" });
+    } catch {
+      window.clearTimeout(timer);
+      resolve([]);
+    }
+  });
+}
+
 /** Solicita al launcher de escritorio (Flutter) o al navegador ejecutar un juego de Steam vía protocolo. */
 export function launchSteamGame(steamAppId: string, name?: string): boolean {
   try {
@@ -73,16 +126,28 @@ export function launchSteamGame(steamAppId: string, name?: string): boolean {
       return true;
     }
 
-    // Fallback seguro para navegador web convencional: invocar protocolo steam:// en iframe oculto
-    const iframe = document.createElement("iframe");
-    iframe.style.display = "none";
-    iframe.src = `steam://rungameid/${cleanAppId}`;
-    document.body.appendChild(iframe);
-    window.setTimeout(() => {
-      try {
-        iframe.remove();
-      } catch {}
-    }, 2000);
+    // Navegador estándar (Chrome, Edge, Firefox): usar enlace simulado y asignación directa de protocolo
+    try {
+      const a = document.createElement("a");
+      a.href = `steam://rungameid/${cleanAppId}`;
+      a.target = "_self";
+      a.rel = "noreferrer";
+      a.style.display = "none";
+      document.body.appendChild(a);
+      a.click();
+      window.setTimeout(() => {
+        try {
+          a.remove();
+        } catch {}
+      }, 1000);
+    } catch {}
+
+    try {
+      window.location.assign(`steam://rungameid/${cleanAppId}`);
+    } catch {
+      window.location.href = `steam://rungameid/${cleanAppId}`;
+    }
+
     return true;
   } catch {
     return false;

@@ -101,17 +101,19 @@ class _StoreWebViewPageState extends State<StoreWebViewPage> {
       } catch (_) {}
     }
     if (data == null) return;
-    if (data['action'] == 'pc') {
+    if (data['action'] == 'pc' || data['action'] == 'get_installed_steam_games') {
       unawaited(_sendPcSpecs());
+      unawaited(_sendInstalledSteamGames());
       return;
     }
-    if (data['action'] == 'launch_steam' || (data['action'] == 'launch' && data['platform'] == 'steam')) {
-      final appId = data['steamAppId']?.toString() ?? data['appId']?.toString() ?? '';
+    final rawAppId = data['steamAppId']?.toString() ?? data['appId']?.toString() ?? '';
+    final hasSteamId = rawAppId.trim().isNotEmpty;
+    if (data['action'] == 'launch_steam' || (data['action'] == 'launch' && hasSteamId) || (data['platform'] == 'steam' && hasSteamId)) {
       final name = data['name']?.toString() ?? 'Juego';
-      unawaited(_launchSteamGame(appId, name));
+      unawaited(_launchSteamGame(rawAppId, name));
       return;
     }
-    if (data['action'] == 'launch' && (data['steamAppId'] == null || data['steamAppId'] == '')) {
+    if (data['action'] == 'launch' && !hasSteamId) {
       final name = data['name']?.toString() ?? 'Juego';
       _toasts.push(
         AppToastData(
@@ -133,6 +135,93 @@ class _StoreWebViewPageState extends State<StoreWebViewPage> {
     _toasts.push(AppToastData.fromMap(toastMap));
   }
 
+  Future<List<String>> _detectInstalledSteamAppIds() async {
+    if (!Platform.isWindows) return [];
+    final appIds = <String>{};
+    final candidateLibs = <String>{
+      r'C:\Program Files (x86)\Steam',
+      r'C:\Program Files\Steam',
+    };
+
+    // 1. Leer SteamPath desde el Registro de Windows
+    try {
+      final regRes = await Process.run('reg', [
+        'query',
+        r'HKCU\Software\Valve\Steam',
+        '/v',
+        'SteamPath',
+      ]);
+      if (regRes.exitCode == 0) {
+        final out = regRes.stdout.toString();
+        final match = RegExp(r'SteamPath\s+REG_SZ\s+(.+)', caseSensitive: false).firstMatch(out);
+        if (match != null) {
+          final regPath = match.group(1)?.trim().replaceAll('/', r'\');
+          if (regPath != null && regPath.isNotEmpty) {
+            candidateLibs.add(regPath);
+          }
+        }
+      }
+    } catch (_) {}
+
+    // 2. Extraer todas las bibliotecas de Steam desde libraryfolders.vdf
+    final discoveredFolders = <String>{...candidateLibs};
+    for (final steamDir in candidateLibs) {
+      try {
+        final vdfFile = File('$steamDir\\steamapps\\libraryfolders.vdf');
+        if (await vdfFile.exists()) {
+          final content = await vdfFile.readAsString();
+          final matches = RegExp(r'"path"\s+"([^"]+)"').allMatches(content);
+          for (final m in matches) {
+            final p = m.group(1)?.replaceAll(r'\\', r'\');
+            if (p != null && p.isNotEmpty) {
+              discoveredFolders.add(p);
+            }
+          }
+        }
+      } catch (_) {}
+    }
+
+    // 3. Escanear todos los appmanifest_<id>.acf en cada biblioteca
+    for (final folder in discoveredFolders) {
+      try {
+        final appsDir = Directory('$folder\\steamapps');
+        if (await appsDir.exists()) {
+          await for (final entity in appsDir.list()) {
+            if (entity is File) {
+              final fileName = entity.uri.pathSegments.last;
+              final match = RegExp(r'^appmanifest_(\d+)\.acf$', caseSensitive: false).firstMatch(fileName);
+              if (match != null) {
+                final id = match.group(1);
+                if (id != null && id.isNotEmpty) {
+                  appIds.add(id);
+                }
+              }
+            }
+          }
+        }
+      } catch (_) {}
+    }
+
+    return appIds.toList();
+  }
+
+  Future<void> _sendInstalledSteamGames() async {
+    final appIds = await _detectInstalledSteamAppIds();
+    if (!mounted || !_controller.value.isInitialized) return;
+    try {
+      await _controller.executeScript('''
+        if (window.__gamenowSetInstalledSteamApps) {
+          window.__gamenowSetInstalledSteamApps(${jsonEncode(appIds)});
+        }
+        window.__gamenowInstalledSteamApps = ${jsonEncode(appIds)};
+        try {
+          localStorage.setItem('gamenow_installed_steam_appids', ${jsonEncode(jsonEncode(appIds))});
+          window.dispatchEvent(new CustomEvent('gamenow_installed_steam_apps', { detail: ${jsonEncode(appIds)} }));
+        } catch (_) {}
+      ''');
+    } catch (_) {}
+  }
+
   Future<void> _launchSteamGame(String appId, String name) async {
     final cleanAppId = appId.replaceAll(RegExp(r'[^0-9]'), '');
     if (cleanAppId.isEmpty) {
@@ -149,41 +238,84 @@ class _StoreWebViewPageState extends State<StoreWebViewPage> {
     _toasts.push(
       AppToastData(
         id: 'steam_$cleanAppId',
-        title: 'Lanzando con Steam',
-        body: 'Iniciando $name en tu cliente de Steam...',
+        title: 'Iniciando juego',
+        body: 'Iniciando $name...',
       ),
     );
 
     bool launched = false;
     if (Platform.isWindows) {
-      // 1. Invocar el protocolo registrado steam://rungameid/<id> vía start
+      // 1. Ejecución directa vía steam.exe -applaunch <id>
+      String? steamExe;
       try {
-        final res = await Process.run('cmd', [
-          '/c',
-          'start',
-          '',
-          'steam://rungameid/$cleanAppId',
+        final regRes = await Process.run('reg', [
+          'query',
+          r'HKCU\Software\Valve\Steam',
+          '/v',
+          'SteamExe',
         ]);
-        if (res.exitCode == 0) launched = true;
+        if (regRes.exitCode == 0) {
+          final match = RegExp(r'SteamExe\s+REG_SZ\s+(.+)', caseSensitive: false).firstMatch(regRes.stdout.toString());
+          final path = match?.group(1)?.trim().replaceAll('/', r'\');
+          if (path != null && await File(path).exists()) {
+            steamExe = path;
+          }
+        }
       } catch (_) {}
 
-      // 2. Fallback con explorer.exe
-      if (!launched) {
+      if (steamExe == null) {
+        for (final fallback in [
+          r'C:\Program Files (x86)\Steam\steam.exe',
+          r'C:\Program Files\Steam\steam.exe',
+        ]) {
+          if (await File(fallback).exists()) {
+            steamExe = fallback;
+            break;
+          }
+        }
+      }
+
+      if (steamExe != null) {
         try {
-          final res = await Process.run('explorer.exe', ['steam://rungameid/$cleanAppId']);
+          final res = await Process.run(steamExe, ['-applaunch', cleanAppId]);
           if (res.exitCode == 0) launched = true;
         } catch (_) {}
       }
 
-      // 3. Fallback con PowerShell Start-Process
+      // 2. Fallback con PowerShell Start-Process con el protocolo nativo de Steam
       if (!launched) {
         try {
           final res = await Process.run('powershell', [
             '-NoProfile',
+            '-NonInteractive',
             '-WindowStyle',
             'Hidden',
             '-Command',
             'Start-Process "steam://rungameid/$cleanAppId"',
+          ]);
+          if (res.exitCode == 0) launched = true;
+        } catch (_) {}
+      }
+
+      // 3. Fallback con rundll32 FileProtocolHandler
+      if (!launched) {
+        try {
+          final res = await Process.run('rundll32.exe', [
+            'url.dll,FileProtocolHandler',
+            'steam://rungameid/$cleanAppId',
+          ]);
+          if (res.exitCode == 0) launched = true;
+        } catch (_) {}
+      }
+
+      // 4. Fallback con cmd start y título de ventana explícito
+      if (!launched) {
+        try {
+          final res = await Process.run('cmd', [
+            '/c',
+            'start',
+            'GameNowLauncher',
+            'steam://rungameid/$cleanAppId',
           ]);
           if (res.exitCode == 0) launched = true;
         } catch (_) {}
@@ -241,6 +373,12 @@ class _StoreWebViewPageState extends State<StoreWebViewPage> {
       await _controller.loadUrl(appUrl);
       if (!mounted) return;
       setState(() => _ready = true);
+      Future.delayed(const Duration(milliseconds: 600), () {
+        if (mounted) {
+          _sendPcSpecs();
+          _sendInstalledSteamGames();
+        }
+      });
     } on PlatformException catch (e) {
       if (!mounted) return;
       setState(() {

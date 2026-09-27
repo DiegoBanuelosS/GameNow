@@ -15,6 +15,7 @@ import { AuthRequiredGate } from "../../components/AuthRequiredGate";
 import { Cloud, Gamepad2, Newspaper, RefreshCw } from "lucide-react";
 import { MagnifyingGlass, Star } from "../../components/Icons";
 import { SteamLogo } from "../../components/SteamLogo";
+import { requestInstalledSteamGames } from "../../data/desktopNotify";
 import { LibraryDetail } from "./LibraryDetail";
 import "./LibraryPage.css";
 
@@ -130,6 +131,43 @@ export function LibraryPage() {
       }
     : null;
 
+  const [installedSteamIds, setInstalledSteamIds] = useState<Set<string>>(() => {
+    try {
+      const raw = localStorage.getItem("gamenow_installed_steam_appids");
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return new Set(parsed.map(String));
+        }
+      }
+    } catch {}
+    return new Set<string>();
+  });
+
+  useEffect(() => {
+    void requestInstalledSteamGames().then((ids) => {
+      if (ids && ids.length > 0) {
+        setInstalledSteamIds(new Set(ids.map(String)));
+      }
+    });
+
+    const onInstalledApps = (e: Event) => {
+      const custom = e as CustomEvent<string[]>;
+      if (Array.isArray(custom.detail)) {
+        setInstalledSteamIds(new Set(custom.detail.map(String)));
+      }
+    };
+    window.addEventListener("gamenow_installed_steam_apps", onInstalledApps);
+    return () => window.removeEventListener("gamenow_installed_steam_apps", onInstalledApps);
+  }, []);
+
+  const isGameInstalled = (game: LibraryGameItem) => {
+    if (game.isInstalled) return true;
+    const cleanAppId = game.steamAppId || (game.slug.startsWith("steam-") ? game.slug.replace("steam-", "") : "");
+    if (cleanAppId && installedSteamIds.has(cleanAppId)) return true;
+    return false;
+  };
+
   useEffect(() => {
     setUserGames(user?.steamGames ?? []);
     if (!user?._id) return;
@@ -233,8 +271,25 @@ export function LibraryPage() {
 
   const toggleInstalled = (slug: string, e?: React.MouseEvent) => {
     e?.stopPropagation();
+    const target = userGames.find((g) => g.slug === slug);
+    const currentlyInstalled = target ? isGameInstalled(target) : false;
+    const nextInstalled = !currentlyInstalled;
+
+    const effAppId = target?.steamAppId || (target?.slug.startsWith("steam-") ? target.slug.replace("steam-", "") : "");
+    if (effAppId) {
+      setInstalledSteamIds((prev) => {
+        const next = new Set(prev);
+        if (nextInstalled) next.add(effAppId);
+        else next.delete(effAppId);
+        try {
+          localStorage.setItem("gamenow_installed_steam_appids", JSON.stringify([...next]));
+        } catch {}
+        return next;
+      });
+    }
+
     const updated = userGames.map((g) =>
-      g.slug === slug ? { ...g, isInstalled: !g.isInstalled } : g,
+      g.slug === slug ? { ...g, isInstalled: nextInstalled } : g,
     );
     updateGamesState(updated);
   };
@@ -264,11 +319,11 @@ export function LibraryPage() {
         if (!g.name.toLowerCase().includes(q)) return false;
       }
       if (activeTab === "favorites" && !g.isFavorite) return false;
-      if (activeTab === "installed" && !g.isInstalled) return false;
+      if (activeTab === "installed" && !isGameInstalled(g)) return false;
       if (activeGenre !== "all" && g.genre !== activeGenre) return false;
       return true;
     });
-  }, [userGames, searchQuery, activeTab, activeGenre]);
+  }, [userGames, searchQuery, activeTab, activeGenre, installedSteamIds]);
 
   // Ordenamiento funcional
   const sortedGames = useMemo(() => {
@@ -289,10 +344,10 @@ export function LibraryPage() {
   // Lista de "Último jugado"
   const recentGames = useMemo(() => {
     return [...userGames]
-      .filter((g) => g.lastPlayedTimestamp > 0 || g.isInstalled)
+      .filter((g) => g.lastPlayedTimestamp > 0 || isGameInstalled(g))
       .sort((a, b) => b.lastPlayedTimestamp - a.lastPlayedTimestamp)
       .slice(0, 4);
-  }, [userGames]);
+  }, [userGames, installedSteamIds]);
 
   // Contadores para el sidebar
   const counts = useMemo(() => {
@@ -300,9 +355,9 @@ export function LibraryPage() {
       all: userGames.length,
       recent: userGames.filter((g) => g.lastPlayedTimestamp > 0).length,
       favorites: userGames.filter((g) => g.isFavorite).length,
-      installed: userGames.filter((g) => g.isInstalled).length,
+      installed: userGames.filter((g) => isGameInstalled(g)).length,
     };
-  }, [userGames]);
+  }, [userGames, installedSteamIds]);
 
   const showRecentSection = (activeTab === "all" || activeTab === "recent") && !searchQuery && activeGenre === "all" && recentGames.length > 0;
   const layoutRef = useRef<HTMLElement>(null);
@@ -600,7 +655,7 @@ export function LibraryPage() {
                     }}
                   />
                   <span className="library-game-row-title">{game.name}</span>
-                  {game.isInstalled && (
+                  {isGameInstalled(game) && (
                     <span className="library-game-row-installed-icon" title="Instalado">
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                         <polyline points="20 6 9 17 4 12" />
@@ -651,7 +706,11 @@ export function LibraryPage() {
           ) : null}
           {selectedGame ? (
             <LibraryDetail
-              game={selectedGame}
+              game={{
+                ...selectedGame,
+                isInstalled: isGameInstalled(selectedGame),
+                steamAppId: selectedGame.steamAppId || (selectedGame.slug.startsWith("steam-") ? selectedGame.slug.replace("steam-", "") : undefined),
+              }}
               token={token}
               artFallbacks={artFallbacks(selectedGame, ourCover(ourCovers, selectedGame))}
               onClose={() => setSelectedSlug(null)}
@@ -831,7 +890,7 @@ export function LibraryPage() {
 
                     <div className="library-cover-overlay">
                       <div className="library-cover-top">
-                        {game.isInstalled ? (
+                        {isGameInstalled(game) ? (
                           <span
                             className="library-cover-installed-icon"
                             onClick={(e) => toggleInstalled(game.slug, e)}
@@ -845,15 +904,16 @@ export function LibraryPage() {
                           <span />
                         )}
                         <div className="library-cover-actions">
-                          {game.steamAppId && (
+                          {(game.steamAppId || game.slug.startsWith("steam-") || isGameInstalled(game)) && (
                             <button
                               type="button"
                               className="library-cover-action-btn library-cover-play-btn"
                               onClick={(e) => {
                                 e.stopPropagation();
+                                const effAppId = game.steamAppId || (game.slug.startsWith("steam-") ? game.slug.replace("steam-", "") : undefined);
                                 startLaunch({
                                   name: game.name,
-                                  steamAppId: game.steamAppId,
+                                  steamAppId: effAppId,
                                   slug: game.slug,
                                   image: libraryCoverFor(game) || game.cover,
                                   images: [libraryCoverFor(game) || game.cover],
@@ -948,7 +1008,7 @@ export function LibraryPage() {
 
                       <div className="library-cover-overlay">
                         <div className="library-cover-top">
-                          {game.isInstalled ? (
+                          {isGameInstalled(game) ? (
                             <span
                               className="library-cover-installed-icon"
                               onClick={(e) => toggleInstalled(game.slug, e)}
@@ -962,23 +1022,24 @@ export function LibraryPage() {
                             <span />
                           )}
                           <div className="library-cover-actions">
-                            {game.steamAppId && (
+                            {(game.steamAppId || game.slug.startsWith("steam-") || isGameInstalled(game)) && (
                               <button
                                 type="button"
                                 className="library-cover-action-btn library-cover-play-btn"
                                 onClick={(e) => {
                                   e.stopPropagation();
+                                  const effAppId = game.steamAppId || (game.slug.startsWith("steam-") ? game.slug.replace("steam-", "") : undefined);
                                   startLaunch({
                                     name: game.name,
-                                    steamAppId: game.steamAppId,
+                                    steamAppId: effAppId,
                                     slug: game.slug,
                                     image: libraryCoverFor(game) || game.cover,
                                     images: [libraryCoverFor(game) || game.cover],
                                     cover: libraryCoverFor(game) || game.cover,
                                   });
                                 }}
-                                title={`Lanzar ${game.name} en Steam`}
-                                aria-label={`Lanzar ${game.name} en Steam`}
+                                title={`Jugar a ${game.name}`}
+                                aria-label={`Jugar a ${game.name}`}
                               >
                                 <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
                                   <polygon points="6 4 20 12 6 20 6 4" />

@@ -19,9 +19,15 @@ export function LaunchScreen() {
   useEffect(() => {
     if (!launch) return;
 
-    if (launch.steamAppId) {
+    const effAppId = launch.steamAppId || (launch.slug?.startsWith("steam-") ? launch.slug.replace("steam-", "") : undefined);
+    if (effAppId) {
       // Lanzar juego a través de Steam (protocolo / launcher de escritorio)
-      launchSteamGame(launch.steamAppId, launch.name);
+      launchSteamGame(effAppId, launch.name);
+
+      const win = window as unknown as { __gamenowSteamLaunched?: (appId: string, ok: boolean) => void };
+      win.__gamenowSteamLaunched = (_id, ok) => {
+        if (ok) setSteamLaunched(true);
+      };
 
       const successTimer = window.setTimeout(() => {
         setSteamLaunched(true);
@@ -33,6 +39,7 @@ export function LaunchScreen() {
       }, 4200);
 
       return () => {
+        win.__gamenowSteamLaunched = undefined;
         window.clearTimeout(successTimer);
         window.clearTimeout(closeTimer);
       };
