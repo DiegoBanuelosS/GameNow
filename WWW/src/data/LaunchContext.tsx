@@ -5,6 +5,9 @@ export type LaunchTarget = {
   image: string;
   images: string[];
   cover: string;
+  steamAppId?: string;
+  slug?: string;
+  error?: string;
 };
 
 type LaunchContextType = {
@@ -12,7 +15,7 @@ type LaunchContextType = {
   notice: LaunchTarget | null;
   startLaunch: (target: LaunchTarget) => void;
   stopLaunch: () => void;
-  failLaunch: () => void;
+  failLaunch: (error?: string) => void;
   clearNotice: () => void;
 };
 
@@ -29,9 +32,9 @@ export function LaunchProvider({ children }: { children: ReactNode }) {
     setLaunch(target);
   }, []);
   const stopLaunch = useCallback(() => setLaunch(null), []);
-  const failLaunch = useCallback(() => {
+  const failLaunch = useCallback((error?: string) => {
     const current = launchRef.current;
-    if (current) setNotice(current);
+    if (current) setNotice({ ...current, ...(error ? { error } : {}) });
     setLaunch(null);
   }, []);
   const clearNotice = useCallback(() => setNotice(null), []);

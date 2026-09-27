@@ -14,6 +14,7 @@ import { steamMarkupToHtml } from "../../data/steamMarkup";
 import { AuthRequiredGate } from "../../components/AuthRequiredGate";
 import { Cloud, Gamepad2, Newspaper, RefreshCw } from "lucide-react";
 import { MagnifyingGlass, Star } from "../../components/Icons";
+import { SteamLogo } from "../../components/SteamLogo";
 import { LibraryDetail } from "./LibraryDetail";
 import "./LibraryPage.css";
 
@@ -101,7 +102,7 @@ function artFallbacks(game: LibraryGameItem, ours: string) {
 export function LibraryPage() {
   const { user, status, token, refreshSteam, updateLibraryGame } = useAuth();
   const { startDownload } = useDownloads();
-  const { notice, clearNotice } = useLaunch();
+  const { notice, clearNotice, startLaunch } = useLaunch();
   const ourCovers = useOurCovers();
 
   // Estados de navegación y filtros
@@ -507,9 +508,15 @@ export function LibraryPage() {
                 ) : (
                   <Gamepad2 size={16} aria-hidden="true" />
                 )}
-                <span className="library-steam-name" title={steamProfile.steamName}>
-                  {steamProfile.steamName}
-                </span>
+                <div className="library-steam-pill-names">
+                  <span className="library-steam-primary-name" title={user.username}>
+                    {user.username}
+                  </span>
+                  <span className="library-steam-alias" title={`Cuenta de Steam: ${steamProfile.steamName}`}>
+                    <SteamLogo size={11} fill="#66c0f4" />
+                    {steamProfile.steamName}
+                  </span>
+                </div>
               </div>
               <div className="library-steam-pill-actions">
                 <button
@@ -632,7 +639,12 @@ export function LibraryPage() {
                 {notice.cover ? <img src={notice.cover} alt="" /> : null}
                 <div>
                   <p>ups... parece que hubo un problema al iniciar tu juego.</p>
-                  <p className="library-launch-notice-error">Error: Esta es una cuenta de prueba, No puedes ejecutar Juegos.</p>
+                  <p className="library-launch-notice-error">
+                    {notice.error ||
+                      (notice.steamAppId
+                        ? "No se pudo comunicar con Steam para iniciar el juego."
+                        : "Los títulos de catálogo propio de GameNow son demostraciones de la tienda y no cuentan con binarios ejecutables locales. Puedes ejecutar cualquier juego de tu biblioteca de Steam.")}
+                  </p>
                 </div>
               </div>
             </article>
@@ -834,6 +846,29 @@ export function LibraryPage() {
                         )}
                         <div className="library-cover-actions">
                           {game.steamAppId && (
+                            <button
+                              type="button"
+                              className="library-cover-action-btn library-cover-play-btn"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                startLaunch({
+                                  name: game.name,
+                                  steamAppId: game.steamAppId,
+                                  slug: game.slug,
+                                  image: libraryCoverFor(game) || game.cover,
+                                  images: [libraryCoverFor(game) || game.cover],
+                                  cover: libraryCoverFor(game) || game.cover,
+                                });
+                              }}
+                              title={`Lanzar ${game.name} en Steam`}
+                              aria-label={`Lanzar ${game.name} en Steam`}
+                            >
+                              <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+                                <polygon points="6 4 20 12 6 20 6 4" />
+                              </svg>
+                            </button>
+                          )}
+                          {game.steamAppId && (
                             <a
                               href={`https://store.steampowered.com/app/${game.steamAppId}`}
                               target="_blank"
@@ -927,6 +962,29 @@ export function LibraryPage() {
                             <span />
                           )}
                           <div className="library-cover-actions">
+                            {game.steamAppId && (
+                              <button
+                                type="button"
+                                className="library-cover-action-btn library-cover-play-btn"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  startLaunch({
+                                    name: game.name,
+                                    steamAppId: game.steamAppId,
+                                    slug: game.slug,
+                                    image: libraryCoverFor(game) || game.cover,
+                                    images: [libraryCoverFor(game) || game.cover],
+                                    cover: libraryCoverFor(game) || game.cover,
+                                  });
+                                }}
+                                title={`Lanzar ${game.name} en Steam`}
+                                aria-label={`Lanzar ${game.name} en Steam`}
+                              >
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+                                  <polygon points="6 4 20 12 6 20 6 4" />
+                                </svg>
+                              </button>
+                            )}
                             {game.steamAppId && (
                               <a
                                 href={`https://store.steampowered.com/app/${game.steamAppId}`}

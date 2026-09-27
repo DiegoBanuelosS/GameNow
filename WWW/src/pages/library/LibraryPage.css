@@ -149,10 +149,29 @@
   flex-shrink: 0;
 }
 
-.library-steam-name {
-  font-size: 12px;
-  font-weight: 600;
+.library-steam-pill-names {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+  line-height: 1.25;
+}
+
+.library-steam-primary-name {
+  font-size: 12.5px;
+  font-weight: 700;
   color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.library-steam-alias {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #66c0f4;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1760,6 +1779,31 @@
   font: inherit;
   font-size: 14px;
   cursor: pointer;
+}
+
+.library-detail-steam-launch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #1b2838 0%, #2a475e 100%);
+  border-color: rgba(102, 192, 244, 0.4);
+  color: #66c0f4;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.library-detail-steam-launch:hover {
+  background: linear-gradient(135deg, #2a475e 0%, #1b2838 100%);
+  border-color: #66c0f4;
+  color: #fff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(42, 71, 94, 0.5);
+}
+
+.library-cover-action-btn.library-cover-play-btn:hover {
+  background: #2a475e;
+  color: #66c0f4;
+  transform: scale(1.15);
 }
 
 .library-detail-download:disabled {

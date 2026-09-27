@@ -196,6 +196,17 @@
   font: var(--heading-m);
 }
 
+.chat-modal-steam-alias {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  font-size: 11.5px;
+  color: #66c0f4;
+  font-weight: 500;
+  margin: -2px 0 2px;
+}
+
 .chat-modal-lock {
   display: inline-flex;
   align-items: center;

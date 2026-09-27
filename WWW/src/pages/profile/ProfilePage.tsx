@@ -159,12 +159,19 @@ export function ProfilePage() {
               <div className="profile-user-meta">
                 <div className="profile-username-row">
                   <h1 className="profile-username">{user.username}</h1>
+                  {steamLinked ? (
+                    <span className="profile-unified-badge" title="Tus cuentas de GameNow y Steam están unificadas en una sola">
+                      <SteamLogo size={13} fill="#66c0f4" />
+                      Cuenta unificada
+                    </span>
+                  ) : null}
                 </div>
                 <p className="profile-email">{user.email}</p>
                 {steamLinked ? (
                   <div className="profile-steam-row">
-                    <SteamLogo size={16} fill="#c7c1b8" />
-                    <span className="profile-steam-name">{user.steamName || "Steam"}</span>
+                    <SteamLogo size={16} fill="#66c0f4" />
+                    <span className="profile-steam-label">Steam:</span>
+                    <strong className="profile-steam-name">{user.steamName || "Steam"}</strong>
                     <button type="button" className="profile-steam-unlink" onClick={handleDisconnectSteam}>
                       Desvincular
                     </button>
@@ -194,7 +201,7 @@ export function ProfilePage() {
               <div className="profile-private-actions-text">
                 <h3 className="profile-private-actions-title">Conecta tu cuenta o compra juegos</h3>
                 <p className="profile-private-actions-subtitle">
-                  Inicia sesión en Steam para traer tu avatar, tu marco y el fondo de tu perfil. GameNow no pide tu contraseña.
+                  Al vincular tu cuenta de Steam se unirán en una sola: tu nombre de usuario principal será tu cuenta de GameNow, mostrando también tu cuenta de Steam, catálogo de juegos, avatar y logros unificados.
                 </p>
               </div>
               <div className="profile-private-actions-btns">

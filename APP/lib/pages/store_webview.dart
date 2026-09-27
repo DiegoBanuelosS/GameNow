@@ -105,6 +105,23 @@ class _StoreWebViewPageState extends State<StoreWebViewPage> {
       unawaited(_sendPcSpecs());
       return;
     }
+    if (data['action'] == 'launch_steam' || (data['action'] == 'launch' && data['platform'] == 'steam')) {
+      final appId = data['steamAppId']?.toString() ?? data['appId']?.toString() ?? '';
+      final name = data['name']?.toString() ?? 'Juego';
+      unawaited(_launchSteamGame(appId, name));
+      return;
+    }
+    if (data['action'] == 'launch' && (data['steamAppId'] == null || data['steamAppId'] == '')) {
+      final name = data['name']?.toString() ?? 'Juego';
+      _toasts.push(
+        AppToastData(
+          id: 'gamenow_native_${DateTime.now().millisecondsSinceEpoch}',
+          title: 'Catálogo GameNow',
+          body: '$name es un título demostrativo de catálogo sin binarios ejecutables locales.',
+        ),
+      );
+      return;
+    }
     if (data['action'] != 'notify') return;
 
     final raw = data['toast'];
@@ -114,6 +131,72 @@ class _StoreWebViewPageState extends State<StoreWebViewPage> {
     }
     if (toastMap == null) return;
     _toasts.push(AppToastData.fromMap(toastMap));
+  }
+
+  Future<void> _launchSteamGame(String appId, String name) async {
+    final cleanAppId = appId.replaceAll(RegExp(r'[^0-9]'), '');
+    if (cleanAppId.isEmpty) {
+      _toasts.push(
+        AppToastData(
+          id: 'steam_err_${DateTime.now().millisecondsSinceEpoch}',
+          title: 'Error de Steam',
+          body: 'El identificador de Steam no es válido.',
+        ),
+      );
+      return;
+    }
+
+    _toasts.push(
+      AppToastData(
+        id: 'steam_$cleanAppId',
+        title: 'Lanzando con Steam',
+        body: 'Iniciando $name en tu cliente de Steam...',
+      ),
+    );
+
+    bool launched = false;
+    if (Platform.isWindows) {
+      // 1. Invocar el protocolo registrado steam://rungameid/<id> vía start
+      try {
+        final res = await Process.run('cmd', [
+          '/c',
+          'start',
+          '',
+          'steam://rungameid/$cleanAppId',
+        ]);
+        if (res.exitCode == 0) launched = true;
+      } catch (_) {}
+
+      // 2. Fallback con explorer.exe
+      if (!launched) {
+        try {
+          final res = await Process.run('explorer.exe', ['steam://rungameid/$cleanAppId']);
+          if (res.exitCode == 0) launched = true;
+        } catch (_) {}
+      }
+
+      // 3. Fallback con PowerShell Start-Process
+      if (!launched) {
+        try {
+          final res = await Process.run('powershell', [
+            '-NoProfile',
+            '-WindowStyle',
+            'Hidden',
+            '-Command',
+            'Start-Process "steam://rungameid/$cleanAppId"',
+          ]);
+          if (res.exitCode == 0) launched = true;
+        } catch (_) {}
+      }
+    }
+
+    if (mounted && _controller.value.isInitialized) {
+      try {
+        await _controller.executeScript(
+          'window.__gamenowSteamLaunched && window.__gamenowSteamLaunched("$cleanAppId", $launched);',
+        );
+      } catch (_) {}
+    }
   }
 
   Future<void> _respondFriend(String id, String action) async {

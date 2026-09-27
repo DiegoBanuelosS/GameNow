@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { MagnifyingGlass, ShoppingCart } from "../../components/Icons";
+import { SteamLogo } from "../../components/SteamLogo";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { SearchOverlay } from "./SearchOverlay";
 import { apiUrl } from "../../data/api";
@@ -60,6 +61,11 @@ export function SiteNav() {
                   )}
                 </span>
                 <span className="site-profile-username">{user.username}</span>
+                {user.steamName && (
+                  <span className="site-profile-steam-indicator" title={`Cuenta unificada con Steam: ${user.steamName}`}>
+                    <SteamLogo size={12} fill="#66c0f4" />
+                  </span>
+                )}
                 <svg
                   width="12"
                   height="12"
@@ -77,6 +83,12 @@ export function SiteNav() {
                 <div className="site-profile-dropdown" role="menu">
                   <div className="site-profile-dropdown-user-header">
                     <div className="site-profile-dropdown-name">{user.username}</div>
+                    {user.steamName && (
+                      <div className="site-profile-dropdown-steam" title={`Cuenta de Steam: ${user.steamName}`}>
+                        <SteamLogo size={12} fill="#66c0f4" />
+                        <span>{user.steamName}</span>
+                      </div>
+                    )}
                     <div className="site-profile-dropdown-email">{user.email}</div>
                   </div>
 

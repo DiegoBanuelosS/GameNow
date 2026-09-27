@@ -260,6 +260,23 @@
   line-height: 1.2;
 }
 
+.site-profile-dropdown-steam {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: #66c0f4;
+  margin-top: 3px;
+  font-weight: 500;
+}
+
+.site-profile-steam-indicator {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 2px;
+  opacity: 0.9;
+}
+
 .site-profile-dropdown-email {
   font-size: 11px;
   color: var(--color-fg-muted);

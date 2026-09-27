@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type CSSProperties, type FormEvent, type MouseEvent } from "react";
 import { Check, ImagePlus, Lock, MessageCircle, MessageSquarePlus, Pencil, Trash2, Users, X } from "lucide-react";
+import { SteamLogo } from "../../components/SteamLogo";
 import { apiUrl } from "../../data/api";
 import { useAuth } from "../../data/AuthContext";
 import { useChat, type ChatMessage, type ChatRoom } from "../../data/ChatContext";
@@ -157,7 +158,7 @@ export function ChatModal({
   const leaveTimer = useRef<number | null>(null);
   const meId = user?._id || "";
   const myAvatar = user?.steamAvatarUrl || user?.avatarUrl || "";
-  const myName = user?.steamName || user?.username || "Tú";
+  const myName = user?.username || user?.steamName || "Tú";
   const myBackgroundUrl = myBgOverride.url || user?.steamBackgroundUrl || "";
   const myBackgroundVideo = myBgOverride.video || user?.steamBackgroundVideo || "";
   const mySteamId = user?.steamId || "";
@@ -574,9 +575,15 @@ export function ChatModal({
                 <span className="chat-modal-me-avatar is-empty" aria-hidden />
               )}
               <h2 id="chat-modal-title">{myName}</h2>
+              {user?.steamName && (
+                <span className="chat-modal-steam-alias" title={`Cuenta de Steam: ${user.steamName}`}>
+                  <SteamLogo size={12} fill="#66c0f4" />
+                  {user.steamName}
+                </span>
+              )}
               <p className="chat-modal-lock">
                 <Lock size={14} aria-hidden />
-                Mensajes en tu cuenta
+                Encriptados de extremo a extremo
               </p>
               <button
                 type="button"
